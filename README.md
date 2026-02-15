@@ -8,6 +8,8 @@
 
 백엔드 개발자를 위한 기술 면접 대비 주관식 퀴즈 사이트입니다.
 
+> 원본 질문 출처: [fru1tworld/cs-basic](https://github.com/fru1tworld/cs-basic/blob/main/interview/interview.md)
+
 ### 주요 기능
 
 - **1,273개 문제** - 17개 카테고리의 CS 기초 및 백엔드 기술 문제

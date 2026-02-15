@@ -605,6 +605,48 @@
         .algorithm-info strong {
             color: #00d2ff;
         }
+
+        /* Footer */
+        footer {
+            margin-top: 50px;
+            padding: 30px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            color: #666;
+            font-size: 0.85rem;
+            line-height: 1.8;
+        }
+
+        footer a {
+            color: #3a7bd5;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: #00d2ff;
+            text-decoration: underline;
+        }
+
+        footer .contact {
+            margin-top: 15px;
+            color: #888;
+        }
+
+        footer .issue-link {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 8px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            color: #aaa;
+            transition: all 0.3s;
+        }
+
+        footer .issue-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
@@ -1281,5 +1323,20 @@
             updateQuestionCount();
         }
     </script>
+
+    <footer>
+        <div>
+            Made by <strong>chehyeonyeong</strong>
+        </div>
+        <div>
+            원본 질문 출처: <a href="https://github.com/fru1tworld/cs-study" target="_blank">fru1tworld/cs-study</a>
+        </div>
+        <div class="contact">
+            Contact: <a href="mailto:chehyeonyeong@gmail.com">chehyeonyeong@gmail.com</a> | 010-3341-4665
+        </div>
+        <a href="https://github.com/CheHyeonYeong/output/issues" target="_blank" class="issue-link">
+            버그 제보 및 건의사항은 Issue로 남겨주세요
+        </a>
+    </footer>
 </body>
 </html>

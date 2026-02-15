@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: output-study-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - bot-data:/app/data
+    environment:
+      - DB_PATH=/app/data/study.db
+      - TZ=Asia/Seoul
+
+volumes:
+  bot-data:

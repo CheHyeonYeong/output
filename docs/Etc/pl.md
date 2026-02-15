@@ -1807,7 +1807,7 @@ JVM이 정확히 무엇이고, 어떤 기능을 하는지 설명해 주세요.
 [^41]: Oracle JVM Specification
 
 ### JAVA-042
-그럼, 자바 말고 다른 언어는 JVM 위에 올릴 수 없나요?
+JVM이 자바 바이트코드를 실행한다면, 자바 말고 다른 언어는 JVM 위에 올릴 수 없나요?
 
 <details>
 <summary>답변</summary>
@@ -1845,7 +1845,7 @@ list.add("Hello")
 [^42]: Wikipedia - JVM Languages
 
 ### JAVA-043
-반대로 JVM 계열 언어를 일반적으로 컴파일해서 사용할 순 없나요?
+Kotlin, Scala 등 JVM 언어를 바이트코드가 아닌 네이티브 코드로 일반적으로 컴파일해서 사용할 순 없나요?
 
 <details>
 <summary>답변</summary>
@@ -1889,7 +1889,7 @@ native-image -jar myapp.jar
 [^43]: GraalVM Native Image Documentation
 
 ### JAVA-044
-VM을 사용함으로써 얻을 수 있는 장점과 단점에 대해 설명해 주세요.
+JVM과 같은 VM(Virtual Machine)을 사용함으로써 얻을 수 있는 장점과 단점에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1940,7 +1940,7 @@ VM을 사용함으로써 얻을 수 있는 장점과 단점에 대해 설명해 
 [^44]: Oracle JVM Specification - Introduction
 
 ### JAVA-045
-JVM과 내부에서 실행되고 있는 프로그램은 부모 프로세스 - 자식 프로세스 관계를 갖고 있다고 봐도 무방한가요?
+JVM과 내부에서 실행되고 있는 자바 프로그램은 부모 프로세스 - 자식 프로세스 관계를 갖고 있다고 봐도 무방한가요?
 
 <details>
 <summary>답변</summary>
@@ -2032,7 +2032,7 @@ public final class ImmutableValue {  // 상속 금지
 [^46]: Oracle Java Tutorial - final Keyword
 
 ### JAVA-047
-그렇다면 컴파일 과정에서, final 키워드는 다르게 취급되나요?
+final 키워드가 불변성과 안전성을 제공한다면, 컴파일 과정에서 final 키워드는 다르게 취급되나요?
 
 <details>
 <summary>답변</summary>
@@ -2129,7 +2129,7 @@ abstract class Animal {
 [^48]: Oracle Java Tutorial - Interfaces
 
 ### JAVA-049
-왜 클래스는 단일 상속만 가능한데, 인터페이스는 2개 이상 구현이 가능할까요?
+Java에서 클래스는 단일 상속만 가능한데, 인터페이스는 2개 이상 구현(implements)이 가능한 이유는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -2231,7 +2231,7 @@ Object obj = ctor.newInstance("John");
 [^50]: Oracle Java Tutorial - Reflection
 
 ### JAVA-051
-의미만 들어보면 리플렉션은 보안적인 문제가 있을 가능성이 있어보이는데, 실제로 그렇게 생각하시나요? 만약 그렇다면, 어떻게 방지할 수 있을까요?
+리플렉션(Reflection)이 런타임에 private 멤버까지 접근할 수 있다면, 보안적인 문제가 있을 가능성이 있는데, 실제로 그렇게 생각하시나요? 만약 그렇다면, 어떻게 방지할 수 있을까요?
 
 <details>
 <summary>답변</summary>
@@ -2281,7 +2281,7 @@ module my.module {
 [^51]: Oracle Java Security - Permissions
 
 ### JAVA-052
-리플렉션을 언제 활용할 수 있을까요?
+리플렉션(Reflection)은 보안 위험이 있음에도 불구하고, 언제 활용할 수 있을까요?
 
 <details>
 <summary>답변</summary>
@@ -2391,7 +2391,7 @@ Outer.StaticNested nested = new Outer.StaticNested();
 [^53]: Oracle Java Tutorial - Nested Classes
 
 ### JAVA-054
-static 을 사용하면 어떤 이점을 얻을 수 있나요? 어떤 제약이 걸릴까요?
+Java에서 static 을 사용하면 어떤 이점을 얻을 수 있나요? 어떤 제약이 걸릴까요?
 
 <details>
 <summary>답변</summary>
@@ -2450,7 +2450,7 @@ static 을 사용하면 어떤 이점을 얻을 수 있나요? 어떤 제약이 
 [^54]: Oracle Java Tutorial - Class Members
 
 ### JAVA-055
-컴파일 과정에서 static 이 어떻게 처리되는지 설명해 주세요.
+Java 컴파일 및 클래스 로딩 과정에서 static 멤버가 어떻게 처리되는지 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -3547,7 +3547,7 @@ public int hashCode() {
 [^74]: Oracle Java SE 17 API - Objects.hash()
 
 ### JAVA-075
-그렇다면 equals() 를 재정의 해야 할 때, 어떤 점을 염두에 두어야 하는지 설명해 주세요.
+Java에서 equals() 메서드를 재정의해야 할 때, 어떤 점을 염두에 두어야 하는지 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -3769,8 +3769,7 @@ function outer() {
 [^js3]: MDN - Closures
 
 ### JS-004
-
-클로저(Closure)란 무엇이고 어떻게 활용할 수 있나요?
+JavaScript의 렉시컬 스코프와 관련하여, 클로저(Closure)란 무엇이고 어떻게 활용할 수 있나요?
 
 <details>
 <summary>답변</summary>
@@ -3909,8 +3908,7 @@ fn();  // window (암시적 바인딩 소실)
 [^js5]: MDN - this
 
 ### JS-006
-
-화살표 함수와 일반 함수의 차이점은 무엇인가요?
+this 바인딩 관점에서 화살표 함수와 일반 함수의 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -4033,8 +4031,7 @@ class Dog extends Animal {
 [^js7]: MDN - Inheritance and Prototype Chain
 
 ### JS-008
-
-ES6 Class 문법과 프로토타입 기반 상속의 차이점은 무엇인가요?
+ES6 Class 문법과 기존 프로토타입 기반 상속의 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -4157,8 +4154,7 @@ Promise.any([p1, p2])     // 하나라도 성공
 [^js9]: MDN - Promise
 
 ### JS-010
-
-async/await와 Promise의 차이점은 무엇인가요?
+async/await 문법과 Promise 체이닝(.then)의 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -4285,8 +4281,7 @@ console.log('4');                    // 동기
 [^js11]: MDN - Event Loop
 
 ### JS-012
-
-마이크로태스크와 매크로태스크의 차이점은 무엇인가요?
+이벤트 루프에서 처리되는 마이크로태스크(Microtask)와 매크로태스크(Macrotask)의 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -4533,8 +4528,7 @@ function sum([a, b]) {
 [^js15]: MDN - Destructuring Assignment
 
 ### JS-016
-
-스프레드 연산자와 레스트 파라미터의 차이점은 무엇인가요?
+같은 `...` 문법을 사용하는 스프레드 연산자(Spread)와 레스트 파라미터(Rest)의 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -4653,8 +4647,7 @@ map.set('__proto__', 'safe');  // 안전
 [^js17]: MDN - Map
 
 ### JS-018
-
-Set과 WeakSet, Map과 WeakMap의 차이점을 설명해주세요.
+Set/Map과 WeakSet/WeakMap의 약한 참조(Weak Reference) 차이점을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -5075,7 +5068,7 @@ const point: Point = p;  // OK (필요한 속성만 있으면 됨)
 
 ### JS-024
 
-TypeScript의 제네릭(Generic) 사용 방법과 제약사항은 무엇인가요?
+TypeScript의 타입을 파라미터화하는 제네릭(Generic) 사용 방법과 제약사항은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -5150,7 +5143,7 @@ interface Response<T = any> {
 
 ### JS-025
 
-TypeScript의 Union Type과 Intersection Type의 차이점은 무엇인가요?
+TypeScript의 Union Type과 Intersection Type의 차이점과 활용 방법은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -5219,7 +5212,7 @@ type User = { name: string } & Timestamped;
 
 ### JS-026
 
-TypeScript의 타입 가드(Type Guard) 종류와 사용 방법을 설명해주세요.
+Union Type 사용 시 런타임에 타입을 좁히는 TypeScript의 타입 가드(Type Guard) 종류와 사용 방법을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -5299,7 +5292,7 @@ function handle(result: Result) {
 
 ### JS-027
 
-TypeScript의 유틸리티 타입(Partial, Pick, Omit 등)에 대해 설명해주세요.
+TypeScript의 기존 타입을 변환하는 유틸리티 타입(Partial, Pick, Omit 등)에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -5437,7 +5430,7 @@ type Never = string & number;  // never
 
 ### JS-029
 
-TypeScript의 컴파일 과정과 설정 옵션을 설명해주세요.
+TypeScript 소스 코드가 JavaScript로 변환되는 컴파일 과정과 tsconfig.json 설정 옵션을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -5504,7 +5497,7 @@ TypeScript의 컴파일 과정과 설정 옵션을 설명해주세요.
 
 ### JS-030
 
-TypeScript의 데코레이터(Decorator)에 대해 설명해주세요.
+TypeScript의 클래스, 메서드, 프로퍼티 등을 수정하는 데코레이터(Decorator)에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -5648,7 +5641,7 @@ a is b  # True
 
 ### PY-002
 
-Python의 GIL(Global Interpreter Lock)이란 무엇인가요?
+CPython의 참조 카운팅 기반 메모리 관리와 관련된 GIL(Global Interpreter Lock)이란 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -5781,7 +5774,7 @@ def append(item, lst=None):
 
 ### PY-004
 
-Python의 얕은 복사와 깊은 복사의 차이점은 무엇인가요?
+Python에서 가변 객체를 복사할 때 얕은 복사(shallow copy)와 깊은 복사(deep copy)의 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -5989,7 +5982,7 @@ class Database:
 
 ### PY-007
 
-Python의 제너레이터(Generator)와 이터레이터(Iterator)를 설명해주세요.
+Python의 제너레이터(Generator)와 이터레이터(Iterator)의 개념과 활용 방법을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -6062,7 +6055,7 @@ g.send('hello')  # Got: hello
 
 ### PY-008
 
-Python의 컨텍스트 매니저(Context Manager)란 무엇인가요?
+Python에서 리소스 설정과 정리를 자동화하는 컨텍스트 매니저(Context Manager)란 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -6137,7 +6130,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
 
 ### PY-009
 
-Python의 리스트 컴프리헨션과 제너레이터 표현식의 차이점은 무엇인가요?
+Python의 리스트 컴프리헨션([x for x in ...])과 제너레이터 표현식((x for x in ...))의 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -6270,7 +6263,7 @@ lambda x: int -> int: x + 1
 
 ### PY-011
 
-Python의 클로저(Closure)와 nonlocal 키워드에 대해 설명해주세요.
+Python에서 내부 함수가 외부 함수의 변수를 기억하는 클로저(Closure)와 nonlocal 키워드에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -6478,7 +6471,7 @@ class MyList:
 
 ### PY-014
 
-Python의 프로퍼티(Property)와 디스크립터(Descriptor)를 설명해주세요.
+Python에서 속성 접근을 제어하는 프로퍼티(Property)와 디스크립터(Descriptor)를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -6696,7 +6689,7 @@ render(Circle())  # 덕 타이핑, 명시적 상속 불필요
 
 ### PY-017
 
-Python의 Duck Typing이란 무엇인가요?
+Python의 Duck Typing(오리처럼 행동하면 오리로 간주)이란 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -6830,7 +6823,7 @@ add('1', '2')  # mypy 오류: str 대신 int 필요
 
 ### PY-019
 
-Python의 동시성 처리 방법(Threading, Multiprocessing, Asyncio)을 비교해주세요.
+Python의 GIL 영향을 고려한 동시성 처리 방법(Threading, Multiprocessing, Asyncio)을 비교해주세요.
 
 <details>
 <summary>답변</summary>
@@ -6897,7 +6890,7 @@ asyncio.run(main())
 
 ### PY-020
 
-Python의 asyncio와 비동기 프로그래밍에 대해 설명해주세요.
+Python의 단일 스레드 비동기 I/O 프레임워크인 asyncio에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -7149,7 +7142,7 @@ project/
 
 ### PY-024
 
-Python의 모듈 import 방식과 init.py의 역할을 설명해주세요.
+Python의 모듈 import 방식과 __init__.py의 역할을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -7350,7 +7343,7 @@ Go 언어의 특징과 장단점을 설명해주세요.
 
 ### GO-002
 
-Go의 고루틴(Goroutine)과 스레드의 차이점은 무엇인가요?
+Go의 경량 동시성 단위인 고루틴(Goroutine)과 OS 스레드의 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -7405,7 +7398,7 @@ func sayHello() {
 
 ### GO-003
 
-Go의 채널(Channel)의 동작 원리와 사용 방법을 설명해주세요.
+고루틴 간 통신을 위한 Go의 채널(Channel)의 동작 원리와 사용 방법을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -7475,7 +7468,7 @@ close(jobs)
 
 ### GO-004
 
-Go의 select 문의 동작 원리를 설명해주세요.
+여러 채널 연산을 동시에 대기하는 Go의 select 문의 동작 원리를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -7905,7 +7898,7 @@ func timed() {
 
 ### GO-010
 
-Go의 에러 처리 방식과 모범 사례는 무엇인가요?
+Go의 error 인터페이스 기반 에러 처리 방식과 모범 사례는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -7979,7 +7972,7 @@ if errors.Is(err, ErrNotFound) {
 
 ### GO-011
 
-Go의 컨텍스트(Context) 패키지의 용도와 사용 방법은 무엇인가요?
+요청 취소, 타임아웃, 요청 범위 값 전달을 위한 Go의 컨텍스트(Context) 패키지의 용도와 사용 방법은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -8043,7 +8036,7 @@ userID := ctx.Value("userID").(int)
 
 ### GO-012
 
-Go의 sync 패키지의 주요 기능들을 설명해주세요.
+동시성 제어를 위한 Go의 sync 패키지(Mutex, WaitGroup, Once 등)의 주요 기능들을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -8133,7 +8126,7 @@ pool.Put(buf)
 
 ### GO-013
 
-Go의 가비지 컬렉션 방식을 설명해주세요.
+Go의 Concurrent Tri-color Mark-and-Sweep 기반 가비지 컬렉션 방식을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -8185,7 +8178,7 @@ runtime.ReadMemStats() // 메모리 통계
 
 ### GO-014
 
-Go의 빌드와 컴파일 과정을 설명해주세요.
+Go의 빌드와 컴파일 과정(크로스 컴파일 포함)을 설명해주세요.
 
 <details>
 <summary>답변</summary>

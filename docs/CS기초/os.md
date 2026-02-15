@@ -23,7 +23,7 @@
 [^1]: Linux 커널 시스템 콜 목록 및 설명
 
 ### OS-002
-우리가 사용하는 시스템 콜의 예시를 들어주세요.
+시스템 콜의 구체적인 예시를 들어주세요.
 
 <details>
 <summary>답변</summary>
@@ -43,7 +43,7 @@
 [^2]: Linux 시스템 콜 분류 및 예시
 
 ### OS-003
-시스템 콜이, 운영체제에서 어떤 과정으로 실행되는지 설명해 주세요.
+시스템 콜이 운영체제에서 어떤 과정으로 실행되는지 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -103,7 +103,7 @@ Dual Mode는 CPU가 **사용자 모드(User Mode)**와 **커널 모드(Kernel Mo
 [^5]: Intel CPU 보호 모드 및 권한 레벨 설명
 
 ### OS-006
-왜 유저모드와 커널모드를 구분해야 하나요?
+Dual Mode에서 유저모드와 커널모드를 구분해야 하는 이유는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -121,7 +121,7 @@ Dual Mode는 CPU가 **사용자 모드(User Mode)**와 **커널 모드(Kernel Mo
 [^6]: Linux 커널 메모리 보호 메커니즘
 
 ### OS-007
-서로 다른 시스템 콜을 어떻게 구분할 수 있을까요?
+운영체제에서 서로 다른 시스템 콜을 어떻게 구분하나요?
 
 <details>
 <summary>답변</summary>
@@ -165,7 +165,7 @@ Dual Mode는 CPU가 **사용자 모드(User Mode)**와 **커널 모드(Kernel Mo
 [^8]: Linux 커널 인터럽트 처리 문서
 
 ### OS-009
-인터럽트는 어떻게 처리하나요?
+인터럽트가 발생했을 때 처리 과정을 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -334,7 +334,7 @@ PCB(Process Control Block)는 운영체제가 프로세스를 관리하기 위�
 [^15]: Linux task_struct 구조체 정의
 
 ### OS-016
-그렇다면, 스레드는 PCB를 갖고 있을까요?
+스레드도 PCB(Process Control Block)를 갖고 있나요?
 
 <details>
 <summary>답변</summary>
@@ -549,7 +549,7 @@ int init_var = 10;        // Data 영역
 [^24]: Linux 리소스 제한 시스템 콜
 
 ### OS-024
-Stack과 Heap 공간에 대해, 접근 속도가 더 빠른 공간은 어디일까요?
+Stack과 Heap 공간 중 접근 속도가 더 빠른 공간은 어디이고, 그 이유는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -575,7 +575,7 @@ Stack과 Heap 공간에 대해, 접근 속도가 더 빠른 공간은 어디일�
 [^25]: glibc malloc 구현 상세
 
 ### OS-025
-다음과 같이 공간을 분할하는 이유가 있을까요?
+프로세스 주소 공간을 Code, Data, Heap, Stack 영역으로 분할하는 이유는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -762,7 +762,7 @@ ulimit -v unlimited
 [^31]: Linux 커널 스케줄러 문서
 
 ### OS-031
-현대 OS에는 단기, 중기, 장기 스케쥴러를 모두 사용하고 있나요?
+현대 OS에서는 단기, 중기, 장기 스케줄러를 모두 사용하고 있나요?
 
 <details>
 <summary>답변</summary>
@@ -822,7 +822,7 @@ ulimit -v unlimited
 [^33]: Linux 프로세스 상태 정의
 
 ### OS-033
-preemptive/non-preemptive 에서 존재할 수 없는 상태가 있을까요?
+선점(preemptive) 스케줄링과 비선점(non-preemptive) 스케줄링에서 존재할 수 없는 상태 전이가 있나요?
 
 <details>
 <summary>답변</summary>
@@ -921,7 +921,7 @@ Memory가 부족할 경우, Process는 어떠한 상태로 변화할까요?
 [^36]: Linux 컨텍스트 스위칭 메커니즘
 
 ### OS-036
-프로세스와 스레드는 컨텍스트 스위칭이 발생했을 때 어떤 차이가 있을까요?
+프로세스 컨텍스트 스위칭과 스레드 컨텍스트 스위칭의 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1331,7 +1331,7 @@ sem_wait(&semaphore);  // 카운트 감소
 [^48]: POSIX 뮤텍스 표준
 
 ### OS-048
-이진 세마포어와 뮤텍스의 차이에 대해 설명해 주세요.
+이진 세마포어(Binary Semaphore)와 뮤텍스(Mutex)의 차이점을 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1476,7 +1476,7 @@ Deadlock 에 대해 설명해 주세요.
 [^52]: Linux 커널 데드락 탐지 도구
 
 ### OS-052
-Deadlock 이 동작하기 위한 4가지 조건에 대해 설명해 주세요.
+Deadlock이 발생하기 위한 4가지 필요조건에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1509,7 +1509,7 @@ Deadlock 이 동작하기 위한 4가지 조건에 대해 설명해 주세요.
 [^53]: 데드락의 필요충분조건 (Coffman conditions)
 
 ### OS-053
-그렇다면 3가지만 충족하면 왜 Deadlock 이 발생하지 않을까요?
+Deadlock의 4가지 조건 중 3가지만 충족하면 왜 Deadlock이 발생하지 않나요?
 
 <details>
 <summary>답변</summary>
@@ -1546,7 +1546,7 @@ Deadlock 이 동작하기 위한 4가지 조건에 대해 설명해 주세요.
 [^54]: OSTEP 동시성 버그 챕터
 
 ### OS-054
-Deadlock은 어떤 방식으로 예방할 수 있을까요?
+Deadlock을 예방하거나 해결하는 방법에는 무엇이 있나요?
 
 <details>
 <summary>답변</summary>
@@ -1577,7 +1577,7 @@ Deadlock은 어떤 방식으로 예방할 수 있을까요?
 [^55]: Banker's Algorithm 설명
 
 ### OS-055
-왜 현대 OS는 Deadlock을 처리하지 않을까요?
+현대 운영체제(Linux, Windows 등)에서 Deadlock을 적극적으로 처리하지 않는 이유는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1997,7 +1997,7 @@ void *ptr = mmap(NULL, SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
 [^66]: POSIX 공유 메모리 함수
 
 ### OS-066
-메시지 큐는 단방향이라고 할 수 있나요?
+IPC에서 메시지 큐(Message Queue)는 단방향 통신만 가능한가요?
 
 <details>
 <summary>답변</summary>
@@ -2076,7 +2076,7 @@ Thread Safe한 코드는 멀티스레드 환경에서 안전하게 호출할 수
 [^68]: POSIX 스레드 안전성 정의
 
 ### OS-068
-Thread Safe 를 보장하기 위해 어떤 방법을 사용할 수 있나요?
+Thread Safe를 보장하기 위해 어떤 방법들을 사용할 수 있나요?
 
 <details>
 <summary>답변</summary>
@@ -2221,7 +2221,7 @@ balance = temp;     // balance = 700
 [^71]: Race Condition 보안 취약점 정의
 
 ### OS-071
-Thread Safe를 구현하기 위해 반드시 락을 사용해야 할까요? 그렇지 않다면, 어떤 다른 방법이 있을까요?
+Thread Safe를 구현하기 위해 반드시 락을 사용해야 하나요? 락 없이 Thread Safe를 구현하는 방법이 있다면 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -2318,7 +2318,7 @@ class Task extends RecursiveTask<Integer> {
 [^73]: Java 동시성 유틸리티 튜토리얼
 
 ### OS-073
-Thread Pool을 사용한다고 가정하면, 어떤 기준으로 스레드의 수를 결정할 것인가요?
+Thread Pool의 스레드 수는 어떤 기준으로 결정하나요?
 
 <details>
 <summary>답변</summary>
@@ -2451,7 +2451,7 @@ class ParallelMergeSort extends RecursiveAction {
 [^76]: Intel 최적화 매뉴얼
 
 ### OS-076
-캐시 메모리는 어디에 위치해 있나요?
+캐시 메모리(L1, L2, L3)는 물리적으로 어디에 위치해 있나요?
 
 <details>
 <summary>답변</summary>
@@ -2496,7 +2496,7 @@ SRAM(Static RAM)으로 구현되어 DRAM보다 빠르지만 비쌈.
 [^77]: Intel CPU 캐시 아키텍처
 
 ### OS-077
-L1, L2 캐시에 대해 설명해 주세요.
+L1 캐시와 L2 캐시의 특징과 차이점을 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -2536,7 +2536,7 @@ L1 미스 -> L2 확인 -> L2 미스 -> L3 확인 -> 메인 메모리
 [^78]: Intel 아키텍처 최적화 가이드
 
 ### OS-078
-캐시에 올라오는 데이터는 어떻게 관리되나요?
+캐시에 저장되는 데이터는 어떻게 관리되나요? (캐시 라인, 쓰기 정책, 교체 정책 등)
 
 <details>
 <summary>답변</summary>
@@ -2581,7 +2581,7 @@ L1 미스 -> L2 확인 -> L2 미스 -> L3 확인 -> 메인 메모리
 [^79]: CSAPP 캐시 설계 챕터
 
 ### OS-079
-캐시간의 동기화는 어떻게 이루어지나요?
+멀티코어 환경에서 각 코어의 캐시 간 동기화(캐시 일관성)는 어떻게 이루어지나요?
 
 <details>
 <summary>답변</summary>
@@ -2697,7 +2697,7 @@ for (int i = 0; i < 100; i++) {
 [^82]: CSAPP 지역성 원리
 
 ### OS-082
-캐시의 지역성을 기반으로, 이차원 배열을 가로/세로로 탐색했을 때의 성능 차이에 대해 설명해 주세요.
+이차원 배열을 행 우선(가로)으로 탐색할 때와 열 우선(세로)으로 탐색할 때의 성능 차이를 캐시 지역성 관점에서 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -2743,7 +2743,7 @@ for (int j = 0; j < M; j++)
 [^83]: CSAPP 메모리 접근 패턴
 
 ### OS-083
-캐시의 공간 지역성은 어떻게 구현될 수 있을까요? (힌트: 캐시는 어떤 단위로 저장되고 관리될까요?)
+캐시의 공간 지역성은 하드웨어에서 어떻게 구현되나요?
 
 <details>
 <summary>답변</summary>
@@ -2825,7 +2825,7 @@ for (int i = 0; i < 16; i++) {
 [^85]: 운영체제 교과서 - 메모리 관리
 
 ### OS-085
-worst-fit 은 언제 사용할 수 있을까요?
+Worst-fit 방식이 유용한 상황이 있나요? 있다면 어떤 경우인가요?
 
 <details>
 <summary>답변</summary>
@@ -2861,7 +2861,7 @@ worst-fit 은 언제 사용할 수 있을까요?
 [^86]: OSTEP Free Space Management
 
 ### OS-086
-성능이 가장 좋은 알고리즘은 무엇일까요?
+First-fit, Best-fit, Worst-fit 중 일반적으로 성능이 가장 좋은 알고리즘은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -2937,7 +2937,7 @@ Thrashing 이란 무엇인가요?
 [^88]: Linux 메모리 오버커밋 설정
 
 ### OS-088
-Thrashing 발생 시, 어떻게 완화할 수 있을까요?
+Thrashing이 발생했을 때 어떻게 완화할 수 있나요?
 
 <details>
 <summary>답변</summary>
@@ -3017,7 +3017,7 @@ Thrashing 발생 시, 어떻게 완화할 수 있을까요?
 [^90]: Linux 가상 메모리 개념
 
 ### OS-090
-가상 메모리가 가능한 이유가 무엇일까요?
+가상 메모리가 가능한 이유(원리)는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -3056,7 +3056,7 @@ Thrashing 발생 시, 어떻게 완화할 수 있을까요?
 [^91]: OSTEP 가상 메모리 챕터
 
 ### OS-091
-Page Fault가 발생했을 때, 어떻게 처리하는지 설명해 주세요.
+Page Fault가 발생했을 때 처리 과정을 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -3137,7 +3137,7 @@ Page Fault가 발생했을 때, 어떻게 처리하는지 설명해 주세요.
 [^93]: Linux Huge Pages 문서
 
 ### OS-093
-페이지 크기가 커지면, 페이지 폴트가 더 많이 발생한다고 할 수 있나요?
+페이지 크기가 커지면 페이지 폴트가 더 많이 발생하나요, 아니면 감소하나요?
 
 <details>
 <summary>답변</summary>
@@ -3339,7 +3339,7 @@ vs
 [^98]: OSTEP 메모리 단편화
 
 ### OS-098
-페이지에서 실제 주소를 어떻게 가져올 수 있는지 설명해 주세요.
+가상 주소에서 물리 주소를 얻는 주소 변환 과정을 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -3385,7 +3385,7 @@ vs
 [^99]: x86 페이징 메커니즘
 
 ### OS-099
-어떤 주소공간이 있을 때, 이 공간이 수정 가능한지 확인할 수 있는 방법이 있나요?
+특정 메모리 주소공간이 수정 가능한지(쓰기 권한이 있는지) 어떻게 확인할 수 있나요?
 
 <details>
 <summary>답변</summary>
@@ -3475,7 +3475,7 @@ cat /proc/<pid>/maps
 [^101]: OSTEP 다단계 페이지 테이블
 
 ### OS-101
-32비트 운영체제는 램을 최대 4G 까지 사용할 수 있습니다. 이 이유를 페이징과 연관 지어서 설명해 주세요.
+32비트 운영체제에서 최대 4GB RAM만 사용할 수 있는 이유를 페이징과 연관 지어 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -3610,7 +3610,7 @@ TLB는 무엇인가요?
 [^104]: OSTEP TLB 챕터
 
 ### OS-104
-TLB를 쓰면 왜 빨라지나요?
+TLB를 사용하면 왜 성능이 향상되나요?
 
 <details>
 <summary>답변</summary>
@@ -3705,7 +3705,7 @@ CPU --[가상주소]--> MMU --[물리주소]--> 메모리
 [^106]: Intel MMU 아키텍처
 
 ### OS-106
-TLB와 MMU는 어디에 위치해 있나요?
+TLB와 MMU는 물리적으로 어디에 위치해 있나요?
 
 <details>
 <summary>답변</summary>
@@ -3758,7 +3758,7 @@ CPU와 메모리 사이의 모든 접근은 MMU를 거칩니다.
 [^107]: x86 CPU 아키텍처
 
 ### OS-107
-코어가 여러개라면, TLB는 어떻게 동기화 할 수 있을까요?
+멀티코어 환경에서 각 코어의 TLB는 어떻게 동기화되나요?
 
 <details>
 <summary>답변</summary>
@@ -3802,7 +3802,7 @@ Core A: 모든 응답 확인 후 계속 실행
 [^108]: Linux TLB 관리
 
 ### OS-108
-TLB 관점에서, Context Switching 발생 시 어떤 변화가 발생하는지 설명해 주세요.
+Context Switching이 발생하면 TLB에는 어떤 변화가 발생하나요?
 
 <details>
 <summary>답변</summary>
@@ -3953,7 +3953,7 @@ counter++;  // 원자적이지 않음! (read-modify-write)
 [^111]: C++ volatile 키워드
 
 ### OS-111
-싱글코어가 아니라 멀티코어라면, 어떻게 동기화가 이뤄질까요?
+멀티코어 환경에서는 동기화가 어떻게 이루어지나요?
 
 <details>
 <summary>답변</summary>
@@ -4044,7 +4044,7 @@ Linux는 **LRU 근사 알고리즘** (Active/Inactive 리스트)을 사용합니
 [^113]: OSTEP 페이지 교체 정책
 
 ### OS-113
-LRU 알고리즘은 어떤 특성을 이용한 알고리즘이라고 할 수 있을까요?
+LRU 알고리즘은 어떤 특성(원리)을 이용한 알고리즘인가요?
 
 <details>
 <summary>답변</summary>
@@ -4083,7 +4083,7 @@ LRU는 지역성이 있는 대부분의 워크로드에서 좋은 성능을 보�
 [^114]: CSAPP 지역성 원리
 
 ### OS-114
-LRU 알고리즘을 구현한다면, 어떻게 구현할 수 있을까요?
+LRU 알고리즘을 구현하는 방법에는 어떤 것들이 있나요?
 
 <details>
 <summary>답변</summary>
@@ -4139,7 +4139,7 @@ Linux는 Active/Inactive 리스트 기반 LRU 근사를 사용합니다.
 [^115]: Linux 페이지 회수 알고리즘
 
 ### OS-115
-LRU 알고리즘의 단점을 설명해 주세요. 이를 해결할 수 있는 대안에 대해서도 설명해 주세요.
+LRU 알고리즘의 단점과 이를 해결할 수 있는 대안 알고리즘을 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -4229,7 +4229,7 @@ close(fd);
 [^117]: Linux open() 시스템 콜
 
 ### OS-117
-I-Node가 무엇인가요?
+파일 시스템에서 I-Node(Index Node)란 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -4370,7 +4370,7 @@ aio_read(&aiocb);     // 즉시 반환, 콜백으로 알림
 [^120]: Linux 비동기 I/O
 
 ### OS-120
-그렇다면, 동기이면서 논블로킹이고, 비동기이면서 블로킹인 경우는 의미가 있다고 할 수 있나요?
+동기+논블로킹, 비동기+블로킹 조합은 실제로 사용되는 의미 있는 조합인가요?
 
 <details>
 <summary>답변</summary>
@@ -4474,7 +4474,7 @@ for (int i = 0; i < n; i++) {
 [^122]: Linux epoll 인터페이스
 
 ### OS-122
-논블로킹 I/O를 수행한다고 하면, 그 결과를 어떻게 수신할 수 있나요?
+논블로킹 I/O를 수행할 때 작업 완료 결과를 어떤 방법으로 수신할 수 있나요?
 
 <details>
 <summary>답변</summary>

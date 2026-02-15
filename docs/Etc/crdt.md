@@ -35,7 +35,7 @@ CRDT는 분산 시스템에서 여러 복제본(replica)이 독립적으로 수�
 [^2]: CRDT를 최초로 정의한 학술 논문 (2011)
 
 ### CRDT-002
-Yjs 라이브러리의 주요 기능과 특징에 대해 설명해주세요.
+CRDT의 대표적인 구현체인 Yjs 라이브러리의 주요 기능과 특징에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -63,7 +63,7 @@ Yjs는 고성능 CRDT 라이브러리로, 실시간 협업 애플리케이션 �
 [^4]: Yjs GitHub 저장소
 
 ### CRDT-003
-Yjs를 사용하여 분산 환경에서 데이터 동기화를 구현하는 방법은 무엇인가요?
+Yjs의 Provider와 Y.Doc을 사용하여 분산 환경에서 데이터 동기화를 구현하는 방법은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -257,7 +257,7 @@ Y.applyUpdate(ydoc, diff)
 ## 📌 Yjs 버전 관리
 
 ### CRDT-007
-Yjs에서 문서의 버전 관리와 업데이트 충돌 해결 방법에 대해 설명해주세요.
+Yjs의 State Vector와 클라이언트 ID 기반 문서 버전 관리와 업데이트 충돌 해결 방법에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -578,7 +578,7 @@ ytext.unobserve(observer)
 ## 📌 Yjs Delta
 
 ### CRDT-013
-Yjs의 Delta 업데이트 방식과 그 장점에 대해 설명해주세요.
+Yjs에서 텍스트 변경 사항을 표현하는 Quill Delta 기반의 Delta 업데이트 방식과 그 장점에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -645,7 +645,7 @@ ytext.observe(event => {
 ## 📌 Yjs 충돌 해결
 
 ### CRDT-014
-Yjs 문서 병합 과정에서 발생할 수 있는 충돌 상황은 어떤 것이며, 이를 어떻게 해결하나요?
+Yjs 문서 병합 과정에서 동시 삽입, 동시 삭제 등 발생할 수 있는 충돌 상황은 어떤 것이며, 이를 어떻게 해결하나요?
 
 <details>
 <summary>답변</summary>
@@ -848,7 +848,7 @@ const snapshot = Y.encodeStateAsUpdate(ydoc)
 ## 📌 Yjs 네트워크 지연
 
 ### CRDT-017
-네트워크 지연(latency) 환경에서 Yjs의 동기화 성능을 개선하는 방법은 무엇인가요?
+IndexedDB 등 로컬 저장소와 함께 네트워크 지연(latency) 환경에서 Yjs의 동기화 성능을 개선하는 방법은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -926,7 +926,7 @@ ydoc.on('update', (update) => {
 ## 📌 Yjs 통신 프로토콜
 
 ### CRDT-018
-Yjs와 WebSocket, WebRTC 등 다른 실시간 통신 프로토콜 연동 방안에 대해 설명해주세요.
+Yjs와 WebSocket(y-websocket), WebRTC(y-webrtc) 등 실시간 통신 프로토콜 연동 방안에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1343,7 +1343,7 @@ ydoc.on('update', (update) => {
 [^30]: Yjs 공식 문서 - Document Updates
 
 ### CRDT-023
-Yjs 업데이트 메시지의 크기를 최소화하는 방법에 대해 설명해주세요.
+트랜잭션 그룹화, 업데이트 병합 등을 통해 Yjs 업데이트 메시지의 크기를 최소화하는 방법에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1724,7 +1724,7 @@ function validateUser(ymap) {
 ## 📌 Yjs 정합성
 
 ### CRDT-027
-Yjs 문서의 데이터 정합성을 보장하기 위한 전략은 무엇인가요?
+Yjs의 CRDT 특성(Strong Eventual Consistency)과 함께 문서의 애플리케이션 레벨 데이터 정합성을 보장하기 위한 전략은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1826,7 +1826,7 @@ function verifyDocumentIntegrity(ydoc, serverChecksum) {
 ## 📌 Yjs 충돌 해결 알고리즘
 
 ### CRDT-028
-Yjs의 업데이트 충돌 해결 알고리즘에 대해 설명해주세요.
+Yjs의 YATA(Yet Another Transformation Approach) 기반 업데이트 충돌 해결 알고리즘에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1910,7 +1910,7 @@ User 2 (clientID: 2): "A" 뒤에 "X" 삽입 → "AXC"
 ## 📌 Yjs 프로덕션 적용
 
 ### CRDT-029
-Yjs를 실제 프로덕션 환경에 적용할 때 고려해야 할 주요 이슈는 무엇인가요?
+확장성, 모니터링, 백업 등 Yjs를 실제 프로덕션 환경에 적용할 때 고려해야 할 주요 이슈는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -2018,7 +2018,7 @@ wss.on('connection', async (ws, req) => {
 ## 📌 Yjs 보안
 
 ### CRDT-030
-Yjs를 활용한 협업 시스템에서 보안 및 접근 제어를 구현하는 방법은 무엇인가요?
+Yjs를 활용한 협업 시스템에서 인증, 인가, 암호화 등 보안 및 접근 제어를 구현하는 방법은 무엇인가요?
 
 <details>
 <summary>답변</summary>

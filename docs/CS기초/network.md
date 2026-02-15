@@ -38,7 +38,7 @@ Stateless란 서버가 클라이언트의 이전 요청 상태를 저장하지 �
 [^2]: HTTP Stateless 특성 명세
 
 ### NET-003
-Stateless와 Connectionless에 대해 설명해 주세요.
+HTTP의 Stateless와 Connectionless 특성의 차이점에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -73,7 +73,7 @@ Stateless는 "상태 비저장", Connectionless는 "연결 비유지"를 의미�
 [^4]: HTTP 설계 원칙
 
 ### NET-005
-Connectionless의 논리대로면 성능이 되게 좋지 않을 것으로 보이는데, 해결 방법이 있을까요?
+HTTP의 Connectionless 특성으로 인해 매 요청마다 연결을 새로 수립해야 해서 성능이 좋지 않을 것으로 보이는데, 해결 방법이 있을까요?
 
 <details>
 <summary>답변</summary>
@@ -130,7 +130,7 @@ HTTP/1.1과 HTTP/2의 차이점은 무엇인가요?
 [^7]: HTTP/2 표준 명세
 
 ### NET-008
-HOL Blocking 에 대해 설명해 주세요.
+HTTP에서 발생하는 HOL(Head-of-Line) Blocking에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -186,7 +186,7 @@ HTTP는 **신뢰성 있는 데이터 전송**이 필요하기 때문입니다.
 [^10]: HTTP 전송 계층 요구사항
 
 ### NET-011
-그렇다면, 왜 HTTP/3 에서는 UDP를 사용하나요? 위에서 언급한 UDP의 문제가 해결되었나요?
+HTTP는 신뢰성을 위해 TCP를 사용하는데, 왜 HTTP/3에서는 UDP를 사용하나요? UDP의 신뢰성 문제가 해결되었나요?
 
 <details>
 <summary>답변</summary>
@@ -205,7 +205,7 @@ QUIC 프로토콜이 UDP 위에서 TCP의 기능을 구현합니다.
 [^11]: QUIC 프로토콜 표준 명세
 
 ### NET-012
-그런데, 브라우저는 어떤 서버가 TCP를 쓰는지 UDP를 쓰는지 어떻게 알 수 있나요?
+HTTP/2는 TCP를, HTTP/3는 UDP를 사용하는데, 브라우저는 서버가 어떤 프로토콜을 사용하는지 어떻게 알 수 있나요?
 
 <details>
 <summary>답변</summary>
@@ -251,7 +251,7 @@ HTTP 응답코드는 3자리 숫자로 요청 처리 결과를 나타냅니다.
 [^13]: HTTP 상태 코드 정의
 
 ### NET-014
-401 (Unauthorized) 와 403 (Forbidden)은 의미적으로 어떤 차이가 있나요?
+HTTP 응답코드 401 (Unauthorized)과 403 (Forbidden)은 의미적으로 어떤 차이가 있나요?
 
 <details>
 <summary>답변</summary>
@@ -271,7 +271,7 @@ HTTP 응답코드는 3자리 숫자로 요청 처리 결과를 나타냅니다.
 [^14]: HTTP 401, 403 상태 코드 정의
 
 ### NET-015
-200 (ok) 와 201 (created) 의 차이에 대해 설명해 주세요.
+HTTP 응답코드 200 (OK)과 201 (Created)의 차이에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -289,7 +289,7 @@ HTTP 응답코드는 3자리 숫자로 요청 처리 결과를 나타냅니다.
 [^15]: HTTP 200, 201 상태 코드 정의
 
 ### NET-016
-필요하다면 저희가 직접 응답코드를 정의해서 사용할 수 있을까요? 예를 들어 285번 처럼요.
+HTTP 응답코드를 직접 정의해서 사용할 수 있을까요? 예를 들어 285번처럼요.
 
 <details>
 <summary>답변</summary>
@@ -359,7 +359,7 @@ HTTP Method의 멱등성에 대해 설명해 주세요.
 [^18]: HTTP 멱등성 정의
 
 ### NET-019
-GET과 POST의 차이는 무엇인가요?
+HTTP Method 중 GET과 POST의 차이는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -381,7 +381,7 @@ GET과 POST의 차이는 무엇인가요?
 [^19]: GET, POST 메서드 정의
 
 ### NET-020
-POST와 PUT, PATCH의 차이는 무엇인가요?
+HTTP Method 중 POST와 PUT, PATCH의 차이는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -403,7 +403,7 @@ POST와 PUT, PATCH의 차이는 무엇인가요?
 [^20]: POST, PUT 메서드 정의
 
 ### NET-021
-HTTP 1.1 이후로, GET에도 Body에 데이터를 실을 수 있게 되었습니다. 그럼에도 불구하고 왜 아직도 이런 방식을 지양하는 것일까요?
+HTTP 1.1 이후로 GET 요청에도 Body에 데이터를 실을 수 있게 되었습니다. 그럼에도 불구하고 왜 아직도 이런 방식을 지양하는 것일까요?
 
 <details>
 <summary>답변</summary>
@@ -465,7 +465,7 @@ HTTP 1.1 이후로, GET에도 Body에 데이터를 실을 수 있게 되었습�
 [^23]: HTTP 쿠키 기반 상태 관리
 
 ### NET-024
-Stateless의 의미를 살펴보면, 세션은 적절하지 않은 인증 방법 아닌가요?
+HTTP는 Stateless 프로토콜인데, 서버에 사용자 상태를 저장하는 세션 기반 인증 방식은 HTTP의 Stateless 원칙에 위배되는 것 아닌가요?
 
 <details>
 <summary>답변</summary>
@@ -487,7 +487,7 @@ Stateless의 의미를 살펴보면, 세션은 적절하지 않은 인증 방법
 [^24]: JSON Web Token 표준 명세
 
 ### NET-025
-규모가 커져 서버가 여러 개가 된다면, 세션을 어떻게 관리할 수 있을까요?
+서버가 여러 대로 확장된 분산 환경에서 세션을 어떻게 관리할 수 있을까요?
 
 <details>
 <summary>답변</summary>
@@ -536,7 +536,7 @@ HTTPS는 공개키로 대칭키를 교환한 후, 대칭키로 통신합니다.
 [^26]: TLS 암호화 명세
 
 ### NET-027
-왜 HTTPS Handshake 과정에서는 인증서를 사용하는 것 일까요?
+HTTPS Handshake 과정에서 공개키만 교환하면 될 것 같은데, 왜 인증서를 사용하는 것일까요?
 
 <details>
 <summary>답변</summary>
@@ -598,7 +598,7 @@ XSS에 대해서 설명해 주세요.
 [^29]: OWASP XSS 방지 가이드
 
 ### NET-030
-CSRF랑 XSS는 어떤 차이가 있나요?
+CSRF와 XSS는 어떤 차이가 있나요?
 
 <details>
 <summary>답변</summary>
@@ -618,7 +618,7 @@ CSRF랑 XSS는 어떤 차이가 있나요?
 [^30]: OWASP CSRF 방지 가이드
 
 ### NET-031
-XSS는 프론트엔드에서만 막을 수 있나요?
+XSS(Cross-Site Scripting) 공격은 프론트엔드에서만 방어할 수 있나요?
 
 <details>
 <summary>답변</summary>
@@ -665,7 +665,7 @@ SOP 정책에 대해 설명해 주세요.
 [^32]: MDN SOP 문서
 
 ### NET-033
-CORS 정책이 무엇인가요?
+SOP(Same-Origin Policy)의 제한을 우회하는 CORS 정책이 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -685,7 +685,7 @@ CORS 정책이 무엇인가요?
 [^33]: MDN CORS 문서
 
 ### NET-034
-Preflight에 대해 설명해 주세요.
+CORS에서 사용하는 Preflight 요청에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -735,7 +735,7 @@ TCP와 UDP의 차이에 대해 설명해 주세요.
 [^35]: TCP 표준 명세
 
 ### NET-036
-Checksum이 무엇인가요?
+TCP/UDP에서 사용하는 Checksum이 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -755,7 +755,7 @@ Checksum이 무엇인가요?
 [^36]: TCP 체크섬 명세
 
 ### NET-037
-TCP와 UDP 중 어느 프로토콜이 Checksum을 수행할까요?
+TCP와 UDP 중 어느 프로토콜이 Checksum(데이터 무결성 검증)을 수행할까요?
 
 <details>
 <summary>답변</summary>
@@ -775,7 +775,7 @@ UDP는 IPv4에서 체크섬을 0으로 설정하여 생략할 수 있지만, IPv
 [^37]: UDP 표준 명세
 
 ### NET-038
-그렇다면, Checksum을 통해 오류를 정정할 수 있나요?
+TCP/UDP에서 사용하는 Checksum을 통해 데이터 오류를 정정할 수 있나요?
 
 <details>
 <summary>답변</summary>
@@ -836,7 +836,7 @@ TCP의 혼잡 제어 처리 방법에 대해 설명해 주세요.
 [^40]: TCP 혼잡 제어 표준 명세
 
 ### NET-041
-본인이 새로운 통신 프로토콜을 TCP나 UDP를 사용해서 구현한다고 하면, 어떤 기준으로 프로토콜을 선택하시겠어요?
+새로운 통신 프로토콜을 TCP나 UDP 위에 구현한다고 할 때, 어떤 기준으로 프로토콜을 선택하시겠어요?
 
 <details>
 <summary>답변</summary>
@@ -884,7 +884,7 @@ TCP 연결 수립을 위한 3단계 과정입니다.
 [^42]: TCP 연결 수립 명세
 
 ### NET-043
-ACK, SYN 같은 정보는 어떻게 전달하는 것 일까요?
+TCP 3-Way Handshake에서 ACK, SYN 같은 정보는 어떻게 전달하는 것일까요?
 
 <details>
 <summary>답변</summary>
@@ -909,7 +909,7 @@ TCP 헤더에는 6개의 제어 플래그가 있습니다:
 [^43]: TCP 헤더 구조 명세
 
 ### NET-044
-2-Way Handshaking 를 하지않는 이유에 대해 설명해 주세요.
+TCP에서 2-Way Handshaking이 아닌 3-Way Handshaking을 사용하는 이유에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -931,7 +931,7 @@ TCP 헤더에는 6개의 제어 플래그가 있습니다:
 [^44]: TCP 연결 수립 이유
 
 ### NET-045
-두 호스트가 동시에 연결을 시도하면, 연결이 가능한가요? 가능하다면 어떻게 통신 연결을 수행하나요?
+TCP에서 두 호스트가 동시에 연결을 시도하면, 연결이 가능한가요? 가능하다면 어떻게 통신 연결을 수행하나요?
 
 <details>
 <summary>답변</summary>
@@ -955,7 +955,7 @@ TCP 헤더에는 6개의 제어 플래그가 있습니다:
 [^45]: TCP Simultaneous Open 명세
 
 ### NET-046
-SYN Flooding 에 대해 설명해 주세요.
+TCP 3-Way Handshake를 악용한 SYN Flooding 공격에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -977,7 +977,7 @@ SYN Flooding 에 대해 설명해 주세요.
 [^46]: TCP SYN Flooding 대응 명세
 
 ### NET-047
-위 질문과 모순될 수 있지만, 3-Way Handshake의 속도 문제 때문에 이동 수를 줄이는 0-RTT 기법을 많이 적용하고 있습니다. 어떤 방식으로 가능한 걸까요?
+TCP 3-Way Handshake는 연결 수립에 시간이 걸리는데, 왕복 시간을 줄이는 0-RTT(Zero Round-Trip Time) 기법은 어떤 방식으로 동작하나요?
 
 <details>
 <summary>답변</summary>
@@ -999,7 +999,7 @@ SYN Flooding 에 대해 설명해 주세요.
 [^47]: TLS 1.3 0-RTT 명세
 
 ### NET-048
-4-Way Handshake에 대해 설명해 주세요.
+TCP 4-Way Handshake(연결 종료 과정)에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1021,7 +1021,7 @@ TCP 연결 종료를 위한 4단계 과정입니다.
 [^48]: TCP 연결 종료 명세
 
 ### NET-049
-패킷이 4-way handshake 목적인지 어떻게 파악할 수 있을까요?
+TCP에서 수신한 패킷이 연결 종료(4-Way Handshake) 목적인지 어떻게 파악할 수 있을까요?
 
 <details>
 <summary>답변</summary>
@@ -1041,7 +1041,7 @@ TCP는 상태 기계(State Machine)로 동작하며, 현재 상태와 받은 플
 [^49]: TCP 상태 전이 명세
 
 ### NET-050
-빨리 끊어야 할 경우엔, (즉, 4-way Handshake를 할 여유가 없다면) 어떻게 종료할 수 있을까요?
+TCP 연결을 정상적인 4-Way Handshake 없이 즉시 종료해야 할 경우 어떻게 할 수 있을까요?
 
 <details>
 <summary>답변</summary>
@@ -1063,7 +1063,7 @@ RST 세그먼트를 보내면:
 [^50]: TCP RST 처리 명세
 
 ### NET-051
-4-Way Handshake 과정에서 중간에 한쪽 네트워크가 강제로 종료된다면, 반대쪽은 이를 어떻게 인식할 수 있을까요?
+TCP 연결 중에 한쪽 호스트가 강제로 종료된다면, 상대방은 이를 어떻게 인식할 수 있을까요?
 
 <details>
 <summary>답변</summary>
@@ -1082,7 +1082,7 @@ OS의 Keep-Alive는 기본 2시간으로 설정되어 있어, 빠른 감지가 �
 [^51]: TCP Keep-Alive 명세
 
 ### NET-052
-왜 종료 후에 바로 끝나지 않고, TIME_WAIT 상태로 대기하는 것 일까요?
+TCP 연결 종료(4-Way Handshake) 이후 왜 연결이 바로 끝나지 않고, TIME_WAIT 상태로 대기하는 것일까요?
 
 <details>
 <summary>답변</summary>
@@ -1211,7 +1211,7 @@ TIME_WAIT 시간은 **2MSL**(Maximum Segment Lifetime, 보통 60초)입니다. �
 [^57]: TCP 멀티플렉싱 개념
 
 ### NET-058
-디멀티플렉싱의 과정에 대해 설명해 주세요.
+전송 계층(Transport Layer)에서 수신된 데이터를 올바른 소켓으로 분배하는 디멀티플렉싱(Demultiplexing) 과정에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1257,7 +1257,7 @@ IPv4는 32비트(4바이트), IPv6는 128비트(16바이트)입니다.
 [^59]: IPv4 표준 명세
 
 ### NET-060
-IPv6는 IPv4의 주소 고갈 문제를 해결하기 위해 만들어졌지만, 아직도 수많은 기기가 IPv4를 사용하고 있습니다. 고갈 문제를 어떻게 해결할 수 있을까요?
+IPv6는 IPv4의 주소 고갈 문제를 해결하기 위해 만들어졌지만, 아직도 수많은 기기가 IPv4를 사용하고 있습니다. IPv4 주소 고갈 문제를 어떻게 해결하고 있을까요?
 
 <details>
 <summary>답변</summary>
@@ -1297,7 +1297,7 @@ IPv4와 IPv6의 차이에 대해 설명해 주세요.
 [^61]: IPv6 표준 명세
 
 ### NET-062
-수많은 사람들이 유동 IP를 사용하고 있지만, 수많은 공유기에서는 고정 주소를 제공하는 기능이 이미 존재합니다. 어떻게 가능한 걸까요?
+ISP로부터 유동 공인 IP를 할당받더라도 공유기 내부에서는 특정 기기에 고정 IP를 할당할 수 있습니다. NAT와 사설 IP를 활용해 어떻게 가능한 것인가요?
 
 <details>
 <summary>답변</summary>
@@ -1318,7 +1318,7 @@ IPv4와 IPv6의 차이에 대해 설명해 주세요.
 [^62]: DHCP 표준 명세
 
 ### NET-063
-IPv4를 사용하는 장비와 IPv6를 사용하는 같은 네트워크 내에서 통신이 가능한가요? 가능하다면 어떤 방법을 사용하나요?
+IPv4를 사용하는 장비와 IPv6를 사용하는 장비가 같은 네트워크 내에서 통신이 가능한가요? 가능하다면 어떤 방법을 사용하나요?
 
 <details>
 <summary>답변</summary>
@@ -1340,7 +1340,7 @@ IPv4를 사용하는 장비와 IPv6를 사용하는 같은 네트워크 내에�
 [^63]: IPv6 전환 메커니즘 명세
 
 ### NET-064
-IP가 송신자와 수신자를 정확하게 전송되는 것을 보장해 주나요?
+IP 프로토콜이 송신자에서 수신자로 데이터가 정확하게 전송되는 것을 보장해 주나요?
 
 <details>
 <summary>답변</summary>
@@ -1363,7 +1363,7 @@ IP가 보장하지 않는 것:
 [^64]: IP 서비스 특성 명세
 
 ### NET-065
-IPv4에서 수행하는 Checksum과 TCP에서 수행하는 Checksum은 어떤 차이가 있나요?
+IP 계층의 Checksum과 TCP 계층의 Checksum은 어떤 차이가 있나요?
 
 <details>
 <summary>답변</summary>
@@ -1385,7 +1385,7 @@ IPv6에서 IP 체크섬이 제거된 이유: 상위 계층에서 이미 검증�
 [^65]: IP/TCP 체크섬 비교
 
 ### NET-066
-TTL(Hop Limit)이란 무엇인가요?
+IP 헤더의 TTL(Time To Live) 필드는 무엇이며, 어떤 역할을 하나요?
 
 <details>
 <summary>답변</summary>
@@ -1515,7 +1515,7 @@ DHCP에서 UDP를 사용하는 이유가 무엇인가요?
 [^71]: DHCP UDP 사용 이유
 
 ### NET-072
-DHCP에서, IP 주소 말고 추가로 제공해주는 정보가 있나요?
+DHCP에서 IP 주소 말고 추가로 제공해주는 정보가 있나요?
 
 <details>
 <summary>답변</summary>
@@ -1537,7 +1537,7 @@ DHCP에서, IP 주소 말고 추가로 제공해주는 정보가 있나요?
 [^72]: DHCP 옵션 명세
 
 ### NET-073
-DHCP의 유효기간은 얼마나 긴가요?
+DHCP에서 할당받은 IP 주소의 유효기간(Lease Time)은 얼마나 긴가요?
 
 <details>
 <summary>답변</summary>
@@ -1606,7 +1606,7 @@ DNS over HTTPS(DoH), DNS over TLS(DoT) 등 보안 DNS도 애플리케이션 계�
 [^75]: DNS 프로토콜 계층
 
 ### NET-076
-UDP와 TCP 중 어떤 것을 사용하나요?
+DNS는 UDP와 TCP 중 어떤 전송 프로토콜을 사용하나요?
 
 <details>
 <summary>답변</summary>
@@ -1631,7 +1631,7 @@ UDP와 TCP 중 어떤 것을 사용하나요?
 [^76]: DNS 전송 프로토콜 명세
 
 ### NET-077
-DNS Recursive Query, Iterative Query가 무엇인가요?
+DNS Recursive Query와 Iterative Query가 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1654,7 +1654,7 @@ DNS Recursive Query, Iterative Query가 무엇인가요?
 [^77]: DNS 쿼리 유형 명세
 
 ### NET-078
-DNS 쿼리 과정에서 손실이 발생한다면, 어떻게 처리하나요?
+DNS는 UDP를 사용하는데, DNS 쿼리 과정에서 패킷 손실이 발생한다면 어떻게 처리하나요?
 
 <details>
 <summary>답변</summary>
@@ -1676,7 +1676,7 @@ UDP 자체는 신뢰성을 보장하지 않으므로 애플리케이션 레벨�
 [^78]: DNS UDP 재전송 명세
 
 ### NET-079
-캐싱된 DNS 쿼리가 잘못 될 수도 있습니다. 이 경우, 어떻게 에러를 보정할 수 있나요?
+DNS 캐시에 잘못된 IP 정보가 저장되어 있을 경우 어떻게 보정할 수 있나요?
 
 <details>
 <summary>답변</summary>
@@ -1696,7 +1696,7 @@ DNSSEC은 DNS 응답의 무결성과 출처를 검증합니다.
 [^79]: DNSSEC 표준 명세
 
 ### NET-080
-DNS 레코드 타입 중 A, CNAME, AAAA의 차이에 대해서 설명해주세요.
+DNS 레코드 타입 중 A, CNAME, AAAA의 차이에 대해서 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1766,7 +1766,7 @@ OSI 7계층에 대해 설명해 주세요.
 [^82]: OSI 모델 국제 표준
 
 ### NET-083
-Transport Layer와, Network Layer의 차이에 대해 설명해 주세요.
+OSI 모델에서 Transport Layer와 Network Layer의 차이에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1812,7 +1812,7 @@ L3 Switch는 "라우팅 가능한 스위치", Router는 "다양한 네트워크 
 [^84]: 라우터 요구사항 명세
 
 ### NET-085
-각 Layer는 패킷을 어떻게 명칭하나요? 예를 들어, Transport Layer의 경우 Segment라 부릅니다.
+OSI 7계층 모델에서 각 계층의 데이터 단위(PDU)를 무엇이라고 부르나요?
 
 <details>
 <summary>답변</summary>
@@ -1835,7 +1835,7 @@ L3 Switch는 "라우팅 가능한 스위치", Router는 "다양한 네트워크 
 [^85]: OSI PDU 명명 규칙
 
 ### NET-086
-각각의 Header의 Packing Order에 대해 설명해 주세요.
+OSI 7계층 모델에서 데이터가 전송될 때 각 계층별 헤더가 붙는 캡슐화(Encapsulation) 순서에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1861,7 +1861,7 @@ L3 Switch는 "라우팅 가능한 스위치", Router는 "다양한 네트워크 
 [^86]: 프로토콜 캡슐화 명세
 
 ### NET-087
-ARP에 대해 설명해 주세요.
+IP 주소를 MAC 주소로 변환하는 ARP(Address Resolution Protocol)에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -2003,7 +2003,7 @@ ARP에 대해 설명해 주세요.
 [^92]: 로드밸런싱 아키텍처 명세
 
 ### NET-093
-L4 로드밸런서와, L7 로드밸런서의 차이에 대해 설명해 주세요.
+L4 로드밸런서와 L7 로드밸런서의 차이에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -2049,7 +2049,7 @@ L4는 패킷 레벨, L7은 요청 내용 레벨에서 결정합니다.
 [^94]: 로드밸런싱 알고리즘 명세
 
 ### NET-095
-로드밸런싱 대상이 되는 장치중 일부 장치가 문제가 생겨 접속이 불가능하다고 가정해 봅시다. 이 경우, 로드밸런서가 해당 장비로 요청을 보내지 않도록 하려면 어떻게 해야 할까요?
+로드밸런서에서 장애가 발생한 백엔드 서버로 요청을 보내지 않도록 하려면 어떻게 해야 할까요?
 
 <details>
 <summary>답변</summary>
@@ -2129,7 +2129,7 @@ AWS Route 53의 가중치 기반 라우팅 등 고급 DNS 서비스로 보완 �
 [^97]: 서브넷 명세
 
 ### NET-098
-NAT에 대해 설명해 주세요.
+사설 IP와 공인 IP 간 변환을 담당하는 NAT(Network Address Translation)에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -2179,7 +2179,7 @@ NAT에 대해 설명해 주세요.
 [^99]: CIDR 표기법 명세
 
 ### NET-100
-그렇다면, 255.0.255.0 같은 꼴의 서브넷 마스크도 가능한가요?
+255.0.255.0 같은 형태의 서브넷 마스크도 가능한가요?
 
 <details>
 <summary>답변</summary>
@@ -2228,7 +2228,7 @@ www.github.com을 브라우저에 입력하고 엔터를 쳤을 때, 네트워�
 [^101]: MDN 웹 동작 원리 문서
 
 ### NET-102
-DNS 쿼리를 통해 얻어진 IP는 어디를 가리키고 있나요?
+대규모 웹 서비스에서 DNS 쿼리를 통해 얻어진 IP 주소는 일반적으로 어떤 장치를 가리키고 있나요?
 
 <details>
 <summary>답변</summary>
@@ -2250,7 +2250,7 @@ DNS 쿼리를 통해 얻어진 IP는 어디를 가리키고 있나요?
 [^102]: DNS 응답과 인프라 구조
 
 ### NET-103
-Web Server와 Web Application Server의 차이에 대해 설명해 주세요.
+Web Server와 Web Application Server(WAS)의 차이에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>

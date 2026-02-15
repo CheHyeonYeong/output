@@ -32,7 +32,7 @@ Kafka는 분산 스트리밍 플랫폼으로, 다음과 같은 주요 컴포넌�
 [^1]: Kafka 공식 문서 - Getting Started 섹션
 
 ### KAFKA-002
-Kafka Broker의 역할과 주요 기능은 무엇인가요?
+Kafka 아키텍처에서 Broker의 역할과 주요 기능은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -55,7 +55,7 @@ Broker는 Controller로 선출되어 파티션 리더 선출, 브로커 장애 �
 [^2]: Kafka 공식 문서 - Design 섹션
 
 ### KAFKA-003
-Producer와 Consumer의 차이점 및 역할에 대해 설명해 주세요.
+Kafka에서 Producer와 Consumer의 차이점 및 역할에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -144,7 +144,7 @@ Kafka는 두 가지 메시지 보존 정책을 제공합니다:
 [^5]: Kafka 공식 문서 - Broker Configurations
 
 ### KAFKA-006
-Consumer Group의 개념과 이를 통해 메시지 병렬 처리를 어떻게 구현하는지 설명해주세요.
+Kafka에서 Consumer Group의 개념과 이를 통해 메시지 병렬 처리를 어떻게 구현하는지 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -211,7 +211,7 @@ kafka-topics.sh --create --topic my-topic \
 [^7]: Kafka 공식 문서 - Replication 섹션
 
 ### KAFKA-008
-Kafka 클러스터의 장애 복구(failover) 메커니즘에 대해 설명해주세요.
+Kafka의 리플리케이션 구조에서 장애 복구(failover) 메커니즘은 어떻게 동작하나요?
 
 <details>
 <summary>답변</summary>
@@ -282,7 +282,7 @@ Kafka Connect의 역할과 이를 활용한 데이터 파이프라인 구축 방
 [^9]: Kafka 공식 문서 - Kafka Connect
 
 ### KAFKA-010
-Kafka Streams와 KSQL의 차이점 및 각각의 사용 사례에 대해 설명해주세요.
+Kafka 생태계의 스트림 처리 도구인 Kafka Streams와 KSQL의 차이점 및 각각의 사용 사례에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -357,7 +357,7 @@ producer.commitTransaction();
 [^11]: Kafka 공식 문서 - Message Delivery Semantics
 
 ### KAFKA-012
-Producer 측에서 발생할 수 있는 메시지 중복 문제를 어떻게 해결할 수 있나요?
+Kafka Producer 측에서 발생할 수 있는 메시지 중복 문제를 Exactly-Once Semantics 관점에서 어떻게 해결할 수 있나요?
 
 <details>
 <summary>답변</summary>
@@ -395,7 +395,7 @@ max.in.flight.requests.per.connection=5
 [^12]: Kafka 공식 문서 - Producer Configs
 
 ### KAFKA-013
-Kafka Consumer가 재시작될 때 오프셋(offset) 관리를 어떻게 수행하나요?
+Kafka Consumer가 재시작될 때 오프셋(offset) 관리를 어떻게 수행하며, 메시지 전달 보장은 어떻게 유지하나요?
 
 <details>
 <summary>답변</summary>
@@ -514,7 +514,7 @@ Kafka 성능 튜닝을 위한 주요 고려 사항에는 어떤 것들이 있나
 [^15]: Kafka 공식 문서 - Configuration
 
 ### KAFKA-016
-Kafka 클러스터 구성 시 네트워크 및 하드웨어 설정에서 고려해야 할 점은 무엇인가요?
+Kafka 클러스터 성능 튜닝을 위해 네트워크 및 하드웨어 설정에서 고려해야 할 점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -552,7 +552,7 @@ Kafka 클러스터 구성 시 네트워크 및 하드웨어 설정에서 고려�
 [^16]: Kafka 공식 문서 - Hardware and OS
 
 ### KAFKA-017
-Kafka에서 데이터 손실을 방지하기 위한 전략은 무엇인가요?
+Kafka에서 성능 튜닝과 함께 데이터 손실을 방지하기 위한 전략은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -645,7 +645,7 @@ kafka-acls.sh --bootstrap-server localhost:9092 --list
 [^18]: Kafka 공식 문서 - Authorization and ACLs
 
 ### KAFKA-019
-SSL/TLS 및 SASL을 사용한 Kafka 보안 구성 방법에 대해 설명해주세요.
+Kafka에서 ACL 기반 접근 제어와 함께 SSL/TLS 및 SASL을 사용한 암호화 및 인증 구성 방법에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -745,7 +745,7 @@ kafka-topics.sh --describe --topic my-topic
 [^20]: Kafka 공식 문서 - Broker Configurations
 
 ### KAFKA-021
-In-Sync Replica(ISR)의 역할과 중요성은 무엇인가요?
+Kafka 리플리케이션에서 In-Sync Replica(ISR)의 역할과 브로커 재시작 시 클러스터 안정성에 미치는 영향은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -828,7 +828,7 @@ max.in.flight.requests.per.connection=5  # 멱등성과 함께 사용 시 안전
 [^22]: Kafka 공식 문서 - Message Ordering Guarantees
 
 ### KAFKA-023
-Producer의 ACK 설정 옵션(0, 1, all)의 차이점과 의미에 대해 설명해주세요.
+Kafka Producer의 ACK 설정 옵션(0, 1, all)이 메시지 순서 보장과 신뢰성에 미치는 영향에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -972,7 +972,7 @@ log.message.format.version=3.0
 [^25]: Kafka 공식 문서 - Upgrading
 
 ### KAFKA-026
-스트림 처리와 배치 처리의 차이점을 Kafka 관점에서 설명해주세요.
+Kafka Streams를 활용한 스트림 처리와 배치 처리의 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1018,7 +1018,7 @@ builder.stream("input-topic")
 [^26]: Kafka 공식 문서 - Streams Core Concepts
 
 ### KAFKA-027
-Kafka에서 멀티 테넌시(Multi-Tenancy)를 어떻게 지원하나요?
+Kafka에서 ACL 기반 접근 제어와 Quota 설정을 활용하여 멀티 테넌시(Multi-Tenancy)를 어떻게 지원하나요?
 
 <details>
 <summary>답변</summary>
@@ -1113,7 +1113,7 @@ Kafka 클러스터 모니터링을 위한 주요 지표와 사용 도구에는 �
 [^28]: Kafka 공식 문서 - Monitoring
 
 ### KAFKA-029
-Consumer Rebalance 과정과 이를 최적화하기 위한 방법은 무엇인가요?
+Kafka Consumer Group의 Rebalance 과정과 이를 최적화하기 위한 방법은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1455,7 +1455,7 @@ kafka-reassign-partitions.sh --execute \
 [^34]: Kafka 공식 문서 - Expanding Your Cluster
 
 ### KAFKA-035
-Kafka에서 KRaft 모드 전환 시 고려해야 할 사항은 무엇인가요?
+Kafka에서 ZooKeeper 모드에서 KRaft 모드로 전환 시 고려해야 할 사항은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1565,7 +1565,7 @@ socket.receive.buffer.bytes=102400
 [^36]: Kafka 공식 문서 - Configuration
 
 ### KAFKA-037
-Sync와 Async 전송 방식의 차이점과 각각의 장단점은 무엇인가요?
+Kafka Producer의 Sync와 Async 전송 방식이 지연 및 성능에 미치는 영향과 각각의 장단점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1685,7 +1685,7 @@ Kafka 클러스터 운영 시 예상할 수 있는 장애와 그에 대한 대�
 [^38]: Kafka 공식 문서 - Operations
 
 ### KAFKA-039
-Consumer Lag(지연) 모니터링 방법과 이를 해결하기 위한 전략은 무엇인가요?
+Kafka Consumer Lag(지연) 모니터링 방법과 이를 해결하기 위한 전략은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1874,7 +1874,7 @@ compression.type=lz4   # 배치 단위 압축
 ## 📌 Kafka Consumer Offset
 
 ### KAFKA-042
-Kafka Consumer의 오프셋 커밋 전략(자동 vs 수동 커밋)에 대해 설명해주세요.
+Kafka Consumer의 오프셋 커밋 전략(자동 vs 수동 커밋)과 메시지 처리 보장 수준에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1947,7 +1947,7 @@ try {
 ## 📌 Kafka Dead Letter Queue
 
 ### KAFKA-043
-Dead Letter Queue(DLQ)를 Kafka에서 구현하는 방법은 무엇인가요?
+Kafka에서 에러 처리를 위한 Dead Letter Queue(DLQ) 패턴을 구현하는 방법은 무엇인가요?
 
 <details>
 <summary>답변</summary>

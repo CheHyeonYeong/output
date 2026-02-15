@@ -38,7 +38,7 @@ WebSocket의 기본 개념과 HTTP와의 차이점은 무엇인가요?
 [^2]: MDN Web Docs - WebSocket API 레퍼런스
 
 ### WS-002
-WebSocket 연결의 Handshake 과정은 어떻게 진행되나요?
+WebSocket 연결 수립 시 HTTP Upgrade를 사용한 Handshake 과정은 어떻게 진행되나요?
 
 <details>
 <summary>답변</summary>
@@ -79,7 +79,7 @@ Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
 [^3]: RFC 6455 - WebSocket 핸드셰이크 명세
 
 ### WS-003
-WebSocket의 메시지 프레이밍(message framing) 메커니즘에 대해 설명해주세요.
+WebSocket 연결 수립 후 데이터 전송 시 사용되는 메시지 프레이밍(message framing) 메커니즘에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -290,7 +290,7 @@ ws.onclose = (event) => {
 ## 📌 WebSocket Ping/Pong
 
 ### WS-008
-Ping/Pong 메커니즘이 WebSocket 연결 유지에 어떻게 활용되는지 설명해주세요.
+WebSocket의 Ping/Pong 메커니즘이 연결 상태 확인 및 연결 유지(Keep-Alive)에 어떻게 활용되는지 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -653,7 +653,7 @@ location /ws/ {
 ## 📌 WebSocket 리소스 관리
 
 ### WS-015
-WebSocket 연결 유지 시 메모리 및 리소스 관리 방법은 무엇인가요?
+대규모 WebSocket 연결 환경에서 메모리 및 리소스 관리 방법은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1122,7 +1122,7 @@ server {
 ## 📌 WebSocket 프록시
 
 ### WS-022
-WebSocket 통신에서 프록시 서버 사용 시 발생할 수 있는 문제는 무엇인가요?
+TLS/SSL이 적용된 WebSocket(WSS) 통신에서 프록시 서버 사용 시 발생할 수 있는 문제는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1507,7 +1507,7 @@ wss.on('headers', (headers, req) => {
 ## 📌 WebSocket 압축
 
 ### WS-027
-WebSocket 통신에서 데이터 압축 기능을 사용할 때 고려해야 할 점은 무엇인가요?
+WebSocket의 permessage-deflate 압축 확장을 사용할 때 고려해야 할 점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1672,7 +1672,7 @@ setInterval(() => {
 ## 📌 WebSocket 인증/인가
 
 ### WS-029
-WebSocket 서버와 클라이언트 간의 인증 및 인가 방식은 어떻게 구현하나요?
+WebSocket 세션 관리를 기반으로 한 서버-클라이언트 간 인증 및 인가 방식은 어떻게 구현하나요?
 
 <details>
 <summary>답변</summary>

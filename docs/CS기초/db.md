@@ -32,8 +32,7 @@ Key (기본키, 후보키, 슈퍼키 등등...) 에 대해 설명해 주세요.
 [^1]: MySQL 8.0 공식 문서
 
 ### DB-002
-
-기본키는 수정이 가능한가요?
+기본키(Primary Key)는 수정이 가능한가요?
 
 <details>
 <summary>답변</summary>
@@ -55,8 +54,7 @@ Key (기본키, 후보키, 슈퍼키 등등...) 에 대해 설명해 주세요.
 [^2]: MySQL 8.0 외래키 제약조건 문서
 
 ### DB-003
-
-사실 MySQL의 경우, 기본키를 설정하지 않아도 테이블이 만들어집니다. 어떻게 이게 가능한 걸까요?
+MySQL(InnoDB)에서 기본키를 설정하지 않아도 테이블이 만들어집니다. 어떻게 이게 가능한 걸까요?
 
 <details>
 <summary>답변</summary>
@@ -75,8 +73,7 @@ InnoDB는 기본키가 없으면 내부적으로 **GEN_CLUST_INDEX**라는 숨�
 [^3]: MySQL InnoDB 인덱스 타입 문서
 
 ### DB-004
-
-외래키 값은 NULL이 들어올 수 있나요?
+외래키(Foreign Key) 값은 NULL이 들어올 수 있나요?
 
 <details>
 <summary>답변</summary>
@@ -93,8 +90,7 @@ InnoDB는 기본키가 없으면 내부적으로 **GEN_CLUST_INDEX**라는 숨�
 [^4]: MySQL 외래키 문서
 
 ### DB-005
-
-어떤 칼럼의 정의에 UNIQUE 키워드가 붙는다고 가정해 봅시다. 이 칼럼을 활용한 쿼리의 성능은 그렇지 않은 것과 비교해서 어떻게 다를까요?
+어떤 칼럼에 UNIQUE 제약조건이 설정되어 있다고 가정해 봅시다. 이 칼럼을 활용한 쿼리의 성능은 그렇지 않은 것과 비교해서 어떻게 다를까요?
 
 <details>
 <summary>답변</summary>
@@ -143,8 +139,7 @@ RDB와 NoSQL의 차이에 대해 설명해 주세요.
 [^6]: MongoDB 공식 문서 - SQL 비교
 
 ### DB-007
-
-NoSQL의 강점과, 약점이 무엇인가요?
+NoSQL의 강점과 약점이 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -169,8 +164,7 @@ NoSQL의 강점과, 약점이 무엇인가요?
 [^7]: MongoDB 데이터 모델링 문서
 
 ### DB-008
-
-RDB의 어떠한 특징 때문에 NoSQL에 비해 부하가 많이 걸릴 "수" 있을까요? (주의: 무조건 NoSQL이 RDB 보다 빠르다라고 생각하면 큰일 납니다!)
+RDB의 어떠한 특징 때문에 NoSQL에 비해 부하가 많이 걸릴 "수" 있을까요? (주의: 무조건 NoSQL이 RDB보다 빠르다고 생각하면 큰일 납니다!)
 
 <details>
 <summary>답변</summary>
@@ -193,7 +187,6 @@ RDB의 어떠한 특징 때문에 NoSQL에 비해 부하가 많이 걸릴 "수" 
 [^8]: MySQL JOIN 최적화 문서
 
 ### DB-009
-
 NoSQL을 활용한 경험이 있나요? 있다면, 왜 RDB를 선택하지 않고 해당 DB를 선택했는지 설명해 주세요.
 
 <details>
@@ -251,8 +244,7 @@ NoSQL을 활용한 경험이 있나요? 있다면, 왜 RDB를 선택하지 않�
 [^10]: MySQL ACID 모델 문서
 
 ### DB-011
-
-ACID의 Atomicity (원자성) 는 DBMS에서 어떻게 보장되나요? (e.g., Undo/Redo 로그)
+ACID의 Atomicity(원자성)는 DBMS에서 어떻게 보장되나요? (e.g., Undo/Redo 로그)
 
 <details>
 <summary>답변</summary>
@@ -274,8 +266,7 @@ ACID의 Atomicity (원자성) 는 DBMS에서 어떻게 보장되나요? (e.g., U
 [^11]: MySQL InnoDB Undo 로그 문서
 
 ### DB-012
-
-ACID의 Consistency (일관성) 는 어떻게 보장되나요?
+ACID의 Consistency(일관성)는 어떻게 보장되나요?
 
 <details>
 <summary>답변</summary>
@@ -301,8 +292,7 @@ ACID의 Consistency (일관성) 는 어떻게 보장되나요?
 [^12]: MySQL 데이터 무결성 문서
 
 ### DB-013
-
-ACID의 Isolation (고립성) 은 DBMS에서 어떻게 보장되나요? (e.g., Lock, MVCC)
+ACID의 Isolation(고립성)은 DBMS에서 어떻게 보장되나요? (e.g., Lock, MVCC)
 
 <details>
 <summary>답변</summary>
@@ -327,8 +317,7 @@ InnoDB는 MVCC와 락을 함께 사용하여 격리성을 보장합니다.
 [^13]: MySQL InnoDB MVCC 문서
 
 ### DB-014
-
-ACID의 Durability (지속성) 를 DBMS는 어떻게 보장하나요? (e.g., WAL, Redo 로그)
+ACID의 Durability(지속성)를 DBMS는 어떻게 보장하나요? (e.g., WAL, Redo 로그)
 
 <details>
 <summary>답변</summary>
@@ -351,7 +340,6 @@ ACID의 Durability (지속성) 를 DBMS는 어떻게 보장하나요? (e.g., WAL
 [^14]: MySQL InnoDB Redo 로그 문서
 
 ### DB-015
-
 트랜잭션을 사용해 본 경험이 있나요? 어떤 경우에 사용할 수 있나요?
 
 <details>
@@ -380,7 +368,6 @@ COMMIT;
 [^15]: MySQL 트랜잭션 문서
 
 ### DB-016
-
 읽기(SELECT) 작업에는 트랜잭션을 걸지 않아도 될까요?
 
 <details>
@@ -408,7 +395,6 @@ MySQL InnoDB는 기본적으로 각 SELECT를 자체 트랜잭션으로 실행�
 [^16]: MySQL 일관된 읽기 문서
 
 ### DB-017
-
 트랜잭션 격리 레벨(Isolation Level)에 대해 설명해 주세요.
 
 <details>
@@ -435,8 +421,7 @@ MySQL InnoDB 기본값은 REPEATABLE READ입니다.
 [^17]: MySQL 격리 수준 문서
 
 ### DB-018
-
-모든 DBMS가 4개의 격리 레벨을 모두 구현하고 있나요? 그렇지 않다면 그 이유는 무엇일까요?
+모든 DBMS가 4개의 격리 레벨(READ UNCOMMITTED, READ COMMITTED, REPEATABLE READ, SERIALIZABLE)을 모두 구현하고 있나요? 그렇지 않다면 그 이유는 무엇일까요?
 
 <details>
 <summary>답변</summary>
@@ -460,8 +445,7 @@ MySQL InnoDB 기본값은 REPEATABLE READ입니다.
 [^18]: PostgreSQL 트랜잭션 격리 문서
 
 ### DB-019
-
-만약 MySQL을 사용하고 있다면, (InnoDB 기준) Undo 영역과 Redo 영역에 대해 설명해 주세요.
+MySQL InnoDB 스토리지 엔진에서 Undo 영역과 Redo 영역에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -486,8 +470,7 @@ MySQL InnoDB 기본값은 REPEATABLE READ입니다.
 [^19]: MySQL InnoDB Undo/Redo 문서
 
 ### DB-020
-
-MVCC (Multi-Version Concurrency Control) 가 무엇이며, InnoDB 스토리지 엔진은 Undo 로그를 사용해 이를 어떻게 구현하나요?
+MVCC(Multi-Version Concurrency Control)가 무엇이며, InnoDB 스토리지 엔진은 Undo 로그를 사용해 이를 어떻게 구현하나요?
 
 <details>
 <summary>답변</summary>
@@ -508,8 +491,7 @@ MVCC (Multi-Version Concurrency Control) 가 무엇이며, InnoDB 스토리지 �
 [^20]: MySQL InnoDB MVCC 문서
 
 ### DB-021
-
-그런데, 스토리지 엔진이 정확히 무엇을 하는 건가요?
+MySQL에서 스토리지 엔진이 정확히 무엇을 하는 건가요?
 
 <details>
 <summary>답변</summary>
@@ -566,7 +548,6 @@ MVCC (Multi-Version Concurrency Control) 가 무엇이며, InnoDB 스토리지 �
 [^22]: MySQL 인덱스 최적화 문서
 
 ### DB-023
-
 일반적으로 인덱스는 수정(INSERT, UPDATE, DELETE)이 잦은 테이블에선 사용하지 않기를 권합니다. 왜 그럴까요?
 
 <details>
@@ -588,8 +569,7 @@ MVCC (Multi-Version Concurrency Control) 가 무엇이며, InnoDB 스토리지 �
 [^23]: MySQL 인덱스 관리 문서
 
 ### DB-024
-
-앞 꼬리질문에 대해, 그렇다면 인덱스에서 사용하지 않겠다고 선택한 값은 위 정책을 그대로 따라가나요?
+인덱스가 없는 컬럼을 수정할 때도 INSERT/UPDATE/DELETE 시 인덱스 유지 비용이 발생하나요?
 
 <details>
 <summary>답변</summary>
@@ -611,8 +591,7 @@ MVCC (Multi-Version Concurrency Control) 가 무엇이며, InnoDB 스토리지 �
 [^24]: MySQL 쿼리 최적화 문서
 
 ### DB-025
-
-ORDER BY / GROUP BY 연산의 동작 과정을 인덱스의 존재여부와 연관지어서 설명해 주세요.
+ORDER BY / GROUP BY 연산의 동작 과정을 인덱스의 존재 여부와 연관지어서 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -637,7 +616,6 @@ EXPLAIN으로 "Using filesort"가 표시되면 인덱스를 활용하지 못한 
 [^25]: MySQL ORDER BY 최적화 문서
 
 ### DB-026
-
 기본키는 인덱스라고 할 수 있을까요? 그렇지 않다면, 인덱스와 기본키는 어떤 차이가 있나요?
 
 <details>
@@ -664,8 +642,7 @@ InnoDB에서 기본키는 Clustered Index로, 데이터가 기본키 순서로 �
 [^26]: MySQL InnoDB 인덱스 타입 문서
 
 ### DB-027
-
-그렇다면 외래키는요?
+외래키에도 인덱스가 자동으로 생성되나요?
 
 <details>
 <summary>답변</summary>
@@ -687,7 +664,6 @@ InnoDB에서 기본키는 Clustered Index로, 데이터가 기본키 순서로 �
 [^27]: MySQL 외래키 제약조건 문서
 
 ### DB-028
-
 인덱스가 데이터의 물리적 저장에도 영향을 미치나요? (e.g., Clustered Index vs Non-Clustered Index)
 
 <details>
@@ -715,8 +691,7 @@ InnoDB의 Secondary Index는 기본키 값을 저장하여 Clustered Index를 �
 [^28]: MySQL InnoDB 인덱스 타입 문서
 
 ### DB-029
-
-우리가 아는 RDB가 아닌 NoSQL (ex. Redis, MongoDB 등)는 인덱스를 갖고 있나요? 만약 있다면, RDB의 인덱스와는 어떤 차이가 있을까요?
+NoSQL(ex. Redis, MongoDB 등)도 인덱스를 갖고 있나요? 만약 있다면, RDB의 인덱스와는 어떤 차이가 있을까요?
 
 <details>
 <summary>답변</summary>
@@ -745,7 +720,6 @@ InnoDB의 Secondary Index는 기본키 값을 저장하여 Clustered Index를 �
 [^29]: MongoDB 인덱스 문서
 
 ### DB-030
-
 (A, B) 컬럼 순서로 복합 인덱스를 설정한 테이블에서, WHERE A=... 조건 없이 WHERE B=... 조건만 사용하여 쿼리를 요청했습니다. 해당 쿼리는 인덱스를 탈까요?
 
 <details>
@@ -770,8 +744,7 @@ WHERE B=... 만 사용하면:
 [^30]: MySQL 복합 컬럼 인덱스 문서
 
 ### DB-031
-
- 복합 컬럼 인덱스(Composite Index) 의 작동 방식은 무엇이며, 어떤 컬럼을 인덱스의 앞 순서로 두는 것이 성능에 유리할까요?
+복합 컬럼 인덱스(Composite Index)의 작동 방식은 무엇이며, 어떤 컬럼을 인덱스의 앞 순서로 두는 것이 성능에 유리할까요?
 
 <details>
 <summary>답변</summary>
@@ -825,8 +798,7 @@ B-Tree와 B+Tree에 대해 설명해 주세요.
 [^32]: MySQL InnoDB 물리적 구조 문서
 
 ### DB-033
-
-그렇다면, B+Tree가 B-Tree에 비해 반드시 좋다고 할 수 있을까요? 그렇지 않다면 어떤 단점이 있을까요?
+데이터베이스 인덱스에서 B+Tree가 B-Tree에 비해 반드시 좋다고 할 수 있나요? 그렇지 않다면 어떤 단점이 있나요?
 
 <details>
 <summary>답변</summary>
@@ -851,7 +823,6 @@ B-Tree와 B+Tree에 대해 설명해 주세요.
 [^33]: Use The Index, Luke - 인덱스 구조 설명
 
 ### DB-034
-
 DB 인덱스에서 Red-Black Tree를 사용하지 않고, B-Tree/B+Tree를 사용하는 이유가 있을까요?
 
 <details>
@@ -880,8 +851,7 @@ DB 인덱스에서 Red-Black Tree를 사용하지 않고, B-Tree/B+Tree를 사�
 [^34]: MySQL InnoDB 물리 구조 문서
 
 ### DB-035
-
-오름차순으로 정렬된 인덱스가 있다고 할 때, ORDER BY ... DESC (내림차순) 정렬을 시도할 경우 성능이 어떻게 될까요? B-Tree/B+Tree의 구조를 기반으로 설명해 주세요.
+오름차순으로 정렬된 B-Tree/B+Tree 인덱스가 있을 때, ORDER BY ... DESC(내림차순) 정렬을 시도할 경우 성능이 어떻게 될까요?
 
 <details>
 <summary>답변</summary>
@@ -905,8 +875,7 @@ B+Tree의 리프 노드는 양방향 연결 리스트로 구성됩니다. 따라
 [^35]: MySQL Descending Index 문서
 
 ### DB-036
-
-위도, 경도와 같은 2D/3D 공간 좌표(Spatial Data) 는 B-Tree로 인덱싱하기 어렵습니다. 이런 데이터는 어떤 자료구조(e.g., R-Tree, Geohash)를 사용하며 어떻게 동작하나요?
+위도, 경도와 같은 2D/3D 공간 좌표(Spatial Data)는 B-Tree로 인덱싱하기 어렵습니다. 이런 데이터는 어떤 자료구조(e.g., R-Tree, Geohash)를 사용하며 어떻게 동작하나요?
 
 <details>
 <summary>답변</summary>
@@ -963,8 +932,7 @@ DB Join이 무엇인지 설명하고, 각각의 종류(INNER, LEFT/RIGHT OUTER, 
 [^37]: MySQL JOIN 구문 문서
 
 ### DB-038
-
-조인(JOIN) 시  드라이빙 테이블(Driving Table)과 드리븐 테이블(Driven Table) 은 무엇이며, 옵티마이저는 이 순서를 어떻게 결정하나요?
+조인(JOIN) 시 드라이빙 테이블(Driving Table)과 드리븐 테이블(Driven Table)은 무엇이며, 옵티마이저는 이 순서를 어떻게 결정하나요?
 
 <details>
 <summary>답변</summary>
@@ -991,7 +959,6 @@ SELECT /*+ JOIN_ORDER(t1, t2) */ ...
 [^38]: MySQL Nested Loop Join 문서
 
 ### DB-039
-
 JOIN은 시간이 오래 걸릴 수 있어 내부적으로 다양한 물리적 조인(Physical Join) 방식을 사용합니다. Nested Loop Join, Sort Merge Join, Hash Join에 대해 설명해 주세요.
 
 <details>
@@ -1021,8 +988,7 @@ JOIN은 시간이 오래 걸릴 수 있어 내부적으로 다양한 물리적 �
 [^39]: MySQL Hash Join 문서
 
 ### DB-040
-
-앞 질문들을 통해 인덱스의 중요성을 알 수 있었는데, 그렇다면 JOIN의 성능도 인덱스의 유무의 영향을 받나요? (특히 Nested Loop Join과 연관지어 설명해 보세요.)
+JOIN의 성능도 인덱스의 유무에 영향을 받나요? 특히 Nested Loop Join과 연관지어 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1051,8 +1017,7 @@ JOIN은 시간이 오래 걸릴 수 있어 내부적으로 다양한 물리적 �
 [^40]: MySQL 테이블 스캔 회피 문서
 
 ### DB-041
-
-3중 조인 부터는 동작 방식이 약간 바뀝니다. 어떻게 동작하는지, 그리고 그 방식이 성능에 어떠한 영향을 주는지 설명해 주세요.
+3중 조인부터는 동작 방식이 약간 바뀝니다. 어떻게 동작하는지, 그리고 그 방식이 성능에 어떠한 영향을 주는지 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1115,7 +1080,6 @@ InnoDB는 자동으로 Deadlock을 탐지하고 비용이 적은 트랜잭션을
 [^42]: MySQL InnoDB Deadlock 문서
 
 ### DB-043
-
 DB Locking에 대해 설명해 주세요.
 
 <details>
@@ -1145,8 +1109,7 @@ DB Locking에 대해 설명해 주세요.
 [^43]: MySQL InnoDB Locking 문서
 
 ### DB-044
-
- 공유 락(Shared Lock, S-Lock)과 배타 락(Exclusive Lock, X-Lock) 의 차이점은 무엇이며, 언제 각각 사용되나요?
+공유 락(Shared Lock, S-Lock)과 배타 락(Exclusive Lock, X-Lock)의 차이점은 무엇이며, 언제 각각 사용되나요?
 
 <details>
 <summary>답변</summary>
@@ -1175,8 +1138,7 @@ DB Locking에 대해 설명해 주세요.
 [^44]: MySQL InnoDB 락 모드 문서
 
 ### DB-045
-
-Optimistic Lock(낙관적 락) / Pessimistic Lock(비관적 락)에 대해 설명해 주세요.
+Optimistic Lock(낙관적 락)과 Pessimistic Lock(비관적 락)에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1208,8 +1170,7 @@ WHERE id = 1 AND version = 5;
 [^45]: Oracle JPA 락킹 문서
 
 ### DB-046
-
-물리적인 Lock을 건다면, 만약 이를 수행중인 요청에 문제가 생겨 비정상 종료되면 Lock이 절대 해제되지 않는 문제가 생길 수도 있을 것 같습니다. DB는 이를 위한 해결책이 있나요? 없다면, 우리가 이 문제를 해결할 수 없을까요?
+물리적인 Lock을 건 상태에서, 요청에 문제가 생겨 비정상 종료되면 Lock이 영원히 해제되지 않는 문제가 생길 수 있습니다. DB는 이를 위한 해결책이 있나요?
 
 <details>
 <summary>답변</summary>
@@ -1273,8 +1234,7 @@ DB 옵티마이저의 RBO(Rule-Based Optimizer)와 CBO(Cost-Based Optimizer) 의
 [^47]: MySQL 쿼리 옵티마이저 문서
 
 ### DB-048
-
-쿼리가 어떤 조인 방식이나 인덱스를 사용하는지 (즉, 실행 계획) 어떻게 알 수 있나요? (e.g., EXPLAIN)
+쿼리가 어떤 조인 방식이나 인덱스를 사용하는지(실행 계획) 어떻게 알 수 있나요? (e.g., EXPLAIN)
 
 <details>
 <summary>답변</summary>
@@ -1302,8 +1262,7 @@ EXPLAIN SELECT * FROM users WHERE email = 'test@test.com';
 [^48]: MySQL EXPLAIN 출력 형식 문서
 
 ### DB-049
-
-쿼리 실행 계획을 볼 때, EXPLAIN과 ANALYZE (혹은 EXPLAIN ANALYZE)의 차이점은 무엇인가요?
+쿼리 실행 계획을 볼 때 EXPLAIN과 ANALYZE(혹은 EXPLAIN ANALYZE)의 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1334,8 +1293,7 @@ MySQL 8.0.18부터 지원, PostgreSQL은 오래전부터 지원
 [^49]: MySQL EXPLAIN ANALYZE 문서
 
 ### DB-050
-
-Table Full Scan, Index Range Scan에 대해 설명해 주세요.
+Table Full Scan과 Index Range Scan에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1364,8 +1322,7 @@ Table Full Scan, Index Range Scan에 대해 설명해 주세요.
 [^50]: MySQL EXPLAIN 조인 타입 문서
 
 ### DB-051
-
-분명히 인덱스를 타는 쿼리임에도 옵티마이저가 Table Full Scan 방식으로 동작을 선택하는 경우가 있습니다. 왜 그럴까요?
+인덱스가 존재하는 컬럼을 조건으로 사용했음에도 옵티마이저가 Table Full Scan을 선택하는 경우가 있습니다. 왜 그럴까요?
 
 <details>
 <summary>답변</summary>
@@ -1394,8 +1351,7 @@ Table Full Scan, Index Range Scan에 대해 설명해 주세요.
 [^51]: MySQL 인덱스 힌트 문서
 
 ### DB-052
-
-COUNT (개수를 세는 쿼리) 는 어떻게 동작하나요? COUNT(1), COUNT(\*), COUNT(column) 의 동작 과정에는 차이가 있나요?
+COUNT(개수를 세는 쿼리)는 어떻게 동작하나요? COUNT(1), COUNT(*), COUNT(column)의 동작 과정에는 차이가 있나요?
 
 <details>
 <summary>답변</summary>
@@ -1463,8 +1419,7 @@ RDBMS, NoSQL에서의 클러스터링/레플리케이션 방식에 대해 설명
 [^53]: MySQL 레플리케이션 문서
 
 ### DB-054
-
-분산 환경에선, 트랜잭션을 어떻게 관리할 수 있을까요? (e.g., 2PC, Saga)
+분산 환경에서 트랜잭션을 어떻게 관리할 수 있을까요? (e.g., 2PC, Saga)
 
 <details>
 <summary>답변</summary>
@@ -1492,8 +1447,7 @@ RDBMS, NoSQL에서의 클러스터링/레플리케이션 방식에 대해 설명
 [^54]: MySQL XA 트랜잭션 문서
 
 ### DB-055
-
-슬레이브 데이터 동기화 전 까지의 데이터 정합성을 지키는 방법은 무엇이 있을까요?
+레플리케이션 환경에서 슬레이브 데이터 동기화 전까지의 데이터 정합성을 지키는 방법은 무엇이 있을까요?
 
 <details>
 <summary>답변</summary>
@@ -1524,8 +1478,7 @@ RDBMS, NoSQL에서의 클러스터링/레플리케이션 방식에 대해 설명
 [^55]: MySQL Semi-Sync 복제 문서
 
 ### DB-056
-
-만약 본인이 DB를 분산해서 관리해야 한다면, 레플리케이션 방식과 샤딩 방식 중 어떤 것을 사용할 것 같나요?
+DB를 분산해서 관리해야 한다면, 레플리케이션 방식과 샤딩 방식 중 어떤 것을 선택하겠습니까? 각 방식의 특징과 적합한 상황을 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1586,8 +1539,7 @@ RDBMS, NoSQL에서의 클러스터링/레플리케이션 방식에 대해 설명
 [^57]: Wikipedia 데이터베이스 정규화
 
 ### DB-058
-
-정규화를 하지 않을 경우, 발생할 수 있는 이상현상(Anomaly)에 대해 설명해 주세요.
+정규화를 하지 않을 경우 발생할 수 있는 이상현상(Anomaly)에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1612,8 +1564,7 @@ RDBMS, NoSQL에서의 클러스터링/레플리케이션 방식에 대해 설명
 [^58]: Wikipedia 데이터베이스 이상현상
 
 ### DB-059
-
-각 정규화(1NF, 2NF, 3NF, BCNF)에 대해, 그 정규화가 진행되기 전/후의 테이블의 변화에 대해 설명해 주세요.
+각 정규화(1NF, 2NF, 3NF, BCNF)에 대해, 정규화 전/후의 테이블 변화에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1645,8 +1596,7 @@ RDBMS, NoSQL에서의 클러스터링/레플리케이션 방식에 대해 설명
 [^59]: Wikipedia 정규형 설명
 
 ### DB-060
-
-정규화가 무조건 좋은가요? 그렇지 않다면, 어떤 상황에서 역정규화를 하는게 좋은지 설명해 주세요.
+데이터베이스 정규화가 무조건 좋은가요? 그렇지 않다면, 어떤 상황에서 역정규화(비정규화)를 하는 게 좋은지 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1707,8 +1657,7 @@ SELECT id, name, email FROM users WHERE status = 'active';
 [^61]: MySQL CREATE VIEW 문서
 
 ### DB-062
-
-그렇다면, View의 값을 수정해도 실제 테이블에는 반영되지 않나요?
+데이터베이스 View의 값을 수정해도 실제 테이블에는 반영되지 않나요?
 
 <details>
 <summary>답변</summary>
@@ -1776,8 +1725,7 @@ UPDATE active_users SET name = 'John' WHERE id = 1;
 [^63]: MySQL 최적화 문서
 
 ### DB-064
-
-DB 서버를 분산하지 않고(Scale-out), 트래픽을 감당할 수 있는 방법은 없을까요?
+DB 서버를 분산하지 않고(Scale-out 없이) 높은 트래픽을 감당할 수 있는 방법에는 무엇이 있나요?
 
 <details>
 <summary>답변</summary>
@@ -1850,8 +1798,7 @@ CREATE TABLE my_app.users (...);
 [^65]: MySQL CREATE DATABASE 문서
 
 ### DB-066
-
-데이터베이스 3계층(외부/개념/내부 스키마)에 대해 설명해 주세요.
+데이터베이스 3계층 스키마(외부/개념/내부 스키마)에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1921,7 +1868,6 @@ DB의 Connection Pool에 대해 설명해 주세요.
 [^67]: HikariCP GitHub
 
 ### DB-068
-
 Client가 DB Connection을 어떻게 구성하는지 설명해 주세요.
 
 <details>
@@ -2006,8 +1952,7 @@ SELECT * FROM users WHERE id = '1' OR '1'='1';
 [^69]: OWASP SQL Injection 문서
 
 ### DB-070
-
-우리가 서버 개발 과정에서 사용하는 수많은 DB 라이브러리(e.g., ORM, JDBC)들은 이 SQL Injection 문제를 어떻게 해결할까요? (e.g., Prepared Statement)
+서버 개발에서 사용하는 DB 라이브러리(e.g., ORM, JDBC)들은 SQL Injection 문제를 어떻게 해결할까요? (e.g., Prepared Statement)
 
 <details>
 <summary>답변</summary>

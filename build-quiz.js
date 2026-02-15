@@ -11,26 +11,47 @@ const OUTPUT_FILE = path.join(__dirname, 'quizData.js');
 
 // 카테고리 매핑 (폴더명/파일명 → 카테고리 정보)
 const CATEGORY_MAP = {
-    'network': { id: 'network', name: 'Network', priority: 'P1', prefix: 'NET' },
-    'os': { id: 'os', name: 'OS', priority: 'P1', prefix: 'OS' },
-    'db': { id: 'database', name: 'Database', priority: 'P1', prefix: 'DB' },
-    'ds': { id: 'ds', name: '자료구조', priority: 'P1', prefix: 'DS' },
-    'spring': { id: 'spring', name: 'Spring', priority: 'P1', prefix: 'SPR' },
-    'redis': { id: 'redis', name: 'Redis', priority: 'P2', prefix: 'REDIS' },
-    'kafka': { id: 'kafka', name: 'Kafka', priority: 'P2', prefix: 'KAFKA' },
-    'docker': { id: 'docker', name: 'Docker', priority: 'P2', prefix: 'DOCKER' },
-    'kubernetes': { id: 'kubernetes', name: 'Kubernetes', priority: 'P2', prefix: 'K8S' },
-    'elasticsearch': { id: 'elasticsearch', name: 'Elasticsearch', priority: 'P3', prefix: 'ES' },
-    'mongodb': { id: 'mongodb', name: 'MongoDB', priority: 'P3', prefix: 'MONGO' },
-    'websocket': { id: 'websocket', name: 'WebSocket', priority: 'P3', prefix: 'WS' },
-    'system_design': { id: 'system_design', name: '시스템 설계', priority: 'P3', prefix: 'SD' },
-    'debezium': { id: 'debezium', name: 'CDC/Debezium', priority: 'P3', prefix: 'CDC' },
-    'nest': { id: 'nest', name: 'NestJS', priority: 'P4', prefix: 'NEST' },
-    'ktor': { id: 'ktor', name: 'Ktor', priority: 'P4', prefix: 'KTOR' },
-    'architecture': { id: 'architecture', name: '아키텍처', priority: 'P1', prefix: 'ARCH' },
-    'etc': { id: 'etc', name: '기타', priority: 'P4', prefix: 'ETC' },
-    'crdt': { id: 'crdt', name: 'CRDT', priority: 'P3', prefix: 'CRDT' },
-    'pl': { id: 'pl', name: '프로그래밍 언어', priority: 'P3', prefix: 'PL' }
+    // CS 기초
+    'network': { id: 'network', name: 'Network', section: 'cs', prefix: 'NET' },
+    'os': { id: 'os', name: 'OS', section: 'cs', prefix: 'OS' },
+    'ds': { id: 'ds', name: '자료구조', section: 'cs', prefix: 'DS' },
+    'architecture': { id: 'architecture', name: '컴퓨터 구조', section: 'cs', prefix: 'ARCH' },
+    'etc': { id: 'etc', name: '개발 상식', section: 'cs', prefix: 'ETC' },
+
+    // CS 기초 - Database
+    'db': { id: 'database', name: 'Database', section: 'cs', prefix: 'DB' },
+
+    // 특정 데이터베이스
+    'redis': { id: 'redis', name: 'Redis', section: 'specific_db', prefix: 'REDIS' },
+    'elasticsearch': { id: 'elasticsearch', name: 'Elasticsearch', section: 'specific_db', prefix: 'ES' },
+    'mongodb': { id: 'mongodb', name: 'MongoDB', section: 'specific_db', prefix: 'MONGO' },
+
+    // Framework
+    'spring': { id: 'spring', name: 'Spring', section: 'framework', prefix: 'SPR' },
+    'ktor': { id: 'ktor', name: 'Ktor', section: 'framework', prefix: 'KTOR' },
+    'nest': { id: 'nest', name: 'NestJS', section: 'framework', prefix: 'NEST' },
+
+    // 인프라 & 메시징
+    'docker': { id: 'docker', name: 'Docker', section: 'infra', prefix: 'DOCKER' },
+    'kubernetes': { id: 'kubernetes', name: 'Kubernetes', section: 'infra', prefix: 'K8S' },
+    'kafka': { id: 'kafka', name: 'Kafka', section: 'infra', prefix: 'KAFKA' },
+    'debezium': { id: 'debezium', name: 'CDC/Debezium', section: 'infra', prefix: 'CDC' },
+
+    // 기타
+    'websocket': { id: 'websocket', name: 'WebSocket', section: 'etc', prefix: 'WS' },
+    'system_design': { id: 'system_design', name: '시스템 설계', section: 'etc', prefix: 'SD' },
+    'crdt': { id: 'crdt', name: 'CRDT', section: 'etc', prefix: 'CRDT' },
+
+    // 프로그래밍 언어
+    'pl': { id: 'pl', name: '프로그래밍 언어', section: 'pl', prefix: 'PL' }
+};
+
+// pl.md의 질문 ID prefix에 따른 카테고리 분리
+const PREFIX_CATEGORY_MAP = {
+    'JAVA': { id: 'java', name: 'Java', section: 'pl' },
+    'JS': { id: 'javascript', name: 'JavaScript/TypeScript', section: 'pl' },
+    'PY': { id: 'python', name: 'Python', section: 'pl' },
+    'GO': { id: 'go', name: 'Go', section: 'pl' }
 };
 
 /**
@@ -50,13 +71,14 @@ function parseMarkdownFile(filePath) {
     const category = CATEGORY_MAP[categoryKey] || {
         id: categoryKey,
         name: fileTitle,
-        priority: 'P4',
+        section: 'etc',
         prefix: categoryKey.toUpperCase().slice(0, 4)
     };
 
     // 문제 패턴: ### XXX-000 또는 ### 1. 또는 ### 숫자 (다음 줄에 질문)
     // 패턴 1: ### XXX-000 형태 (K8S-001 같은 형식도 지원)
-    const pattern1 = /###\s+([A-Z][A-Z0-9]*-\d+)\s*\n([^\n<]+)/g;
+    // 컨텍스트 블록(> **컨텍스트**: ...)이 있으면 건너뛰고 실제 질문 캡처
+    const pattern1 = /###\s+([A-Z][A-Z0-9]*-\d+)\s*\n(?:>\s*\*\*컨텍스트\*\*:[^\n]*\n\s*\n)?([^\n<]+)/g;
     // 패턴 2: ### 1. 질문 형태
     const pattern2 = /###\s+(\d+)\.\s+([^\n<]+)/g;
     // 패턴 3: ### 숫자 형태 (다음 줄에 질문)
@@ -121,11 +143,26 @@ function parseMarkdownFile(filePath) {
         }
 
         if (questionText && answerText) {
+            // pl.md 파일의 경우 질문 ID prefix에 따라 카테고리 분리
+            let finalCategory = category.id;
+            let finalCategoryName = category.name;
+            let finalSection = category.section;
+
+            if (categoryKey === 'pl') {
+                const idPrefix = questionId.split('-')[0];
+                if (PREFIX_CATEGORY_MAP[idPrefix]) {
+                    const langCategory = PREFIX_CATEGORY_MAP[idPrefix];
+                    finalCategory = langCategory.id;
+                    finalCategoryName = langCategory.name;
+                    finalSection = langCategory.section;
+                }
+            }
+
             questions.push({
                 id: questionId,
-                category: category.id,
-                categoryName: category.name,
-                priority: category.priority,
+                category: finalCategory,
+                categoryName: finalCategoryName,
+                section: finalSection,
                 question: questionText,
                 answer: answerText,
                 references: references,
@@ -294,7 +331,7 @@ const categories = ${JSON.stringify(Object.keys(categoryStats).map(name => {
     return {
         id: sample?.category || name.toLowerCase(),
         name: name,
-        priority: sample?.priority || 'P4',
+        section: sample?.section || 'etc',
         count: categoryStats[name]
     };
 }), null, 2)};

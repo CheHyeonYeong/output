@@ -27,7 +27,7 @@ Kubernetes의 전체 아키텍처를 설명하고, Control Plane과 Worker Node�
 [^1]: Kubernetes 공식 문서 - 클러스터 컴포넌트
 
 ### K8S-002
-kube-apiserver의 역할과 동작 방식에 대해 설명해주세요. 다른 컴포넌트들과 어떻게 통신하나요?
+Kubernetes Control Plane의 kube-apiserver의 역할과 동작 방식에 대해 설명해주세요. 다른 컴포넌트들과 어떻게 통신하나요?
 
 <details>
 <summary>답변</summary>
@@ -49,7 +49,7 @@ kube-apiserver의 역할과 동작 방식에 대해 설명해주세요. 다른 �
 [^2]: Kubernetes 공식 문서 - kube-apiserver
 
 ### K8S-003
-etcd의 역할과 중요성에 대해 설명해주세요. 왜 etcd의 백업이 중요한가요?
+Kubernetes의 etcd의 역할과 중요성에 대해 설명해주세요. 왜 etcd의 백업이 중요한가요?
 
 <details>
 <summary>답변</summary>
@@ -70,7 +70,7 @@ etcd의 역할과 중요성에 대해 설명해주세요. 왜 etcd의 백업이 
 [^3]: Kubernetes 공식 문서 - etcd
 
 ### K8S-004
-kube-scheduler의 스케줄링 과정을 단계별로 설명해주세요. Filtering과 Scoring 단계는 무엇인가요?
+Kubernetes kube-scheduler의 스케줄링 과정을 단계별로 설명해주세요. Filtering과 Scoring 단계는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -91,7 +91,7 @@ kube-scheduler의 스케줄링 과정을 단계별로 설명해주세요. Filter
 [^4]: Kubernetes 공식 문서 - kube-scheduler
 
 ### K8S-005
-kube-controller-manager에 포함된 주요 컨트롤러들과 각각의 역할에 대해 설명해주세요.
+Kubernetes kube-controller-manager에 포함된 주요 컨트롤러들과 각각의 역할에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -113,7 +113,7 @@ kube-controller-manager에 포함된 주요 컨트롤러들과 각각의 역할�
 [^5]: Kubernetes 공식 문서 - kube-controller-manager
 
 ### K8S-006
-cloud-controller-manager의 역할과 클라우드 프로바이더와의 통합 방식에 대해 설명해주세요.
+Kubernetes cloud-controller-manager의 역할과 클라우드 프로바이더와의 통합 방식에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -139,7 +139,7 @@ cloud-controller-manager의 역할과 클라우드 프로바이더와의 통합 
 ## 📌 Kubernetes 아키텍처 - Node 컴포넌트
 
 ### K8S-007
-kubelet의 역할과 동작 방식에 대해 설명해주세요. Pod의 상태를 어떻게 관리하나요?
+Kubernetes Worker Node의 kubelet의 역할과 동작 방식에 대해 설명해주세요. Pod의 상태를 어떻게 관리하나요?
 
 <details>
 <summary>답변</summary>
@@ -164,7 +164,7 @@ kubelet의 역할과 동작 방식에 대해 설명해주세요. Pod의 상태�
 [^7]: Kubernetes 공식 문서 - kubelet
 
 ### K8S-008
-kube-proxy의 역할과 iptables/IPVS 모드의 차이점에 대해 설명해주세요.
+Kubernetes Worker Node의 kube-proxy의 역할과 iptables/IPVS 모드의 차이점에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -189,7 +189,7 @@ kube-proxy의 역할과 iptables/IPVS 모드의 차이점에 대해 설명해주
 [^8]: Kubernetes 공식 문서 - kube-proxy
 
 ### K8S-009
-Container Runtime Interface(CRI)란 무엇이며, containerd와 CRI-O의 차이점은 무엇인가요?
+Kubernetes의 Container Runtime Interface(CRI)란 무엇이며, containerd와 CRI-O의 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -329,7 +329,7 @@ Pod가 Pending 상태에 머무는 원인들과 해결 방법을 설명해주세
 [^14]: Kubernetes 공식 문서 - Pod 디버깅
 
 ### K8S-015
-Pod Phase와 Container State의 차이점은 무엇인가요?
+Kubernetes의 Pod Phase와 Container State의 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -384,7 +384,7 @@ Sidecar 패턴이란 무엇이며, 어떤 상황에서 사용하나요? 구체�
 [^16]: Kubernetes 공식 문서 - Sidecar 컨테이너
 
 ### K8S-017
-Ambassador 패턴이란 무엇이며, 프록시 역할을 하는 컨테이너의 활용 사례를 설명해주세요.
+Kubernetes의 Ambassador 패턴이란 무엇이며, 프록시 역할을 하는 컨테이너의 활용 사례를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -409,7 +409,7 @@ Ambassador 패턴이란 무엇이며, 프록시 역할을 하는 컨테이너의
 [^17]: Kubernetes 공식 문서 - 멀티 컨테이너 Pod
 
 ### K8S-018
-Adapter 패턴이란 무엇이며, 로그 포맷 변환 등의 활용 사례를 설명해주세요.
+Kubernetes의 Adapter 패턴이란 무엇이며, 로그 포맷 변환 등의 활용 사례를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -464,7 +464,7 @@ Init Container의 역할과 일반 컨테이너와의 차이점을 설명해주�
 [^19]: Kubernetes 공식 문서 - Init 컨테이너
 
 ### K8S-020
-Init Container의 실행 순서와 실패 시 동작에 대해 설명해주세요.
+Kubernetes Init Container의 실행 순서와 실패 시 동작에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -522,7 +522,7 @@ Deployment의 역할과 ReplicaSet과의 관계에 대해 설명해주세요.
 [^21]: Kubernetes 공식 문서 - Deployment
 
 ### K8S-022
-Deployment의 배포 전략(RollingUpdate, Recreate)을 비교하고, 각각의 사용 시나리오를 설명해주세요.
+Kubernetes Deployment의 배포 전략(RollingUpdate, Recreate)을 비교하고, 각각의 사용 시나리오를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -552,7 +552,7 @@ Deployment의 배포 전략(RollingUpdate, Recreate)을 비교하고, 각각의 
 [^22]: Kubernetes 공식 문서 - Deployment 전략
 
 ### K8S-023
-RollingUpdate 전략에서 maxSurge와 maxUnavailable 설정의 의미와 적절한 값 설정 방법을 설명해주세요.
+Kubernetes RollingUpdate 전략에서 maxSurge와 maxUnavailable 설정의 의미와 적절한 값 설정 방법을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -578,7 +578,7 @@ RollingUpdate 전략에서 maxSurge와 maxUnavailable 설정의 의미와 적절
 [^23]: Kubernetes 공식 문서 - 롤링 업데이트
 
 ### K8S-024
-Deployment의 롤백(rollback) 방법과 revision history 관리에 대해 설명해주세요.
+Kubernetes Deployment의 롤백(rollback) 방법과 revision history 관리에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -669,7 +669,7 @@ StatefulSet이란 무엇이며, Deployment와의 차이점을 설명해주세요
 [^26]: Kubernetes 공식 문서 - StatefulSet
 
 ### K8S-027
-StatefulSet에서 Pod 이름과 네트워크 ID의 안정성(stable identity)은 어떻게 보장되나요?
+Kubernetes StatefulSet에서 Pod 이름과 네트워크 ID의 안정성(stable identity)은 어떻게 보장되나요?
 
 <details>
 <summary>답변</summary>
@@ -696,7 +696,7 @@ StatefulSet에서 Pod 이름과 네트워크 ID의 안정성(stable identity)은
 [^27]: Kubernetes 공식 문서 - Stable Network ID
 
 ### K8S-028
-StatefulSet의 순차적 배포(ordered deployment)와 병렬 배포(parallel deployment) 방식의 차이를 설명해주세요.
+Kubernetes StatefulSet의 순차적 배포(ordered deployment)와 병렬 배포(parallel deployment) 방식의 차이를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -727,7 +727,7 @@ spec:
 [^28]: Kubernetes 공식 문서 - Pod 관리 정책
 
 ### K8S-029
-StatefulSet에서 PersistentVolumeClaim 템플릿의 역할과 동작 방식을 설명해주세요.
+Kubernetes StatefulSet에서 PersistentVolumeClaim 템플릿의 역할과 동작 방식을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -763,7 +763,7 @@ volumeClaimTemplates:
 [^29]: Kubernetes 공식 문서 - Stable Storage
 
 ### K8S-030
-StatefulSet 사용 시 Headless Service가 필요한 이유를 설명해주세요.
+Kubernetes StatefulSet 사용 시 Headless Service가 필요한 이유를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -821,7 +821,7 @@ DaemonSet의 역할과 사용 사례(로그 수집, 모니터링 에이전트 �
 [^31]: Kubernetes 공식 문서 - DaemonSet
 
 ### K8S-032
-DaemonSet에서 특정 노드에만 Pod를 배포하는 방법을 설명해주세요.
+Kubernetes DaemonSet에서 특정 노드에만 Pod를 배포하는 방법을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -870,7 +870,7 @@ spec:
 [^32]: Kubernetes 공식 문서 - 특정 노드에 DaemonSet
 
 ### K8S-033
-Job의 역할과 completions, parallelism 설정의 의미를 설명해주세요.
+Kubernetes Job 리소스의 역할과 completions, parallelism 설정의 의미를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -901,7 +901,7 @@ spec:
 [^33]: Kubernetes 공식 문서 - Job
 
 ### K8S-034
-Job의 backoffLimit와 activeDeadlineSeconds 설정의 역할을 설명해주세요.
+Kubernetes Job의 backoffLimit와 activeDeadlineSeconds 설정의 역할을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -934,7 +934,7 @@ spec:
 [^34]: Kubernetes 공식 문서 - Job 종료 및 정리
 
 ### K8S-035
-CronJob의 역할과 스케줄 표현식, concurrencyPolicy 설정에 대해 설명해주세요.
+Kubernetes CronJob의 역할과 스케줄 표현식, concurrencyPolicy 설정에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1000,7 +1000,7 @@ Kubernetes Service의 역할과 필요성에 대해 설명해주세요.
 [^36]: Kubernetes 공식 문서 - Service
 
 ### K8S-037
-ClusterIP 타입 Service의 동작 방식과 사용 시나리오를 설명해주세요.
+Kubernetes ClusterIP 타입 Service의 동작 방식과 사용 시나리오를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1029,7 +1029,7 @@ ClusterIP 타입 Service의 동작 방식과 사용 시나리오를 설명해주
 [^37]: Kubernetes 공식 문서 - ClusterIP
 
 ### K8S-038
-NodePort 타입 Service의 동작 방식과 포트 범위 제한에 대해 설명해주세요.
+Kubernetes NodePort 타입 Service의 동작 방식과 포트 범위 제한에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1059,7 +1059,7 @@ NodePort 타입 Service의 동작 방식과 포트 범위 제한에 대해 설�
 [^38]: Kubernetes 공식 문서 - NodePort
 
 ### K8S-039
-LoadBalancer 타입 Service의 동작 방식과 클라우드 환경에서의 프로비저닝 과정을 설명해주세요.
+Kubernetes LoadBalancer 타입 Service의 동작 방식과 클라우드 환경에서의 프로비저닝 과정을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1089,7 +1089,7 @@ LoadBalancer 타입 Service의 동작 방식과 클라우드 환경에서의 프
 [^39]: Kubernetes 공식 문서 - LoadBalancer
 
 ### K8S-040
-ExternalName 타입 Service의 역할과 사용 사례를 설명해주세요.
+Kubernetes ExternalName 타입 Service의 역할과 사용 사례를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1125,7 +1125,7 @@ spec:
 [^40]: Kubernetes 공식 문서 - ExternalName
 
 ### K8S-041
-Headless Service란 무엇이며, StatefulSet과 함께 사용되는 이유를 설명해주세요.
+Kubernetes Headless Service란 무엇이며, StatefulSet과 함께 사용되는 이유를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1186,7 +1186,7 @@ Ingress의 역할과 Service와의 차이점을 설명해주세요.
 [^42]: Kubernetes 공식 문서 - Ingress
 
 ### K8S-043
-Ingress Controller의 역할과 주요 구현체(NGINX, Traefik, HAProxy 등)를 비교해주세요.
+Kubernetes Ingress Controller의 역할과 주요 구현체(NGINX, Traefik, HAProxy 등)를 비교해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1216,7 +1216,7 @@ Ingress Controller의 역할과 주요 구현체(NGINX, Traefik, HAProxy 등)를
 [^43]: Kubernetes 공식 문서 - Ingress Controllers
 
 ### K8S-044
-Ingress에서 호스트 기반 라우팅과 경로 기반 라우팅을 설정하는 방법을 설명해주세요.
+Kubernetes Ingress에서 호스트 기반 라우팅과 경로 기반 라우팅을 설정하는 방법을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1274,7 +1274,7 @@ spec:
 [^44]: Kubernetes 공식 문서 - Ingress 규칙
 
 ### K8S-045
-Ingress에서 TLS/SSL 인증서를 설정하는 방법과 cert-manager와의 연동에 대해 설명해주세요.
+Kubernetes Ingress에서 TLS/SSL 인증서를 설정하는 방법과 cert-manager와의 연동에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1323,7 +1323,7 @@ cert-manager가 Let's Encrypt 인증서 자동 발급/갱신
 [^45]: Kubernetes 공식 문서 - Ingress TLS
 
 ### K8S-046
-Ingress의 annotations을 활용한 설정(rate limiting, rewrites 등) 방법을 설명해주세요.
+Kubernetes Ingress의 annotations을 활용한 설정(rate limiting, rewrites 등) 방법을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1400,7 +1400,7 @@ PersistentVolume(PV)과 PersistentVolumeClaim(PVC)의 개념과 관계를 설명
 [^47]: Kubernetes 공식 문서 - Persistent Volumes
 
 ### K8S-048
-PV의 접근 모드(ReadWriteOnce, ReadOnlyMany, ReadWriteMany)의 차이점을 설명해주세요.
+Kubernetes PV의 접근 모드(ReadWriteOnce, ReadOnlyMany, ReadWriteMany)의 차이점을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1431,7 +1431,7 @@ PV의 접근 모드(ReadWriteOnce, ReadOnlyMany, ReadWriteMany)의 차이점을 
 [^48]: Kubernetes 공식 문서 - Access Modes
 
 ### K8S-049
-PV의 Reclaim Policy(Retain, Delete, Recycle)의 차이점과 사용 시나리오를 설명해주세요.
+Kubernetes PV의 Reclaim Policy(Retain, Delete, Recycle)의 차이점과 사용 시나리오를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1460,7 +1460,7 @@ PV의 Reclaim Policy(Retain, Delete, Recycle)의 차이점과 사용 시나리�
 [^49]: Kubernetes 공식 문서 - Reclaim Policy
 
 ### K8S-050
-StorageClass의 역할과 동적 프로비저닝(Dynamic Provisioning)의 동작 방식을 설명해주세요.
+Kubernetes StorageClass의 역할과 동적 프로비저닝(Dynamic Provisioning)의 동작 방식을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1497,7 +1497,7 @@ volumeBindingMode: WaitForFirstConsumer
 [^50]: Kubernetes 공식 문서 - Storage Classes
 
 ### K8S-051
-CSI(Container Storage Interface)의 역할과 주요 CSI 드라이버들에 대해 설명해주세요.
+Kubernetes CSI(Container Storage Interface)의 역할과 주요 CSI 드라이버들에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1529,7 +1529,7 @@ CSI(Container Storage Interface)의 역할과 주요 CSI 드라이버들에 대�
 [^51]: Kubernetes 공식 문서 - CSI
 
 ### K8S-052
-emptyDir, hostPath, configMap, secret 볼륨 타입의 차이점과 사용 사례를 설명해주세요.
+Kubernetes의 emptyDir, hostPath, configMap, secret 볼륨 타입의 차이점과 사용 사례를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1614,7 +1614,7 @@ data:
 [^53]: Kubernetes 공식 문서 - ConfigMap
 
 ### K8S-054
-ConfigMap을 Pod에 주입하는 방법(환경변수, 볼륨 마운트)의 차이점을 설명해주세요.
+Kubernetes ConfigMap을 Pod에 주입하는 방법(환경변수, 볼륨 마운트)의 차이점을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1660,7 +1660,7 @@ volumeMounts:
 [^54]: Kubernetes 공식 문서 - Pod ConfigMap 설정
 
 ### K8S-055
-Secret의 역할과 ConfigMap과의 차이점을 설명해주세요. Secret은 정말 안전한가요?
+Kubernetes Secret의 역할과 ConfigMap과의 차이점을 설명해주세요. Secret은 정말 안전한가요?
 
 <details>
 <summary>답변</summary>
@@ -1693,7 +1693,7 @@ Secret의 역할과 ConfigMap과의 차이점을 설명해주세요. Secret은 �
 [^55]: Kubernetes 공식 문서 - Secret
 
 ### K8S-056
-Secret의 타입(Opaque, kubernetes.io/dockerconfigjson, kubernetes.io/tls 등)에 대해 설명해주세요.
+Kubernetes Secret의 타입(Opaque, kubernetes.io/dockerconfigjson, kubernetes.io/tls 등)에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1772,7 +1772,7 @@ spec:
 [^57]: External Secrets Operator 공식 문서
 
 ### K8S-058
-ConfigMap/Secret 변경 시 Pod에 자동으로 반영되지 않는 이유와 해결 방법을 설명해주세요.
+Kubernetes ConfigMap/Secret 변경 시 Pod에 자동으로 반영되지 않는 이유와 해결 방법을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1815,7 +1815,7 @@ metadata:
 ## 📌 스케줄링 - nodeSelector, Affinity
 
 ### K8S-059
-nodeSelector를 사용한 Pod 스케줄링 방법과 한계점을 설명해주세요.
+Kubernetes에서 nodeSelector를 사용한 Pod 스케줄링 방법과 한계점을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1852,7 +1852,7 @@ kubectl label nodes node1 disktype=ssd
 [^59]: Kubernetes 공식 문서 - Pod 노드 할당
 
 ### K8S-060
-Node Affinity와 nodeSelector의 차이점, requiredDuringSchedulingIgnoredDuringExecution와 preferredDuringSchedulingIgnoredDuringExecution의 차이를 설명해주세요.
+Kubernetes Node Affinity와 nodeSelector의 차이점, requiredDuringSchedulingIgnoredDuringExecution와 preferredDuringSchedulingIgnoredDuringExecution의 차이를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1898,7 +1898,7 @@ affinity:
 [^60]: Kubernetes 공식 문서 - Node Affinity
 
 ### K8S-061
-Pod Affinity와 Pod Anti-Affinity의 개념과 사용 사례를 설명해주세요.
+Kubernetes Pod Affinity와 Pod Anti-Affinity의 개념과 사용 사례를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1935,7 +1935,7 @@ affinity:
 [^61]: Kubernetes 공식 문서 - Pod Affinity
 
 ### K8S-062
-topologyKey의 역할과 topology spread constraints의 활용 방법을 설명해주세요.
+Kubernetes의 topologyKey의 역할과 topology spread constraints의 활용 방법을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2016,7 +2016,7 @@ tolerations:
 [^63]: Kubernetes 공식 문서 - Taint와 Toleration
 
 ### K8S-064
-Taint의 effect(NoSchedule, PreferNoSchedule, NoExecute)의 차이점을 설명해주세요.
+Kubernetes Taint의 effect(NoSchedule, PreferNoSchedule, NoExecute)의 차이점을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2054,7 +2054,7 @@ tolerations:
 [^64]: Kubernetes 공식 문서 - Taint Effects
 
 ### K8S-065
-Master/Control Plane 노드에 Pod가 스케줄되지 않는 이유와 이를 허용하는 방법을 설명해주세요.
+Kubernetes Master/Control Plane 노드에 Pod가 스케줄되지 않는 이유와 이를 허용하는 방법을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2093,7 +2093,7 @@ kubectl taint nodes <master-node> \
 [^65]: Kubernetes 공식 문서 - Control Plane Taint
 
 ### K8S-066
-Node에 문제가 생겼을 때 자동으로 적용되는 Taint(node.kubernetes.io/not-ready 등)에 대해 설명해주세요.
+Kubernetes Node에 문제가 생겼을 때 자동으로 적용되는 Taint(node.kubernetes.io/not-ready 등)에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2129,7 +2129,7 @@ DaemonSet Pod는 기본적으로 이러한 Taint를 Toleration함
 ## 📌 리소스 관리 - Requests & Limits
 
 ### K8S-067
-컨테이너의 resource requests와 limits의 차이점과 역할을 설명해주세요.
+Kubernetes에서 컨테이너의 resource requests와 limits의 차이점과 역할을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2168,7 +2168,7 @@ resources:
 [^67]: Kubernetes 공식 문서 - 리소스 관리
 
 ### K8S-068
-CPU와 Memory 리소스 단위(millicore, Mi, Gi)에 대해 설명해주세요.
+Kubernetes에서 CPU와 Memory 리소스 단위(millicore, Mi, Gi)에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2208,7 +2208,7 @@ resources:
 [^68]: Kubernetes 공식 문서 - 리소스 단위
 
 ### K8S-069
-requests만 설정했을 때와 limits만 설정했을 때의 동작 차이를 설명해주세요.
+Kubernetes에서 requests만 설정했을 때와 limits만 설정했을 때의 동작 차이를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2245,7 +2245,7 @@ resources:
 [^69]: Kubernetes 공식 문서 - 리소스 관리
 
 ### K8S-070
-Memory limits을 초과했을 때와 CPU limits을 초과했을 때의 동작 차이를 설명해주세요.
+Kubernetes에서 Memory limits을 초과했을 때와 CPU limits을 초과했을 때의 동작 차이를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2283,7 +2283,7 @@ Memory limits을 초과했을 때와 CPU limits을 초과했을 때의 동작 �
 ## 📌 리소스 관리 - QoS, LimitRange, ResourceQuota
 
 ### K8S-071
-Pod의 QoS(Quality of Service) 클래스(Guaranteed, Burstable, BestEffort)의 결정 기준과 의미를 설명해주세요.
+Kubernetes Pod의 QoS(Quality of Service) 클래스(Guaranteed, Burstable, BestEffort)의 결정 기준과 의미를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2318,7 +2318,7 @@ kubectl get pod <name> -o jsonpath='{.status.qosClass}'
 [^71]: Kubernetes 공식 문서 - Pod QoS
 
 ### K8S-072
-LimitRange의 역할과 설정 방법(default, defaultRequest, min, max)을 설명해주세요.
+Kubernetes LimitRange의 역할과 설정 방법(default, defaultRequest, min, max)을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2364,7 +2364,7 @@ spec:
 [^72]: Kubernetes 공식 문서 - LimitRange
 
 ### K8S-073
-ResourceQuota의 역할과 네임스페이스 단위 리소스 제한 방법을 설명해주세요.
+Kubernetes ResourceQuota의 역할과 네임스페이스 단위 리소스 제한 방법을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2407,7 +2407,7 @@ kubectl describe resourcequota -n team-a
 [^73]: Kubernetes 공식 문서 - ResourceQuota
 
 ### K8S-074
-PriorityClass의 역할과 Pod 우선순위 기반 스케줄링/프리엠션에 대해 설명해주세요.
+Kubernetes PriorityClass의 역할과 Pod 우선순위 기반 스케줄링/프리엠션에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2498,7 +2498,7 @@ spec:
 [^75]: Kubernetes 공식 문서 - HPA
 
 ### K8S-076
-HPA에서 CPU/Memory 기반 스케일링과 Custom Metrics 기반 스케일링의 차이를 설명해주세요.
+Kubernetes HPA에서 CPU/Memory 기반 스케일링과 Custom Metrics 기반 스케일링의 차이를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2547,7 +2547,7 @@ metrics:
 [^76]: Kubernetes 공식 문서 - HPA Custom Metrics
 
 ### K8S-077
-HPA의 스케일링 알고리즘과 stabilizationWindowSeconds 설정의 역할을 설명해주세요.
+Kubernetes HPA의 스케일링 알고리즘과 stabilizationWindowSeconds 설정의 역할을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2591,7 +2591,7 @@ behavior:
 [^77]: Kubernetes 공식 문서 - HPA 알고리즘
 
 ### K8S-078
-HPA 사용 시 주의사항과 Best Practice를 설명해주세요.
+Kubernetes HPA 사용 시 주의사항과 Best Practice를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2665,7 +2665,7 @@ VPA(Vertical Pod Autoscaler)의 동작 원리와 HPA와의 차이점을 설명�
 [^79]: Kubernetes Autoscaler - VPA
 
 ### K8S-080
-VPA의 updateMode(Off, Initial, Auto)의 차이점을 설명해주세요.
+Kubernetes VPA의 updateMode(Off, Initial, Auto)의 차이점을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2737,7 +2737,7 @@ Cluster Autoscaler의 동작 원리와 노드 추가/삭제 조건을 설명해�
 [^81]: Kubernetes Autoscaler - Cluster Autoscaler
 
 ### K8S-082
-HPA, VPA, Cluster Autoscaler를 함께 사용할 때의 고려사항을 설명해주세요.
+Kubernetes HPA, VPA, Cluster Autoscaler를 함께 사용할 때의 고려사항을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2826,7 +2826,7 @@ roleRef:
 [^83]: Kubernetes 공식 문서 - RBAC
 
 ### K8S-084
-Role과 ClusterRole의 차이점, RoleBinding과 ClusterRoleBinding의 차이점을 설명해주세요.
+Kubernetes RBAC에서 Role과 ClusterRole의 차이점, RoleBinding과 ClusterRoleBinding의 차이점을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2857,7 +2857,7 @@ Role과 ClusterRole의 차이점, RoleBinding과 ClusterRoleBinding의 차이점
 [^84]: Kubernetes 공식 문서 - RBAC
 
 ### K8S-085
-RBAC에서 verbs(get, list, watch, create, update, patch, delete)의 의미를 설명해주세요.
+Kubernetes RBAC에서 verbs(get, list, watch, create, update, patch, delete)의 의미를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2897,7 +2897,7 @@ rules:
 [^85]: Kubernetes 공식 문서 - Request Verbs
 
 ### K8S-086
-최소 권한 원칙(Principle of Least Privilege)을 Kubernetes RBAC에서 적용하는 방법을 설명해주세요.
+Kubernetes RBAC에서 최소 권한 원칙(Principle of Least Privilege)을 적용하는 방법을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2986,7 +2986,7 @@ kubectl create serviceaccount my-sa
 [^87]: Kubernetes 공식 문서 - Service Accounts
 
 ### K8S-088
-ServiceAccount 토큰의 자동 마운트와 이를 비활성화하는 방법을 설명해주세요.
+Kubernetes ServiceAccount 토큰의 자동 마운트와 이를 비활성화하는 방법을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -3064,7 +3064,7 @@ Kubernetes API 서버의 인증(Authentication) 방식들(X.509, Bearer Token, O
 [^89]: Kubernetes 공식 문서 - 인증
 
 ### K8S-090
-kubeconfig 파일의 구조와 contexts, clusters, users 설정에 대해 설명해주세요.
+Kubernetes kubeconfig 파일의 구조와 contexts, clusters, users 설정에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -3172,7 +3172,7 @@ spec:
 [^91]: Kubernetes 공식 문서 - NetworkPolicy
 
 ### K8S-092
-NetworkPolicy가 적용되지 않는 경우(CNI 미지원 등)와 기본 정책에 대해 설명해주세요.
+Kubernetes NetworkPolicy가 적용되지 않는 경우(CNI 미지원 등)와 기본 정책에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -3244,7 +3244,7 @@ Pod Security Standards(Privileged, Baseline, Restricted)의 차이점을 설명�
 [^93]: Kubernetes 공식 문서 - Pod Security Standards
 
 ### K8S-094
-Pod Security Admission Controller의 역할과 enforce, audit, warn 모드의 차이를 설명해주세요.
+Kubernetes Pod Security Admission Controller의 역할과 enforce, audit, warn 모드의 차이를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -3283,7 +3283,7 @@ metadata:
 [^94]: Kubernetes 공식 문서 - Pod Security Admission
 
 ### K8S-095
-컨테이너의 securityContext 설정(runAsUser, runAsNonRoot, readOnlyRootFilesystem 등)에 대해 설명해주세요.
+Kubernetes 컨테이너의 securityContext 설정(runAsUser, runAsNonRoot, readOnlyRootFilesystem 등)에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -3327,7 +3327,7 @@ securityContext:
 ## 📌 헬스 체크 - Probe
 
 ### K8S-096
-Liveness Probe의 역할과 설정 방법(httpGet, tcpSocket, exec)을 설명해주세요.
+Kubernetes Liveness Probe의 역할과 설정 방법(httpGet, tcpSocket, exec)을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -3377,7 +3377,7 @@ livenessProbe:
 [^96]: Kubernetes 공식 문서 - Liveness Probe
 
 ### K8S-097
-Readiness Probe의 역할과 Liveness Probe와의 차이점을 설명해주세요.
+Kubernetes Readiness Probe의 역할과 Liveness Probe와의 차이점을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -3418,7 +3418,7 @@ readinessProbe:
 [^97]: Kubernetes 공식 문서 - Readiness Probe
 
 ### K8S-098
-Startup Probe의 역할과 느린 시작 애플리케이션에서의 활용 방법을 설명해주세요.
+Kubernetes Startup Probe의 역할과 느린 시작 애플리케이션에서의 활용 방법을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -3458,7 +3458,7 @@ livenessProbe:
 [^98]: Kubernetes 공식 문서 - Startup Probe
 
 ### K8S-099
-Probe 설정값(initialDelaySeconds, periodSeconds, timeoutSeconds, failureThreshold)의 의미와 적절한 설정 방법을 설명해주세요.
+Kubernetes Probe 설정값(initialDelaySeconds, periodSeconds, timeoutSeconds, failureThreshold)의 의미와 적절한 설정 방법을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -3498,7 +3498,7 @@ livenessProbe:
 [^99]: Kubernetes 공식 문서 - Probe 설정
 
 ### K8S-100
-잘못된 Probe 설정으로 인한 문제(CrashLoopBackOff, 서비스 불가 등)와 해결 방법을 설명해주세요.
+잘못된 Kubernetes Probe 설정으로 인한 문제(CrashLoopBackOff, 서비스 불가 등)와 해결 방법을 설명해주세요.
 
 <details>
 <summary>답변</summary>

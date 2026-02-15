@@ -25,3 +25,7 @@ env/
 # Logs
 *.log
 logs/
+
+# Project
+jobs.yaml
+PLAN.md

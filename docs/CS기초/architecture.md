@@ -37,8 +37,7 @@ CPU는 컴퓨터의 두뇌로서 세 가지 핵심 구성 요소로 이루어져
 [^1]: Intel 공식 프로세서 아키텍처 문서
 
 ### ARCH-002
-
-명령어 사이클(Instruction Cycle)의 단계(Fetch, Decode, Execute)에 대해 설명해주세요.
+CPU가 하나의 명령어를 처리하는 명령어 사이클(Instruction Cycle)의 단계(Fetch, Decode, Execute)에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -68,8 +67,7 @@ CPU는 컴퓨터의 두뇌로서 세 가지 핵심 구성 요소로 이루어져
 [^2]: Intel 공식 명령어 사이클 설명
 
 ### ARCH-003
-
-파이프라이닝(Pipelining)이 무엇이고, 어떻게 CPU 성능을 향상시키나요?
+CPU 파이프라이닝(Pipelining)이 무엇이고, 어떻게 CPU 성능을 향상시키나요?
 
 <details>
 <summary>답변</summary>
@@ -98,8 +96,7 @@ CPU는 컴퓨터의 두뇌로서 세 가지 핵심 구성 요소로 이루어져
 [^3]: Intel 파이프라인 최적화 가이드
 
 ### ARCH-004
-
-파이프라인 해저드(Pipeline Hazard)의 종류와 해결 방법에 대해 설명해주세요.
+CPU 파이프라인 해저드(Pipeline Hazard)의 종류와 해결 방법에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -126,8 +123,7 @@ CPU는 컴퓨터의 두뇌로서 세 가지 핵심 구성 요소로 이루어져
 [^4]: ARM 프로세서 파이프라인 해저드 설명
 
 ### ARCH-005
-
-분기 예측(Branch Prediction)이 무엇이고 왜 중요한가요?
+CPU의 분기 예측(Branch Prediction)이 무엇이고 왜 중요한가요?
 
 <details>
 <summary>답변</summary>
@@ -156,8 +152,7 @@ CPU는 컴퓨터의 두뇌로서 세 가지 핵심 구성 요소로 이루어져
 [^5]: Intel 분기 예측 최적화 가이드
 
 ### ARCH-006
-
-Out-of-Order Execution이 무엇이고, 어떤 이점이 있나요?
+CPU의 Out-of-Order Execution(비순차 실행)이 무엇이고, 어떤 이점이 있나요?
 
 <details>
 <summary>답변</summary>
@@ -221,8 +216,7 @@ CISC와 RISC는 CPU 명령어 집합 설계 철학의 두 가지 접근 방식�
 [^7]: ARM RISC 아키텍처 공식 문서
 
 ### ARCH-008
-
-x86과 ARM 아키텍처의 차이점은 무엇인가요?
+x86 아키텍처와 ARM 아키텍처의 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -290,7 +284,6 @@ x86과 ARM은 각각 대표적인 CISC와 RISC 아키텍처입니다.
 [^10]: Intel 메모리 계층 구조 최적화 문서
 
 ### ARCH-010
-
 레지스터, 캐시, 메인 메모리, 보조 기억장치의 속도와 용량을 비교해주세요.
 
 <details>
@@ -319,7 +312,6 @@ x86과 ARM은 각각 대표적인 CISC와 RISC 아키텍처입니다.
 [^11]: Intel 메모리 지연 시간 측정 도구
 
 ### ARCH-011
-
 캐시 메모리가 왜 필요하고, 어떤 원리로 동작하나요?
 
 <details>
@@ -350,8 +342,7 @@ x86과 ARM은 각각 대표적인 CISC와 RISC 아키텍처입니다.
 [^12]: Intel 캐시 최적화 가이드
 
 ### ARCH-012
-
-캐시의 지역성(Locality) 원리에 대해 설명해주세요.
+캐시 메모리에서 활용하는 지역성(Locality) 원리에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -383,7 +374,6 @@ x86과 ARM은 각각 대표적인 CISC와 RISC 아키텍처입니다.
 [^13]: Intel 데이터 접근 최적화 문서
 
 ### ARCH-013
-
 시간 지역성(Temporal Locality)과 공간 지역성(Spatial Locality)의 차이는 무엇인가요?
 
 <details>
@@ -708,8 +698,7 @@ L1, L2, L3 캐시의 차이점과 각각의 역할에 대해 설명해주세요.
 [^22]: Intel 가상 메모리 및 페이징 문서
 
 ### ARCH-022
-
-물리 주소(Physical Address)와 논리 주소(Logical Address)의 차이는 무엇인가요?
+물리 주소(Physical Address)와 논리 주소(Logical Address, 가상 주소)의 차이는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -748,8 +737,7 @@ L1, L2, L3 캐시의 차이점과 각각의 역할에 대해 설명해주세요.
 [^23]: ARM 메모리 관리 유닛 문서
 
 ### ARCH-023
-
-페이지 테이블(Page Table)의 역할과 구조에 대해 설명해주세요.
+가상 메모리에서 사용하는 페이지 테이블(Page Table)의 역할과 구조에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -781,7 +769,6 @@ L1, L2, L3 캐시의 차이점과 각각의 역할에 대해 설명해주세요.
 [^24]: Intel 페이지 테이블 구조 문서
 
 ### ARCH-024
-
 TLB(Translation Lookaside Buffer)가 무엇이고 왜 필요한가요?
 
 <details>
@@ -817,8 +804,7 @@ TLB는 최근 사용된 페이지 테이블 엔트리를 캐싱하는 하드웨�
 [^25]: ARM TLB 아키텍처 문서
 
 ### ARCH-025
-
-페이지 폴트(Page Fault)가 발생했을 때 처리 과정을 설명해주세요.
+페이지 폴트(Page Fault)가 무엇이고, 발생 시 처리 과정을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1000,8 +986,7 @@ DMA는 CPU 개입 없이 I/O 장치와 메모리 간 직접 데이터 전송을 
 [^30]: Intel 멀티코어 아키텍처 문서
 
 ### ARCH-030
-
-하이퍼스레딩(Hyper-Threading)이 무엇인가요?
+하이퍼스레딩(Hyper-Threading, SMT)이 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1036,7 +1021,6 @@ DMA는 CPU 개입 없이 I/O 장치와 메모리 간 직접 데이터 전송을 
 [^31]: Intel 하이퍼스레딩 공식 문서
 
 ### ARCH-031
-
 병렬 처리(Parallel Processing)와 동시성(Concurrency)의 차이는 무엇인가요?
 
 <details>
@@ -1110,8 +1094,7 @@ DMA는 CPU 개입 없이 I/O 장치와 메모리 간 직접 데이터 전송을 
 [^33]: ARM big.LITTLE 하이브리드 멀티프로세싱
 
 ### ARCH-033
-
-멀티코어 환경에서 캐시 일관성을 유지하는 프로토콜(MESI, MOESI 등)에 대해 설명해주세요.
+캐시 일관성 프로토콜(MESI, MOESI 등)에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1147,8 +1130,7 @@ DMA는 CPU 개입 없이 I/O 장치와 메모리 간 직접 데이터 전송을 
 [^34]: Intel 캐시 일관성 프로토콜 문서
 
 ### ARCH-034
-
-False Sharing이 무엇이고, 어떻게 성능에 영향을 미치나요?
+멀티코어 환경에서 False Sharing이 무엇이고, 어떻게 성능에 영향을 미치나요?
 
 <details>
 <summary>답변</summary>
@@ -1267,7 +1249,6 @@ I/O 처리 방식(Programmed I/O, Interrupt-driven I/O, DMA)의 차이점을 설
 [^37]: Intel I/O 아키텍처 문서
 
 ### ARCH-037
-
 인터럽트(Interrupt)의 동작 원리와 종류에 대해 설명해주세요.
 
 <details>
@@ -1305,8 +1286,7 @@ I/O 처리 방식(Programmed I/O, Interrupt-driven I/O, DMA)의 차이점을 설
 [^38]: Intel 인터럽트 및 예외 처리 문서
 
 ### ARCH-038
-
-폴링(Polling)과 인터럽트 방식의 장단점을 비교해주세요.
+I/O 처리에서 폴링(Polling) 방식과 인터럽트(Interrupt) 방식의 장단점을 비교해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1464,7 +1444,6 @@ CPU 성능을 측정하는 지표(Clock Speed, IPC, CPI 등)에 대해 설명해
 [^42]: Intel 성능 모니터링 문서
 
 ### ARCH-042
-
 IPC(Instructions Per Cycle)가 무엇이고 왜 중요한가요?
 
 <details>
@@ -1686,7 +1665,6 @@ String[] names = new String[1000];
 [^47]: Intel 캐시 최적화 개발자 가이드
 
 ### ARCH-047
-
 데이터베이스 쿼리 성능에 CPU 캐시가 미치는 영향에 대해 설명해주세요.
 
 <details>
@@ -1726,8 +1704,7 @@ String[] names = new String[1000];
 [^48]: MySQL 성능 스키마 문서
 
 ### ARCH-048
-
-멀티스레드 환경에서 False Sharing을 방지하는 방법은 무엇인가요?
+멀티스레드 환경에서 False Sharing을 방지하는 구체적인 방법은 무엇인가요?
 
 <details>
 <summary>답변</summary>

@@ -251,97 +251,9 @@
             animation: fadeIn 0.3s;
         }
 
-        .feedback-excellent {
-            background: rgba(0, 200, 83, 0.15);
-            border-left: 4px solid #00c853;
-        }
-
         .feedback-good {
             background: rgba(0, 210, 255, 0.15);
             border-left: 4px solid #00d2ff;
-        }
-
-        .feedback-partial {
-            background: rgba(255, 193, 7, 0.15);
-            border-left: 4px solid #ffc107;
-        }
-
-        .feedback-needs-work {
-            background: rgba(255, 82, 82, 0.15);
-            border-left: 4px solid #ff5252;
-        }
-
-        .feedback-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .feedback-icon {
-            font-size: 1.5rem;
-        }
-
-        .feedback-score {
-            font-size: 1.1rem;
-            font-weight: bold;
-        }
-
-        .feedback-score.excellent { color: #00c853; }
-        .feedback-score.good { color: #00d2ff; }
-        .feedback-score.partial { color: #ffc107; }
-        .feedback-score.needs-work { color: #ff5252; }
-
-        .similarity-details {
-            margin: 15px 0;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
-            font-size: 0.85rem;
-        }
-
-        .similarity-item {
-            display: flex;
-            justify-content: space-between;
-            margin: 5px 0;
-            color: #aaa;
-        }
-
-        .similarity-item span:last-child {
-            color: #00d2ff;
-            font-weight: bold;
-        }
-
-        .keywords-section {
-            margin: 15px 0;
-        }
-
-        .keywords-title {
-            font-size: 0.9rem;
-            color: #aaa;
-            margin-bottom: 8px;
-        }
-
-        .keywords-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .keyword {
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-        }
-
-        .keyword.matched {
-            background: rgba(0, 200, 83, 0.3);
-            color: #00c853;
-        }
-
-        .keyword.missed {
-            background: rgba(255, 82, 82, 0.2);
-            color: #ff5252;
         }
 
         .model-answer {
@@ -591,7 +503,7 @@
             .category-label { padding: 6px 12px; font-size: 0.8rem; }
         }
 
-        /* Algorithm Info */
+        /* Info Box */
         .algorithm-info {
             margin-top: 15px;
             padding: 10px;
@@ -652,7 +564,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>CS 면접 주관식 퀴즈</h1>
+            <h1 onclick="goToHome()" style="cursor: pointer;">CS 면접 주관식 퀴즈</h1>
             <p class="subtitle">백엔드 개발자를 위한 기술 면접 대비</p>
         </header>
 
@@ -660,10 +572,6 @@
             <div class="stat-item">
                 <div class="stat-number" id="totalQuestions">0</div>
                 <div class="stat-label">선택된 문제</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number" id="avgScore">0%</div>
-                <div class="stat-label">평균 점수</div>
             </div>
             <div class="stat-item">
                 <div class="stat-number" id="answeredCount">0</div>
@@ -691,13 +599,13 @@
 
             <div class="question-count-section">
                 <div class="question-count-label">출제할 문제 수</div>
-                <input type="number" class="question-count-input" id="questionCountInput" value="10" min="1" max="50">
+                <input type="number" class="question-count-input" id="questionCountInput" placeholder="10" min="1" max="50">
             </div>
 
             <button class="start-btn" id="startBtn" onclick="startQuiz()">퀴즈 시작하기</button>
 
             <div class="algorithm-info">
-                채점 알고리즘: <strong>TF-IDF 코사인 유사도</strong> + 키워드 매칭
+                답변 작성 후 <strong>참고용 답변</strong>을 확인할 수 있습니다
             </div>
         </div>
 
@@ -721,36 +629,11 @@
                 <textarea class="answer-textarea" id="answerInput" placeholder="답변을 입력하세요..."></textarea>
             </div>
 
-            <button class="submit-btn" id="submitBtn" onclick="submitAnswer()">답변 제출</button>
+            <button class="submit-btn" id="submitBtn" onclick="submitAnswer()">참고 답변 보기</button>
 
             <div class="feedback-container" id="feedbackContainer">
-                <div class="feedback-header">
-                    <span class="feedback-icon" id="feedbackIcon"></span>
-                    <span class="feedback-score" id="feedbackScore"></span>
-                </div>
-
-                <div class="similarity-details" id="similarityDetails">
-                    <div class="similarity-item">
-                        <span>TF-IDF 코사인 유사도</span>
-                        <span id="cosineSimilarity">0%</span>
-                    </div>
-                    <div class="similarity-item">
-                        <span>키워드 매칭률</span>
-                        <span id="keywordMatch">0%</span>
-                    </div>
-                    <div class="similarity-item">
-                        <span>답변 길이 보너스</span>
-                        <span id="lengthBonus">0%</span>
-                    </div>
-                </div>
-
-                <div class="keywords-section">
-                    <div class="keywords-title">핵심 키워드 매칭</div>
-                    <div class="keywords-list" id="keywordsList"></div>
-                </div>
-
                 <div class="model-answer">
-                    <div class="model-answer-title">모범 답안</div>
+                    <div class="model-answer-title">참고용 답변</div>
                     <div class="model-answer-text" id="modelAnswer"></div>
                     <div class="references" id="references"></div>
                 </div>
@@ -765,24 +648,11 @@
         <!-- 결과 화면 -->
         <div class="quiz-container result-container" id="resultScreen">
             <div class="result-icon" id="resultIcon"></div>
-            <div class="result-score" id="resultScore">85%</div>
             <div class="result-message" id="resultMessage"></div>
             <div class="result-breakdown">
                 <div class="breakdown-item">
-                    <div class="breakdown-number" id="excellentCount" style="color: #00c853;">0</div>
-                    <div class="breakdown-label">우수 (80%+)</div>
-                </div>
-                <div class="breakdown-item">
-                    <div class="breakdown-number" id="goodCount" style="color: #00d2ff;">0</div>
-                    <div class="breakdown-label">양호 (60-79%)</div>
-                </div>
-                <div class="breakdown-item">
-                    <div class="breakdown-number" id="partialCount" style="color: #ffc107;">0</div>
-                    <div class="breakdown-label">부분 (40-59%)</div>
-                </div>
-                <div class="breakdown-item">
-                    <div class="breakdown-number" id="needsWorkCount" style="color: #ff5252;">0</div>
-                    <div class="breakdown-label">복습필요 (0-39%)</div>
+                    <div class="breakdown-number" id="totalAnswered" style="color: #00d2ff;">0</div>
+                    <div class="breakdown-label">학습 완료</div>
                 </div>
             </div>
             <button class="restart-btn" onclick="restartQuiz()">다시 풀기</button>
@@ -807,141 +677,13 @@
     <script src="quizData.js"></script>
     <script>
         // ================================
-        // TF-IDF 코사인 유사도 알고리즘
-        // ================================
-
-        class TFIDFSimilarity {
-            constructor() {
-                this.stopwords = new Set([
-                    // 한국어 불용어
-                    '이', '그', '저', '것', '수', '등', '및', '또는', '그리고', '하지만',
-                    '따라서', '위해', '통해', '대해', '경우', '때문에', '있습니다', '합니다',
-                    '됩니다', '입니다', '있는', '하는', '되는', '있다', '한다', '된다',
-                    '그것', '이것', '저것', '무엇', '어떤', '모든', '각', '다른',
-                    // 영어 불용어
-                    'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
-                    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
-                    'should', 'may', 'might', 'must', 'can', 'to', 'of', 'in', 'for',
-                    'on', 'with', 'at', 'by', 'from', 'as', 'into', 'through', 'and',
-                    'but', 'or', 'not', 'this', 'that', 'these', 'those', 'it', 'its'
-                ]);
-            }
-
-            // 텍스트 토큰화
-            tokenize(text) {
-                const normalized = text.toLowerCase()
-                    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, ' ')
-                    .replace(/\s+/g, ' ')
-                    .trim();
-
-                return normalized.split(' ')
-                    .filter(word => word.length > 1 && !this.stopwords.has(word));
-            }
-
-            // TF (Term Frequency) 계산
-            computeTF(tokens) {
-                const tf = {};
-                const total = tokens.length;
-
-                for (const token of tokens) {
-                    tf[token] = (tf[token] || 0) + 1;
-                }
-
-                // 정규화
-                for (const token in tf) {
-                    tf[token] = tf[token] / total;
-                }
-
-                return tf;
-            }
-
-            // IDF (Inverse Document Frequency) 계산
-            computeIDF(documents) {
-                const idf = {};
-                const N = documents.length;
-
-                // 각 단어가 등장하는 문서 수 계산
-                const docFreq = {};
-                for (const doc of documents) {
-                    const uniqueTokens = new Set(doc);
-                    for (const token of uniqueTokens) {
-                        docFreq[token] = (docFreq[token] || 0) + 1;
-                    }
-                }
-
-                // IDF 계산: log(N / df)
-                for (const token in docFreq) {
-                    idf[token] = Math.log(N / docFreq[token]) + 1;
-                }
-
-                return idf;
-            }
-
-            // TF-IDF 벡터 생성
-            computeTFIDF(tf, idf) {
-                const tfidf = {};
-                for (const token in tf) {
-                    tfidf[token] = tf[token] * (idf[token] || 1);
-                }
-                return tfidf;
-            }
-
-            // 코사인 유사도 계산
-            cosineSimilarity(vec1, vec2) {
-                const allKeys = new Set([...Object.keys(vec1), ...Object.keys(vec2)]);
-
-                let dotProduct = 0;
-                let magnitude1 = 0;
-                let magnitude2 = 0;
-
-                for (const key of allKeys) {
-                    const v1 = vec1[key] || 0;
-                    const v2 = vec2[key] || 0;
-                    dotProduct += v1 * v2;
-                    magnitude1 += v1 * v1;
-                    magnitude2 += v2 * v2;
-                }
-
-                magnitude1 = Math.sqrt(magnitude1);
-                magnitude2 = Math.sqrt(magnitude2);
-
-                if (magnitude1 === 0 || magnitude2 === 0) return 0;
-
-                return dotProduct / (magnitude1 * magnitude2);
-            }
-
-            // 두 텍스트 간 유사도 계산
-            calculateSimilarity(text1, text2) {
-                const tokens1 = this.tokenize(text1);
-                const tokens2 = this.tokenize(text2);
-
-                if (tokens1.length === 0 || tokens2.length === 0) {
-                    return 0;
-                }
-
-                // IDF는 두 문서를 기준으로 계산
-                const idf = this.computeIDF([tokens1, tokens2]);
-
-                const tf1 = this.computeTF(tokens1);
-                const tf2 = this.computeTF(tokens2);
-
-                const tfidf1 = this.computeTFIDF(tf1, idf);
-                const tfidf2 = this.computeTFIDF(tf2, idf);
-
-                return this.cosineSimilarity(tfidf1, tfidf2);
-            }
-        }
-
-        // ================================
         // 퀴즈 로직
         // ================================
-
-        const tfidf = new TFIDFSimilarity();
 
         let currentQuiz = [];
         let currentQuestionIndex = 0;
         let userAnswers = [];
-        let scores = [];
+        let viewed = [];
         let categoryGroups = {};
 
         // 초기화
@@ -951,12 +693,14 @@
 
         // 카테고리 초기화
         function initializeCategories() {
-            // 우선순위별 그룹화
-            const priorities = {
-                'P1': { title: 'P1 핵심 - CS 기초 & Framework', color: '#ff6b6b', categories: [] },
-                'P2': { title: 'P2 중요 - 인프라 & 메시징', color: '#ffa502', categories: [] },
-                'P3': { title: 'P3 부가 - 심화 기술', color: '#1e90ff', categories: [] },
-                'P4': { title: 'P4 추가 - 기타', color: '#2ed573', categories: [] }
+            // 섹션별 그룹화
+            const sections = {
+                'cs': { title: 'CS 기초', color: '#ff6b6b', categories: [] },
+                'specific_db': { title: '특정 데이터베이스', color: '#ffa502', categories: [] },
+                'framework': { title: 'Framework', color: '#1e90ff', categories: [] },
+                'infra': { title: '인프라 & 메시징', color: '#2ed573', categories: [] },
+                'pl': { title: '프로그래밍 언어', color: '#e67e22', categories: [] },
+                'etc': { title: '기타', color: '#9b59b6', categories: [] }
             };
 
             // 카테고리 그룹화
@@ -966,7 +710,7 @@
                     categoryMap[q.category] = {
                         id: q.category,
                         name: q.categoryName,
-                        priority: q.priority || 'P4',
+                        section: q.section || 'etc',
                         count: 0
                     };
                 }
@@ -974,15 +718,15 @@
             }
 
             for (const cat of Object.values(categoryMap)) {
-                const priority = priorities[cat.priority] || priorities['P4'];
-                priority.categories.push(cat);
+                const section = sections[cat.section] || sections['etc'];
+                section.categories.push(cat);
             }
 
             // HTML 생성
             const container = document.getElementById('categoryContainer');
             let html = '';
 
-            for (const [key, group] of Object.entries(priorities)) {
+            for (const [key, group] of Object.entries(sections)) {
                 if (group.categories.length === 0) continue;
 
                 html += `
@@ -992,7 +736,7 @@
                 `;
 
                 for (const cat of group.categories) {
-                    const checked = key === 'P1' ? 'checked' : '';
+                    const checked = key === 'cs' ? 'checked' : '';
                     html += `
                         <input type="checkbox" class="category-checkbox" id="cat-${cat.id}" value="${cat.id}" ${checked}>
                         <label class="category-label" for="cat-${cat.id}">${cat.name} (${cat.count})</label>
@@ -1002,7 +746,7 @@
                 html += `
                         </div>
                         <div class="select-buttons" style="margin-top: 8px;">
-                            <button class="select-btn" onclick="selectPriority('${key}')">전체 선택</button>
+                            <button class="select-btn" onclick="selectSection('${key}')">전체 선택</button>
                         </div>
                     </div>
                 `;
@@ -1050,9 +794,9 @@
             updateQuestionCount();
         }
 
-        function selectPriority(priority) {
+        function selectSection(section) {
             const categories = quizData
-                .filter(q => q.priority === priority)
+                .filter(q => q.section === section)
                 .map(q => q.category);
 
             const uniqueCategories = [...new Set(categories)];
@@ -1073,7 +817,9 @@
 
         function startQuiz() {
             const selected = getSelectedCategories();
-            const questionCount = parseInt(document.getElementById('questionCountInput').value);
+            const inputValue = document.getElementById('questionCountInput').value;
+            const parsed = parseInt(inputValue);
+            const questionCount = (!inputValue || isNaN(parsed) || parsed < 1) ? 10 : parsed;
 
             let filteredQuestions = quizData.filter(q => selected.includes(q.category));
             shuffleArray(filteredQuestions);
@@ -1081,12 +827,14 @@
             currentQuiz = filteredQuestions.slice(0, Math.min(questionCount, filteredQuestions.length));
             currentQuestionIndex = 0;
             userAnswers = new Array(currentQuiz.length).fill('');
-            scores = new Array(currentQuiz.length).fill(null);
+            viewed = new Array(currentQuiz.length).fill(false);
 
             document.getElementById('startScreen').style.display = 'none';
             document.getElementById('quizScreen').style.display = 'block';
             document.getElementById('resultScreen').classList.remove('show');
 
+            // 퀴즈 시작 시 선택된 문제 수 업데이트
+            document.getElementById('totalQuestions').textContent = currentQuiz.length;
             updateStats();
             showQuestion();
         }
@@ -1106,7 +854,7 @@
             document.getElementById('answerInput').value = userAnswers[currentQuestionIndex];
 
             const feedbackContainer = document.getElementById('feedbackContainer');
-            if (scores[currentQuestionIndex] !== null) {
+            if (viewed[currentQuestionIndex]) {
                 showFeedback(currentQuestionIndex);
                 document.getElementById('submitBtn').disabled = true;
                 document.getElementById('answerInput').disabled = true;
@@ -1118,73 +866,15 @@
             }
 
             document.getElementById('prevBtn').disabled = currentQuestionIndex === 0;
-            document.getElementById('nextBtn').disabled = scores[currentQuestionIndex] === null;
+            document.getElementById('nextBtn').disabled = !viewed[currentQuestionIndex];
             document.getElementById('nextBtn').textContent =
                 currentQuestionIndex === currentQuiz.length - 1 ? '결과 보기' : '다음';
         }
 
-        // 종합 유사도 계산
-        function calculateSimilarity(userAnswer, question) {
-            const modelAnswer = question.answer;
-            const keywords = question.keywords || [];
-
-            // 1. TF-IDF 코사인 유사도 (40%)
-            const cosineSim = tfidf.calculateSimilarity(userAnswer, modelAnswer);
-            const cosineScore = cosineSim * 100;
-
-            // 2. 키워드 매칭 (40%)
-            const normalizedAnswer = userAnswer.toLowerCase();
-            let matchedKeywords = [];
-            let missedKeywords = [];
-
-            for (const keyword of keywords) {
-                const keywordLower = keyword.toLowerCase();
-                if (normalizedAnswer.includes(keywordLower)) {
-                    matchedKeywords.push(keyword);
-                } else {
-                    missedKeywords.push(keyword);
-                }
-            }
-
-            const keywordScore = keywords.length > 0
-                ? (matchedKeywords.length / keywords.length) * 100
-                : 50;
-
-            // 3. 답변 길이 보너스 (20%)
-            const idealLength = modelAnswer.length * 0.5;
-            const lengthRatio = Math.min(userAnswer.length / idealLength, 1.5);
-            const lengthScore = Math.min(lengthRatio * 66.7, 100);
-
-            // 최종 점수 계산
-            const totalScore = Math.round(
-                cosineScore * 0.4 +
-                keywordScore * 0.4 +
-                lengthScore * 0.2
-            );
-
-            return {
-                score: Math.min(100, totalScore),
-                cosineScore: Math.round(cosineScore),
-                keywordScore: Math.round(keywordScore),
-                lengthScore: Math.round(lengthScore),
-                matchedKeywords,
-                missedKeywords
-            };
-        }
-
         function submitAnswer() {
             const userAnswer = document.getElementById('answerInput').value.trim();
-
-            if (userAnswer.length < 10) {
-                alert('답변을 좀 더 자세히 작성해 주세요. (최소 10자 이상)');
-                return;
-            }
-
             userAnswers[currentQuestionIndex] = userAnswer;
-
-            const question = currentQuiz[currentQuestionIndex];
-            const result = calculateSimilarity(userAnswer, question);
-            scores[currentQuestionIndex] = result;
+            viewed[currentQuestionIndex] = true;
 
             showFeedback(currentQuestionIndex);
             document.getElementById('submitBtn').disabled = true;
@@ -1196,62 +886,11 @@
 
         function showFeedback(index) {
             const question = currentQuiz[index];
-            const result = scores[index];
             const feedbackContainer = document.getElementById('feedbackContainer');
 
-            feedbackContainer.className = 'feedback-container show';
-            let icon, scoreClass, message;
+            feedbackContainer.className = 'feedback-container show feedback-good';
 
-            if (result.score >= 80) {
-                feedbackContainer.classList.add('feedback-excellent');
-                icon = '!';
-                scoreClass = 'excellent';
-                message = '우수한 답변입니다!';
-            } else if (result.score >= 60) {
-                feedbackContainer.classList.add('feedback-good');
-                icon = '+';
-                scoreClass = 'good';
-                message = '좋습니다! 몇 가지 키워드를 더 언급하면 좋겠습니다.';
-            } else if (result.score >= 40) {
-                feedbackContainer.classList.add('feedback-partial');
-                icon = '*';
-                scoreClass = 'partial';
-                message = '부분적으로 맞았습니다. 모범 답안을 참고하세요.';
-            } else {
-                feedbackContainer.classList.add('feedback-needs-work');
-                icon = '?';
-                scoreClass = 'needs-work';
-                message = '더 학습이 필요합니다. 모범 답안을 꼼꼼히 읽어보세요.';
-            }
-
-            document.getElementById('feedbackIcon').textContent = icon;
-            document.getElementById('feedbackScore').textContent = `${result.score}점 - ${message}`;
-            document.getElementById('feedbackScore').className = `feedback-score ${scoreClass}`;
-
-            // 유사도 상세
-            document.getElementById('cosineSimilarity').textContent = `${result.cosineScore}%`;
-            document.getElementById('keywordMatch').textContent = `${result.keywordScore}%`;
-            document.getElementById('lengthBonus').textContent = `${result.lengthScore}%`;
-
-            // 키워드 표시
-            const keywordsList = document.getElementById('keywordsList');
-            keywordsList.innerHTML = '';
-
-            result.matchedKeywords.forEach(kw => {
-                const span = document.createElement('span');
-                span.className = 'keyword matched';
-                span.textContent = kw;
-                keywordsList.appendChild(span);
-            });
-
-            result.missedKeywords.slice(0, 10).forEach(kw => {
-                const span = document.createElement('span');
-                span.className = 'keyword missed';
-                span.textContent = kw;
-                keywordsList.appendChild(span);
-            });
-
-            // 모범 답안
+            // 참고용 답변
             document.getElementById('modelAnswer').textContent = question.answer;
 
             // 참고자료
@@ -1285,56 +924,36 @@
         }
 
         function updateStats() {
-            const answered = scores.filter(s => s !== null).length;
-            const totalScore = scores.filter(s => s !== null).reduce((sum, s) => sum + s.score, 0);
-            const avg = answered > 0 ? Math.round(totalScore / answered) : 0;
-
+            const answered = viewed.filter(v => v).length;
             document.getElementById('answeredCount').textContent = answered;
-            document.getElementById('avgScore').textContent = avg + '%';
         }
 
         function showResults() {
             document.getElementById('quizScreen').style.display = 'none';
             document.getElementById('resultScreen').classList.add('show');
 
-            const totalScore = scores.reduce((sum, s) => sum + s.score, 0);
-            const avg = Math.round(totalScore / scores.length);
+            const totalAnswered = viewed.length;
 
-            let excellent = 0, good = 0, partial = 0, needsWork = 0;
-            for (const s of scores) {
-                if (s.score >= 80) excellent++;
-                else if (s.score >= 60) good++;
-                else if (s.score >= 40) partial++;
-                else needsWork++;
-            }
-
-            let icon, message;
-            if (avg >= 80) {
-                icon = '!';
-                message = '훌륭합니다! 면접 준비가 잘 되어있습니다.';
-            } else if (avg >= 60) {
-                icon = '+';
-                message = '좋습니다! 조금만 더 보완하면 완벽해집니다.';
-            } else if (avg >= 40) {
-                icon = '*';
-                message = '기본은 잡았습니다. 복습이 필요한 부분을 확인하세요.';
-            } else {
-                icon = '?';
-                message = '더 많은 학습이 필요합니다. 모범 답안을 참고하여 복습하세요.';
-            }
-
-            document.getElementById('resultIcon').textContent = icon;
-            document.getElementById('resultScore').textContent = avg + '%';
-            document.getElementById('resultMessage').textContent = message;
-            document.getElementById('excellentCount').textContent = excellent;
-            document.getElementById('goodCount').textContent = good;
-            document.getElementById('partialCount').textContent = partial;
-            document.getElementById('needsWorkCount').textContent = needsWork;
+            document.getElementById('resultIcon').textContent = '+';
+            document.getElementById('resultMessage').textContent = `${totalAnswered}개 문제의 학습을 완료했습니다. 수고하셨습니다!`;
+            document.getElementById('totalAnswered').textContent = totalAnswered;
         }
 
         function restartQuiz() {
             document.getElementById('resultScreen').classList.remove('show');
             document.getElementById('startScreen').style.display = 'block';
+            updateQuestionCount();
+        }
+
+        function goToHome() {
+            // 진행 중인 퀴즈 중단하고 메인화면으로
+            document.getElementById('quizScreen').style.display = 'none';
+            document.getElementById('resultScreen').classList.remove('show');
+            document.getElementById('startScreen').style.display = 'block';
+            currentQuiz = [];
+            currentQuestionIndex = 0;
+            userAnswers = [];
+            viewed = [];
             updateQuestionCount();
         }
     </script>

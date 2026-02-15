@@ -22,7 +22,7 @@ MongoDB는 문서 지향(Document-Oriented) NoSQL 데이터베이스입니다.
 
 [^1]: MongoDB 공식 문서 - SQL과 MongoDB 매핑 비교
 
-### 2. NoSQL 데이터베이스의 종류와 MongoDB가 속한 유형은 무엇인가요?
+### 2. NoSQL 데이터베이스의 종류(Document, Key-Value, Column-Family, Graph)와 MongoDB가 속한 유형은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -42,7 +42,7 @@ MongoDB는 **Document Store** 유형에 속하며, 데이터를 BSON 형식의 �
 
 [^2]: MongoDB 공식 문서 - 소개
 
-### 3. MongoDB를 사용하는 이유와 장단점은 무엇인가요?
+### 3. Document Store 기반 NoSQL인 MongoDB를 사용하는 이유와 장단점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -66,7 +66,7 @@ MongoDB는 **Document Store** 유형에 속하며, 데이터를 BSON 형식의 �
 
 [^3]: MongoDB 공식 문서 - 소개
 
-### 4. BSON이란 무엇이며, JSON과의 차이점은 무엇인가요?
+### 4. MongoDB에서 사용하는 BSON이란 무엇이며, JSON과의 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -86,7 +86,7 @@ BSON(Binary JSON)은 JSON의 바이너리 인코딩 형식입니다.
 
 [^4]: MongoDB 공식 문서 - BSON 타입
 
-### 5. Collection과 Document의 개념을 설명해주세요.
+### 5. MongoDB에서 BSON 기반으로 저장되는 Collection과 Document의 개념을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -112,7 +112,7 @@ BSON(Binary JSON)은 JSON의 바이너리 인코딩 형식입니다.
 
 [^5]: MongoDB 공식 문서 - Documents
 
-### 6. MongoDB의 스키마리스(Schema-less) 특성은 무엇을 의미하나요?
+### 6. MongoDB Collection 내 Document들이 서로 다른 필드 구조를 가질 수 있는 스키마리스(Schema-less) 특성은 무엇을 의미하나요?
 
 <details>
 <summary>답변</summary>
@@ -163,7 +163,7 @@ BSON(Binary JSON)은 JSON의 바이너리 인코딩 형식입니다.
 
 [^7]: MongoDB 공식 문서 - 데이터 모델링 소개
 
-### 8. Embedding(내장)과 Referencing(참조) 방식의 차이와 각각 언제 사용하나요?
+### 8. MongoDB Schema Design에서 Embedding(내장)과 Referencing(참조) 방식의 차이와 각각 언제 사용하나요?
 
 <details>
 <summary>답변</summary>
@@ -191,7 +191,7 @@ BSON(Binary JSON)은 JSON의 바이너리 인코딩 형식입니다.
 
 [^8]: MongoDB 공식 문서 - 데이터 모델 설계
 
-### 9. One-to-Many 관계를 MongoDB에서 어떻게 설계하나요?
+### 9. Embedding과 Referencing을 활용하여 One-to-Many 관계를 MongoDB에서 어떻게 설계하나요?
 
 <details>
 <summary>답변</summary>
@@ -221,7 +221,7 @@ BSON(Binary JSON)은 JSON의 바이너리 인코딩 형식입니다.
 
 [^9]: MongoDB 공식 문서 - One-to-Many 관계 모델링
 
-### 10. Many-to-Many 관계를 MongoDB에서 어떻게 설계하나요?
+### 10. MongoDB에서 Many-to-Many 관계를 어떻게 설계하나요?
 
 <details>
 <summary>답변</summary>
@@ -253,7 +253,7 @@ db.students.aggregate([
 
 [^10]: MongoDB 공식 문서 - Many-to-Many 관계 모델링
 
-### 11. Document의 크기 제한은 얼마이며, 큰 데이터는 어떻게 처리하나요?
+### 11. MongoDB Document의 크기 제한(16MB)은 얼마이며, 이를 초과하는 큰 데이터는 어떻게 처리하나요?
 
 <details>
 <summary>답변</summary>
@@ -279,7 +279,7 @@ fs.createReadStream('large_file.pdf').pipe(bucket.openUploadStream('file.pdf'));
 
 [^11]: MongoDB 공식 문서 - BSON Document 크기 제한
 
-### 12. GridFS란 무엇이며 언제 사용하나요?
+### 12. 16MB Document 크기 제한을 초과하는 파일을 저장하기 위한 GridFS란 무엇이며 언제 사용하나요?
 
 <details>
 <summary>답변</summary>
@@ -348,7 +348,7 @@ db.collection.deleteMany({ status: "inactive" })
 
 [^13]: MongoDB 공식 문서 - CRUD 작업
 
-### 14. find()와 findOne()의 차이는 무엇인가요?
+### 14. MongoDB Read 작업에서 find()와 findOne()의 차이는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -375,7 +375,7 @@ const user = db.users.findOne({ _id: ObjectId("...") })
 
 [^14]: MongoDB 공식 문서 - find() 메서드
 
-### 15. MongoDB의 쿼리 연산자($eq, $gt, $in, $and, $or 등)를 설명해주세요.
+### 15. find() 메서드에서 사용하는 MongoDB 쿼리 연산자($eq, $gt, $in, $and, $or 등)를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -408,7 +408,7 @@ db.users.find({
 
 [^15]: MongoDB 공식 문서 - 쿼리 연산자
 
-### 16. Projection이란 무엇이며 어떻게 사용하나요?
+### 16. find() 메서드에서 반환할 필드를 지정하는 Projection이란 무엇이며 어떻게 사용하나요?
 
 <details>
 <summary>답변</summary>
@@ -467,7 +467,7 @@ db.users.createIndex({ lastName: 1, firstName: 1 })
 
 [^17]: MongoDB 공식 문서 - 인덱스
 
-### 18. Compound Index(복합 인덱스)란 무엇이며 언제 사용하나요?
+### 18. 여러 필드를 조합한 Compound Index(복합 인덱스)란 무엇이며 언제 사용하나요?
 
 <details>
 <summary>답변</summary>
@@ -499,7 +499,7 @@ db.items.createIndex({ status: 1, createdAt: 1, price: 1 })
 
 [^18]: MongoDB 공식 문서 - 복합 인덱스
 
-### 19. 인덱스의 순서가 쿼리 성능에 어떤 영향을 미치나요?
+### 19. MongoDB Compound Index(복합 인덱스)에서 필드 순서가 쿼리 성능에 어떤 영향을 미치나요?
 
 <details>
 <summary>답변</summary>
@@ -529,7 +529,7 @@ db.items.createIndex({ status: 1, createdAt: 1, price: 1 })
 
 [^19]: MongoDB 공식 문서 - 인덱스 Prefix
 
-### 20. Text Index와 Geospatial Index는 무엇인가요?
+### 20. MongoDB의 특수 인덱스인 Text Index와 Geospatial Index는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -564,7 +564,7 @@ db.places.find({
 
 [^20]: MongoDB 공식 문서 - Text 인덱스
 
-### 21. explain()을 사용하여 쿼리 성능을 분석하는 방법은?
+### 21. 인덱스 사용 여부와 쿼리 성능을 분석하기 위해 explain()을 사용하는 방법은?
 
 <details>
 <summary>답변</summary>
@@ -591,7 +591,7 @@ db.collection.find({ status: "active" }).explain("executionStats")
 
 [^21]: MongoDB 공식 문서 - explain 결과
 
-### 22. Covered Query란 무엇이며 어떻게 활용하나요?
+### 22. MongoDB에서 인덱스만으로 쿼리를 완료하는 Covered Query란 무엇이며 어떻게 활용하나요?
 
 <details>
 <summary>답변</summary>
@@ -654,7 +654,7 @@ db.orders.aggregate([
 
 [^23]: MongoDB 공식 문서 - Aggregation Pipeline
 
-### 24. Aggregation의 주요 Stage($match, $group, $project, $sort 등)를 설명해주세요.
+### 24. Aggregation Pipeline에서 사용하는 주요 Stage($match, $group, $project, $sort, $lookup 등)를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -688,7 +688,7 @@ db.sales.aggregate([
 
 [^24]: MongoDB 공식 문서 - Aggregation Stage 연산자
 
-### 25. $lookup을 사용한 Join 작업을 설명해주세요.
+### 25. Aggregation Pipeline에서 다른 Collection과 LEFT OUTER JOIN을 수행하는 $lookup 사용법을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -731,7 +731,7 @@ db.orders.aggregate([
 
 [^25]: MongoDB 공식 문서 - $lookup
 
-### 26. $unwind는 언제 사용하며 어떤 역할을 하나요?
+### 26. MongoDB Aggregation Pipeline에서 배열 필드를 펼쳐서 처리하는 $unwind는 언제 사용하며 어떤 역할을 하나요?
 
 <details>
 <summary>답변</summary>
@@ -764,7 +764,7 @@ db.orders.aggregate([{ $unwind: "$items" }])
 
 [^26]: MongoDB 공식 문서 - $unwind
 
-### 27. $facet을 사용하여 여러 Aggregation을 동시에 실행하는 방법은?
+### 27. Aggregation Pipeline에서 동일 입력에 여러 파이프라인을 병렬 실행하는 $facet 사용 방법은?
 
 <details>
 <summary>답변</summary>
@@ -804,7 +804,7 @@ db.products.aggregate([
 
 [^27]: MongoDB 공식 문서 - $facet
 
-### 28. Aggregation Pipeline과 MapReduce의 차이는 무엇인가요?
+### 28. Aggregation Pipeline과 Deprecated된 MapReduce의 차이는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -860,7 +860,7 @@ Replication은 여러 서버에 동일한 데이터를 복제하여 고가용성
 
 [^29]: MongoDB 공식 문서 - Replication
 
-### 30. Replica Set의 구조와 역할을 설명해주세요.
+### 30. MongoDB에서 데이터 복제를 구현하는 Replica Set의 구조(Primary, Secondary 등)와 역할을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -892,7 +892,7 @@ Replica Set은 동일한 데이터를 가진 MongoDB 인스턴스 그룹입니�
 
 [^30]: MongoDB 공식 문서 - Replica Set 멤버
 
-### 31. Primary, Secondary, Arbiter 노드의 역할은 무엇인가요?
+### 31. MongoDB Replica Set(복제 셋)을 구성하는 Primary, Secondary, Arbiter 노드의 역할은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -925,7 +925,7 @@ rs.addArb("mongodb3.example.com:27017")
 
 [^31]: MongoDB 공식 문서 - Replica Set Arbiter
 
-### 32. Read Preference란 무엇이며 종류는 무엇인가요?
+### 32. MongoDB Replica Set(복제 셋)에서 읽기 작업을 어느 노드에서 수행할지 지정하는 Read Preference란 무엇이며 종류는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -958,7 +958,7 @@ mongodb://host1,host2/?readPreference=secondary
 
 [^32]: MongoDB 공식 문서 - Read Preference
 
-### 33. Write Concern이란 무엇이며 어떻게 설정하나요?
+### 33. 쓰기 작업의 확인 수준을 지정하는 Write Concern이란 무엇이며 어떻게 설정하나요?
 
 <details>
 <summary>답변</summary>
@@ -992,7 +992,7 @@ db.collection.insertOne(
 
 [^33]: MongoDB 공식 문서 - Write Concern
 
-### 34. Replica Set의 자동 Failover 과정을 설명해주세요.
+### 34. Replica Set에서 Primary 장애 시 자동 Failover 과정(장애 감지, 선거, 승격)을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1023,7 +1023,7 @@ Primary 장애 → [10초 대기] → 선거 시작 → 투표 → 새 Primary �
 
 [^34]: MongoDB 공식 문서 - Replica Set 선거
 
-### 35. Oplog란 무엇이며 어떤 역할을 하나요?
+### 35. Replica Set의 데이터 동기화와 Point-in-Time Recovery의 기반이 되는 Oplog란 무엇이며 어떤 역할을 하나요?
 
 <details>
 <summary>답변</summary>
@@ -1057,7 +1057,7 @@ db.oplog.rs.find().sort({ $natural: -1 }).limit(1)
 
 [^35]: MongoDB 공식 문서 - Oplog
 
-### 36. Secondary 노드에서 읽기 작업을 수행할 때 주의할 점은?
+### 36. MongoDB Replica Set에서 Secondary 노드로부터 읽기 작업을 수행할 때 Replication Lag 등 주의할 점은?
 
 <details>
 <summary>답변</summary>
@@ -1122,7 +1122,7 @@ Sharding은 데이터를 여러 서버에 분산 저장하는 수평 확장(Scal
 
 [^37]: MongoDB 공식 문서 - Sharding
 
-### 38. MongoDB의 Sharding 아키텍처(Shard, Config Server, mongos)를 설명해주세요.
+### 38. Sharding을 구현하는 MongoDB의 Sharded Cluster 아키텍처(Shard, Config Server, mongos)를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1154,7 +1154,7 @@ Sharding은 데이터를 여러 서버에 분산 저장하는 수평 확장(Scal
 
 [^38]: MongoDB 공식 문서 - Sharded Cluster 구성요소
 
-### 39. Shard Key란 무엇이며 선택 시 고려사항은?
+### 39. Sharded Cluster에서 데이터를 여러 Shard에 분배하는 기준인 Shard Key란 무엇이며 선택 시 고려사항은?
 
 <details>
 <summary>답변</summary>
@@ -1185,7 +1185,7 @@ sh.shardCollection("db.orders", { customerId: 1, orderDate: 1 })
 
 [^39]: MongoDB 공식 문서 - Shard Key
 
-### 40. Range-based Sharding과 Hash-based Sharding의 차이는?
+### 40. MongoDB Sharding에서 Shard Key 기반 데이터 분배 방식인 Range Sharding과 Hash Sharding의 차이는?
 
 <details>
 <summary>답변</summary>
@@ -1217,7 +1217,7 @@ sh.shardCollection("db.users", { email: "hashed" })
 
 [^40]: MongoDB 공식 문서 - Hashed Sharding
 
-### 41. Zone Sharding이란 무엇인가요?
+### 41. 특정 데이터를 특정 Shard에 저장하도록 규칙을 정의하는 Zone Sharding이란 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1255,7 +1255,7 @@ sh.addTagRange(
 
 [^41]: MongoDB 공식 문서 - Zone Sharding
 
-### 42. Chunk란 무엇이며 어떻게 분할되나요?
+### 42. Sharded Cluster에서 Shard 간 데이터 이동의 단위인 Chunk란 무엇이며 어떻게 분할되나요?
 
 <details>
 <summary>답변</summary>
@@ -1289,7 +1289,7 @@ db.settings.save({ _id: "chunksize", value: 64 })  // 64MB
 
 [^42]: MongoDB 공식 문서 - Chunk를 통한 데이터 파티셔닝
 
-### 43. Balancer의 역할은 무엇인가요?
+### 43. MongoDB Sharded Cluster에서 Shard 간 Chunk(데이터 청크)를 자동으로 재분배하여 데이터 균형을 유지하는 Balancer의 역할은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1328,7 +1328,7 @@ db.settings.update(
 
 [^43]: MongoDB 공식 문서 - Balancer 관리
 
-### 44. Sharding 환경에서 발생할 수 있는 문제점과 해결 방법은?
+### 44. MongoDB Sharding 환경에서 발생할 수 있는 Hot Shard(특정 Shard에 트래픽 집중), Scatter-Gather 쿼리(모든 Shard 조회) 등의 문제점과 해결 방법은?
 
 <details>
 <summary>답변</summary>
@@ -1404,7 +1404,7 @@ try {
 
 [^45]: MongoDB 공식 문서 - Transactions
 
-### 46. Multi-Document Transaction은 언제 사용하나요?
+### 46. 여러 Document를 원자적으로 업데이트하는 Multi-Document Transaction은 언제 사용하나요?
 
 <details>
 <summary>답변</summary>
@@ -1440,7 +1440,7 @@ await session.commitTransaction();
 
 [^46]: MongoDB 공식 문서 - 애플리케이션에서 트랜잭션
 
-### 47. MongoDB의 ACID 특성을 설명해주세요.
+### 47. Multi-Document Transaction에서 MongoDB의 ACID(원자성, 일관성, 격리성, 지속성) 특성을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1472,7 +1472,7 @@ session.startTransaction({
 
 [^47]: MongoDB 공식 문서 - 쓰기 작업 원자성
 
-### 48. Read Isolation과 Snapshot Isolation에 대해 설명해주세요.
+### 48. ACID의 Isolation과 관련된 Read Concern 레벨(local, majority, snapshot 등)과 Snapshot Isolation에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1506,7 +1506,7 @@ session.startTransaction({
 
 [^48]: MongoDB 공식 문서 - Read Concern
 
-### 49. Atomicity는 Document 레벨과 Multi-Document 레벨에서 어떻게 다르게 동작하나요?
+### 49. ACID의 Atomicity(원자성)는 단일 Document 레벨과 Multi-Document Transaction 레벨에서 어떻게 다르게 동작하나요?
 
 <details>
 <summary>답변</summary>
@@ -1544,7 +1544,7 @@ session.commitTransaction();
 
 [^49]: MongoDB 공식 문서 - 원자성과 트랜잭션
 
-### 50. Eventual Consistency란 무엇이며 MongoDB에서 어떻게 관리되나요?
+### 50. Read Preference와 Write Concern으로 제어되는 Eventual Consistency란 무엇이며 MongoDB에서 어떻게 관리되나요?
 
 <details>
 <summary>답변</summary>
@@ -1624,7 +1624,7 @@ db.logs.find().sort({ date: -1 }).limit(100)
 
 [^51]: MongoDB 공식 문서 - 쿼리 최적화
 
-### 52. Working Set이란 무엇이며 메모리와의 관계는?
+### 52. 쿼리 성능에 영향을 미치는 Working Set(자주 접근하는 데이터와 인덱스)이란 무엇이며 메모리와의 관계는?
 
 <details>
 <summary>답변</summary>
@@ -1659,7 +1659,7 @@ db.serverStatus().wiredTiger.cache
 
 [^52]: MongoDB 공식 문서 - WiredTiger 스토리지 엔진
 
-### 53. Connection Pool의 개념과 적절한 크기 설정 방법은?
+### 53. 쿼리 성능 최적화를 위한 Connection Pool의 개념과 적절한 크기 설정 방법은?
 
 <details>
 <summary>답변</summary>
@@ -1697,7 +1697,7 @@ const client = new MongoClient(uri, {
 
 [^53]: MongoDB Node.js Driver 문서 - Connection Options
 
-### 54. WiredTiger Storage Engine의 특징은 무엇인가요?
+### 54. MongoDB 기본 스토리지 엔진인 WiredTiger의 특징(Document-level Locking, 압축, 캐시 등)은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1735,7 +1735,7 @@ storage:
 
 [^54]: MongoDB 공식 문서 - WiredTiger
 
-### 55. Cache 크기 설정과 메모리 관리 전략은?
+### 55. MongoDB 기본 스토리지 엔진인 WiredTiger의 내부 Cache 크기 설정(cacheSizeGB)과 메모리 관리 전략은?
 
 <details>
 <summary>답변</summary>
@@ -1779,7 +1779,7 @@ db.serverStatus().wiredTiger.cache
 
 [^55]: MongoDB 공식 문서 - WiredTiger 메모리 사용
 
-### 56. Profiler를 사용하여 느린 쿼리를 찾는 방법은?
+### 56. explain()과 함께 쿼리 성능 분석에 사용되는 Database Profiler로 느린 쿼리를 찾는 방법은?
 
 <details>
 <summary>답변</summary>
@@ -1817,7 +1817,7 @@ db.system.profile.find().sort({ millis: -1 }).limit(5)
 
 [^56]: MongoDB 공식 문서 - Database Profiler
 
-### 57. Bulk Write Operation의 장점과 사용 방법은?
+### 57. 쓰기 성능을 최적화하기 위해 여러 쓰기 작업을 배치 처리하는 Bulk Write Operation의 장점과 사용 방법은?
 
 <details>
 <summary>답변</summary>
@@ -1854,7 +1854,7 @@ db.collection.bulkWrite([
 
 [^57]: MongoDB 공식 문서 - Bulk Write Operations
 
-### 58. Read/Write 성능을 향상시키기 위한 Best Practice는?
+### 58. 인덱싱, Projection, Bulk Write 등 Read/Write 성능을 향상시키기 위한 Best Practice는?
 
 <details>
 <summary>답변</summary>
@@ -1939,7 +1939,7 @@ mongodb://appUser:password@host:27017/mydb?authSource=admin
 
 [^59]: MongoDB 공식 문서 - 인증
 
-### 60. Role-Based Access Control(RBAC)이란 무엇인가요?
+### 60. MongoDB에서 역할(read, readWrite, dbAdmin 등)을 통해 사용자 권한을 관리하는 Role-Based Access Control(RBAC)이란 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1983,7 +1983,7 @@ db.createUser({
 
 [^60]: MongoDB 공식 문서 - 권한 부여
 
-### 61. MongoDB에서 데이터 암호화 방법은?
+### 61. 전송 중(TLS), 저장 중(At-Rest), 필드 레벨 등 MongoDB에서 데이터 암호화 방법은?
 
 <details>
 <summary>답변</summary>
@@ -2027,7 +2027,7 @@ const client = new MongoClient(uri, {
 
 [^61]: MongoDB 공식 문서 - 저장 데이터 암호화
 
-### 62. Backup과 Restore 전략을 설명해주세요.
+### 62. mongodump, 파일 시스템 스냅샷, Oplog 등을 활용한 Backup과 Restore 전략을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2065,7 +2065,7 @@ const client = new MongoClient(uri, {
 
 [^62]: MongoDB 공식 문서 - 백업 방법
 
-### 63. mongodump와 mongorestore의 차이점과 사용 방법은?
+### 63. BSON 파일로 논리적 백업/복원을 수행하는 mongodump와 mongorestore의 차이점과 사용 방법은?
 
 <details>
 <summary>답변</summary>
@@ -2105,7 +2105,7 @@ mongorestore --db=newdb /backup/mydb/
 
 [^63]: MongoDB 공식 문서 - mongodump
 
-### 64. Point-in-Time Recovery가 가능한가요?
+### 64. Oplog를 활용하여 특정 시점으로 복구하는 Point-in-Time Recovery가 가능한가요?
 
 <details>
 <summary>답변</summary>
@@ -2145,7 +2145,7 @@ storage:
 
 [^64]: MongoDB 공식 문서 - Replica Set 백업 복원
 
-### 65. MongoDB 모니터링 시 중요한 메트릭은 무엇인가요?
+### 65. 연결 수, 캐시 사용량, Replication Lag 등 MongoDB 모니터링 시 중요한 메트릭은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -2221,7 +2221,7 @@ insert, update, replace, delete, invalidate, drop
 
 [^66]: MongoDB 공식 문서 - Change Streams
 
-### 67. Time Series Collection은 무엇이며 언제 사용하나요?
+### 67. IoT 센서 데이터 등 시계열 데이터를 효율적으로 저장하는 Time Series Collection은 무엇이며 언제 사용하나요?
 
 <details>
 <summary>답변</summary>
@@ -2263,7 +2263,7 @@ db.sensorData.insertOne({
 
 [^67]: MongoDB 공식 문서 - Time Series Collections
 
-### 68. Capped Collection의 특징과 사용 사례는?
+### 68. Oplog 저장에 사용되는 고정 크기 순환 버퍼 방식인 Capped Collection의 특징과 사용 사례는?
 
 <details>
 <summary>답변</summary>

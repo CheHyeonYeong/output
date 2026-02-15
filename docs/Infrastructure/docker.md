@@ -32,7 +32,7 @@ Docker는 애플리케이션을 컨테이너라는 격리된 환경에서 실행
 [^1]: Docker 공식 문서 - Docker 개요
 
 ### DOCKER-002
-컨테이너와 가상 머신(VM)의 차이점을 아키텍처 관점에서 설명해 주세요.
+Docker 컨테이너와 가상 머신(VM)의 차이점을 아키텍처 관점에서 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -83,7 +83,7 @@ Docker 이미지와 컨테이너의 차이점을 설명해 주세요.
 [^3]: Docker 공식 문서 - 이미지
 
 ### DOCKER-004
-Docker의 레이어(Layer) 시스템이란 무엇이며, 어떤 장점이 있나요?
+Docker 이미지의 레이어(Layer) 시스템이란 무엇이며, 어떤 장점이 있나요?
 
 <details>
 <summary>답변</summary>
@@ -106,7 +106,7 @@ Docker 이미지는 여러 개의 읽기 전용 레이어로 구성됩니다. Do
 [^4]: Docker 공식 문서 - 스토리지 드라이버
 
 ### DOCKER-005
-Docker가 사용하는 Linux 커널 기술인 namespace와 cgroups에 대해 설명해 주세요.
+Docker 컨테이너 격리를 구현하는 Linux 커널 기술인 namespace와 cgroups에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -162,7 +162,7 @@ Docker CLI → REST API → Docker Daemon → containerd → runc → 컨테이�
 [^6]: Docker 공식 문서 - Docker 아키텍처
 
 ### DOCKER-007
-Union File System(UnionFS)이란 무엇이며, Docker에서 어떻게 활용되나요?
+Docker 이미지 레이어를 구현하는 Union File System(UnionFS)이란 무엇이며, Docker에서 어떻게 활용되나요?
 
 <details>
 <summary>답변</summary>
@@ -244,7 +244,7 @@ Linux Foundation 산하의 프로젝트로, 컨테이너 포맷과 런타임에 
 [^9]: OCI 공식 사이트
 
 ### DOCKER-010
-containerd와 runc의 역할과 Docker 아키텍처에서의 위치를 설명해 주세요.
+Docker 아키텍처에서 containerd와 runc의 역할과 위치를 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -307,7 +307,7 @@ Dockerfile의 주요 명령어(FROM, RUN, CMD, ENTRYPOINT, COPY, ADD)의 역할�
 [^11]: Docker 공식 문서 - Dockerfile 레퍼런스
 
 ### DOCKER-012
-CMD와 ENTRYPOINT의 차이점을 설명하고, 언제 어떤 것을 사용해야 하는지 예시를 들어 설명해 주세요.
+Dockerfile의 CMD와 ENTRYPOINT 명령어의 차이점을 설명하고, 언제 어떤 것을 사용해야 하는지 예시를 들어 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -342,7 +342,7 @@ CMD ["--help"]  # docker run image google.com 으로 덮어쓰기 가능
 [^12]: Docker 공식 문서 - ENTRYPOINT
 
 ### DOCKER-013
-COPY와 ADD 명령어의 차이점은 무엇이며, 어떤 상황에서 각각을 사용해야 하나요?
+Dockerfile의 COPY와 ADD 명령어의 차이점은 무엇이며, 어떤 상황에서 각각을 사용해야 하나요?
 
 <details>
 <summary>답변</summary>
@@ -415,7 +415,7 @@ CMD ["/myapp"]
 [^14]: Docker 공식 문서 - 멀티스테이지 빌드
 
 ### DOCKER-015
-멀티스테이지 빌드를 사용하여 Go 또는 Java 애플리케이션의 이미지 크기를 줄이는 방법을 설명해 주세요.
+Docker 멀티스테이지 빌드를 사용하여 Go 또는 Java 애플리케이션의 이미지 크기를 줄이는 방법을 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -669,7 +669,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 [^20]: Docker 공식 문서 - HEALTHCHECK
 
 ### DOCKER-021
-Dockerfile 작성 시 레이어 수를 줄이고 이미지 크기를 최적화하는 방법을 설명해 주세요.
+Docker 이미지 레이어 수를 줄이고 이미지 크기를 최적화하는 Dockerfile 작성 방법을 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -717,7 +717,7 @@ COPY . .                   # 자주 변경됨
 [^21]: Docker 공식 문서 - Dockerfile 베스트 프랙티스
 
 ### DOCKER-022
-Dockerfile의 빌드 캐시가 무효화되는 조건과 캐시를 효율적으로 활용하는 방법을 설명해 주세요.
+Docker 이미지 빌드 시 빌드 캐시가 무효화되는 조건과 캐시를 효율적으로 활용하는 방법을 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -999,7 +999,7 @@ docker inspect myapp:1.0 --format '{{.RootFS.Layers}}'
 [^27]: Docker 공식 문서 - docker history
 
 ### DOCKER-028
-base 이미지를 선택할 때 고려해야 할 요소들을 설명해 주세요. (alpine, slim, scratch 등)
+Docker base 이미지를 선택할 때 고려해야 할 요소들을 설명해 주세요. (alpine, slim, scratch 등)
 
 <details>
 <summary>답변</summary>
@@ -1378,7 +1378,7 @@ docker run -P nginx  # EXPOSE 포트 모두 자동 매핑
 [^36]: Docker 공식 문서 - EXPOSE
 
 ### DOCKER-037
-사용자 정의 네트워크(user-defined network)를 생성하고 사용하는 이유와 장점을 설명해 주세요.
+Docker에서 사용자 정의 네트워크(user-defined network)를 생성하고 사용하는 이유와 장점을 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1537,7 +1537,7 @@ docker run --mount type=tmpfs,dst=/app/temp nginx
 [^39]: Docker 공식 문서 - Docker 데이터 관리
 
 ### DOCKER-040
-Docker 볼륨(named volume)의 장점과 바인드 마운트 대비 선호되는 이유를 설명해 주세요.
+Docker Named Volume이란 무엇이며, 바인드 마운트 대비 선호되는 이유를 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1586,7 +1586,7 @@ Docker 볼륨(named volume)의 장점과 바인드 마운트 대비 선호되는
 [^40]: Docker 공식 문서 - Volumes
 
 ### DOCKER-041
-바인드 마운트(bind mount)의 특징과 개발 환경에서의 활용 방법을 설명해 주세요.
+Docker 바인드 마운트(Bind Mount)란 무엇이며, 개발 환경에서 어떻게 활용할 수 있나요?
 
 <details>
 <summary>답변</summary>
@@ -1639,7 +1639,7 @@ docker run -v ./logs:/var/log/app myapp
 [^41]: Docker 공식 문서 - Bind mounts
 
 ### DOCKER-042
-tmpfs 마운트란 무엇이며, 어떤 상황에서 사용하나요?
+Docker tmpfs 마운트란 무엇이며, 어떤 상황에서 사용하나요?
 
 <details>
 <summary>답변</summary>
@@ -1799,7 +1799,7 @@ volumes:
 [^44]: Docker 공식 문서 - 볼륨 플러그인
 
 ### DOCKER-045
-읽기 전용 볼륨 마운트의 사용 시나리오와 설정 방법을 설명해 주세요.
+Docker에서 읽기 전용 볼륨 마운트의 사용 시나리오와 설정 방법을 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -2381,7 +2381,7 @@ test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
 [^53]: Docker 공식 문서 - healthcheck
 
 ### DOCKER-054
-Docker Compose에서 볼륨을 공유하는 방법과 volumes_from의 대안을 설명해 주세요.
+Docker Compose에서 서비스 간 볼륨을 공유하는 방법과 volumes_from의 대안을 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -2570,7 +2570,7 @@ export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/docker.sock
 [^56]: Docker 공식 문서 - Rootless 모드
 
 ### DOCKER-057
-Docker 컨테이너를 non-root 사용자로 실행해야 하는 이유를 설명해 주세요.
+Docker 컨테이너를 non-root 사용자로 실행해야 하는 이유와 설정 방법을 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -2743,7 +2743,7 @@ snyk container test myimage:tag
 [^59]: Docker 공식 문서 - Docker Scout
 
 ### DOCKER-060
-Docker의 seccomp, AppArmor, SELinux 프로필의 역할과 설정 방법을 설명해 주세요.
+Docker 컨테이너 보안을 위한 seccomp, AppArmor, SELinux 프로필의 역할과 설정 방법을 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -2803,7 +2803,7 @@ docker run --security-opt label=disable myapp
 [^60]: Docker 공식 문서 - Seccomp 보안 프로필
 
 ### DOCKER-061
-Docker 컨테이너에서 capabilities를 제한하는 방법과 이유를 설명해 주세요.
+Linux Capabilities란 무엇이며, Docker 컨테이너에서 이를 제한하는 방법과 이유를 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -2856,7 +2856,7 @@ docker run --cap-drop ALL \
 [^61]: Docker 공식 문서 - 런타임 권한 및 capabilities
 
 ### DOCKER-062
-신뢰할 수 있는 base 이미지를 선택하고 관리하는 방법을 설명해 주세요.
+Docker에서 신뢰할 수 있는 베이스 이미지를 선택하고 관리하는 방법을 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -3039,7 +3039,7 @@ services:
 [^64]: Docker 공식 문서 - 메모리 제약
 
 ### DOCKER-065
-cgroups란 무엇이며, Docker에서 리소스 제한에 어떻게 활용되나요?
+Linux cgroups(Control Groups)란 무엇이며, Docker에서 컨테이너 리소스 제한에 어떻게 활용되나요?
 
 <details>
 <summary>답변</summary>
@@ -4525,7 +4525,7 @@ docker build --cache-from type=registry,ref=myrepo/cache:latest .
 [^87]: Docker 공식 문서 - 빌드 캐시
 
 ### DOCKER-088
-distroless 이미지란 무엇이며, 보안과 성능 관점에서의 장점을 설명해 주세요.
+Docker Distroless 이미지란 무엇이며, 보안과 성능 관점에서의 장점을 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -5016,7 +5016,7 @@ docker build \
 [^94]: Docker 공식 문서 - 캐시 백엔드
 
 ### DOCKER-095
-Blue-Green 또는 Rolling 배포 전략에서 Docker의 역할을 설명해 주세요.
+Blue-Green 배포와 Rolling 배포 전략에서 Docker는 어떤 역할을 하나요?
 
 <details>
 <summary>답변</summary>

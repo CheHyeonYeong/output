@@ -27,8 +27,7 @@
 [^1]: 메시지 기반 통합 패턴 표준 참고서
 
 ### SD-002
-
-"메시지는 '지시(Command)'이고 이벤트는 '사실(Fact)'이다"라는 말에 대해 설명해 보세요.
+분산 시스템에서 메시지(Message)와 이벤트(Event)를 비교할 때, "메시지는 '지시(Command)'이고 이벤트는 '사실(Fact)'이다"라는 말의 의미를 설명해 보세요.
 
 <details>
 <summary>답변</summary>
@@ -47,8 +46,7 @@
 [^2]: Microsoft Azure 아키텍처 가이드
 
 ### SD-003
-
-어떤 상황에서 메시지 큐(Message Queue)를 사용하고, 어떤 상황에서 이벤트 브로커/스트림(Event Broker/Stream)을 사용해야 할까요?
+메시지 큐(RabbitMQ, SQS)와 이벤트 브로커/스트림(Kafka)의 차이점은 무엇이며, 어떤 상황에서 각각을 선택해야 할까요?
 
 <details>
 <summary>답변</summary>
@@ -65,8 +63,7 @@
 [^3]: Apache Kafka 공식 문서
 
 ### SD-004
-
-이벤트는 '발신자(Publisher)'가 '수신자(Subscriber)'를 몰라야 한다는 특징이 있습니다. 이것이 시스템 설계에 어떤 이점과 단점을 주나요?
+이벤트 기반 시스템에서 '발신자(Publisher)'가 '수신자(Subscriber)'를 모르는 느슨한 결합이 시스템 설계에 주는 이점과 단점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -103,8 +100,7 @@
 [^5]: AWS EDA 가이드
 
 ### SD-006
-
-EDA를 도입했을 때 얻을 수 있는 가장 큰 장점 3가지와 가장 큰 단점 3가지는 무엇인가요?
+이벤트 드리븐 아키텍처(EDA)를 도입했을 때 얻을 수 있는 가장 큰 장점 3가지와 가장 큰 단점 3가지는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -127,8 +123,7 @@ EDA를 도입했을 때 얻을 수 있는 가장 큰 장점 3가지와 가장 �
 [^6]: Martin Fowler 이벤트 드리븐 아키텍처
 
 ### SD-007
-
-EDA에서 서비스 간의 데이터 흐름을 관리하는 두 가지 방식, Choreography와 Orchestration을 비교 설명해 주세요.
+EDA에서 서비스 간의 데이터 흐름을 관리하는 두 가지 방식인 Choreography(분산적 이벤트 반응)와 Orchestration(중앙 제어)을 비교 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -151,7 +146,6 @@ EDA에서 서비스 간의 데이터 흐름을 관리하는 두 가지 방식, C
 [^7]: Microservices.io SAGA 패턴
 
 ### SD-008
-
 이벤트 브로커(예: Kafka, RabbitMQ)가 다운되면 전체 시스템이 마비될 수 있습니다. 이 SPOF(Single Point of Failure) 문제를 어떻게 해결할 수 있을까요?
 
 <details>
@@ -190,8 +184,7 @@ EDA에서 서비스 간의 데이터 흐름을 관리하는 두 가지 방식, C
 [^9]: Kafka 메시지 전달 시맨틱스
 
 ### SD-010
-
-EDA에서 'Exactly-once'를 구현하기 어려운 이유는 무엇이며, 이를 위해 어떤 기술(예: Idempotency)이 필요한가요?
+EDA에서 At-least-once와 달리 'Exactly-once'를 구현하기 어려운 이유는 무엇이며, 이를 위해 어떤 기술(예: Idempotency)이 필요한가요?
 
 <details>
 <summary>답변</summary>
@@ -252,8 +245,7 @@ EDA에서 'Exactly-once'를 구현하기 어려운 이유는 무엇이며, 이�
 [^12]: Martin Fowler Event Sourcing
 
 ### SD-013
-
-만약 과거에 발생한 이벤트 데이터에 오류가 있었다면, 불변성 원칙을 지키면서 이 오류를 어떻게 수정(또는 보정)해야 할까요?
+이벤트 소싱이나 EDA에서 이벤트는 불변(immutable)해야 한다는 원칙이 있습니다. 이 불변성 원칙을 지키면서, 과거에 발생한 이벤트 데이터의 오류를 어떻게 수정(또는 보정)해야 할까요?
 
 <details>
 <summary>답변</summary>
@@ -293,8 +285,7 @@ EDA에서 'Exactly-once'를 구현하기 어려운 이유는 무엇이며, 이�
 [^14]: Microservices.io 분산 트랜잭션
 
 ### SD-015
-
-전통적인 분산 트랜잭션 기법인 2PC(Two-Phase Commit) 프로토콜에 대해 설명해 주세요.
+분산 트랜잭션의 전통적인 해결 방법인 2PC(Two-Phase Commit) 프로토콜에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -311,8 +302,7 @@ EDA에서 'Exactly-once'를 구현하기 어려운 이유는 무엇이며, 이�
 [^15]: Two-Phase Commit Protocol
 
 ### SD-016
-
-2PC의 가장 큰 단점(예: 코디네이터 장애, 블로킹)은 무엇이며, 이 때문에 실제 환경에서 잘 사용되지 않는 이유는 무엇인가요?
+2PC(Two-Phase Commit)의 가장 큰 단점(예: 코디네이터 장애, 블로킹)은 무엇이며, 이 때문에 실제 환경에서 잘 사용되지 않는 이유는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -331,8 +321,7 @@ EDA에서 'Exactly-once'를 구현하기 어려운 이유는 무엇이며, 이�
 [^16]: Martin Kleppmann - DDIA
 
 ### SD-017
-
-2PC의 대안으로 등장한 SAGA 패턴이 무엇인지, 그리고 2PC와 어떻게 다른지 설명해 주세요.
+2PC의 블로킹 문제를 해결하기 위한 대안으로 등장한 SAGA 패턴이 무엇인지, 그리고 2PC와 어떻게 다른지 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -354,8 +343,7 @@ EDA에서 'Exactly-once'를 구현하기 어려운 이유는 무엇이며, 이�
 [^17]: Microservices.io SAGA
 
 ### SD-018
-
-SAGA의 핵심 구성요소인 '보상 트랜잭션(Compensating Transaction)'이란 무엇이며, 이를 설계할 때 가장 중요하게 고려해야 할 점은 무엇인가요?
+SAGA 패턴의 핵심 구성요소인 '보상 트랜잭션(Compensating Transaction)'이란 무엇이며, 이를 설계할 때 가장 중요하게 고려해야 할 점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -375,8 +363,7 @@ SAGA의 핵심 구성요소인 '보상 트랜잭션(Compensating Transaction)'�
 [^18]: AWS SAGA 패턴 가이드
 
 ### SD-019
-
-보상 트랜잭션 자체가 실패하면 어떻게 해야 하나요?
+SAGA 패턴에서 보상 트랜잭션(Compensating Transaction) 자체가 실패하면 어떻게 해야 하나요?
 
 <details>
 <summary>답변</summary>
@@ -414,8 +401,7 @@ SAGA 패턴에서 발생하는 '중간 상태(intermediate state)'란 무엇을 
 [^20]: SAGA 중간 상태
 
 ### SD-021
-
-이 '중간 상태'가 비즈니스 로직이나 사용자 경험(UX)에 어떤 문제를 일으킬 수 있으며, 이를 어떻게 처리해야 할까요?
+SAGA 패턴의 '중간 상태(Pending State)'가 비즈니스 로직이나 사용자 경험(UX)에 어떤 문제를 일으킬 수 있으며, 이를 어떻게 처리해야 할까요?
 
 <details>
 <summary>답변</summary>
@@ -437,8 +423,7 @@ SAGA 패턴에서 발생하는 '중간 상태(intermediate state)'란 무엇을 
 [^21]: Chris Richardson SAGA 시리즈
 
 ### SD-022
-
-SAGA를 구현하는 두 가지 방식, 'Choreography'와 'Orchestration'을 비교 설명하고, 각각의 장단점을 논해주세요.
+SAGA 패턴을 구현하는 두 가지 방식인 'Choreography(이벤트 기반 분산)'와 'Orchestration(중앙 조율자)'을 비교 설명하고, 각각의 장단점을 논해주세요.
 
 <details>
 <summary>답변</summary>
@@ -482,8 +467,7 @@ SAGA를 구현하는 두 가지 방식, 'Choreography'와 'Orchestration'을 비
 [^23]: Martin Fowler Event Sourcing
 
 ### SD-024
-
-이벤트 소싱에서 '현재 상태(Current State)'는 어떻게 계산하나요?
+이벤트 소싱(Event Sourcing)에서 저장된 이벤트 스트림으로부터 '현재 상태(Current State)'는 어떻게 계산하나요?
 
 <details>
 <summary>답변</summary>
@@ -504,8 +488,7 @@ SAGA를 구현하는 두 가지 방식, 'Choreography'와 'Orchestration'을 비
 [^24]: Event Store 이벤트 소싱 가이드
 
 ### SD-025
-
-이벤트 소싱을 사용하면 얻을 수 있는 장점(예: 감사 로그, 시간 여행)은 무엇인가요?
+이벤트 소싱(Event Sourcing)을 사용하면 얻을 수 있는 장점(예: 감사 로그, 시간 여행)은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -524,8 +507,7 @@ SAGA를 구현하는 두 가지 방식, 'Choreography'와 'Orchestration'을 비
 [^25]: Microsoft Event Sourcing 패턴
 
 ### SD-026
-
-이벤트 소싱의 단점, 특히 이벤트가 누적될수록 '현재 상태'를 재구성하는 성능 문제를 어떻게 해결할 수 있나요?
+이벤트 소싱에서 이벤트가 누적될수록 '현재 상태'를 재구성하는 데 발생하는 성능 문제를 어떻게 해결할 수 있나요?
 
 <details>
 <summary>답변</summary>
@@ -546,8 +528,7 @@ SAGA를 구현하는 두 가지 방식, 'Choreography'와 'Orchestration'을 비
 [^26]: Event Store 스냅샷 가이드
 
 ### SD-027
-
-스냅샷(Snapshot)의 생성 주기(frequency)는 어떻게 결정하는 것이 좋을까요?
+이벤트 소싱의 성능 최적화를 위한 스냅샷(Snapshot) 생성 주기(frequency)는 어떻게 결정하는 것이 좋을까요?
 
 <details>
 <summary>답변</summary>
@@ -588,8 +569,7 @@ SAGA를 구현하는 두 가지 방식, 'Choreography'와 'Orchestration'을 비
 [^28]: Transactional Outbox 패턴
 
 ### SD-029
-
-이 문제를 해결하기 위한 'Transactional Outbox' 패턴에 대해 설명해 주세요.
+DB와 메시지 브로커에 동시 쓰기(Dual-write) 문제를 해결하기 위한 'Transactional Outbox' 패턴에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -608,8 +588,7 @@ SAGA를 구현하는 두 가지 방식, 'Choreography'와 'Orchestration'을 비
 [^29]: Debezium Outbox Event Router
 
 ### SD-030
-
-Outbox 패턴을 사용할 때, DB Outbox 테이블에 저장된 이벤트를 어떻게 안정적으로 이벤트 브로커에게 전달할 수 있을까요?
+Transactional Outbox 패턴에서 DB Outbox 테이블에 저장된 이벤트를 어떻게 안정적으로 이벤트 브로커에게 전달할 수 있을까요?
 
 <details>
 <summary>답변</summary>
@@ -654,8 +633,7 @@ CQRS 패턴이 무엇인지 CQS(Command Query Separation) 원칙과 비교하여
 [^31]: Martin Fowler CQRS
 
 ### SD-032
-
-CQRS를 사용하는 가장 주된 이유는 무엇인가요?
+CQRS(Command Query Responsibility Segregation) 패턴을 사용하는 가장 주된 이유는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -673,8 +651,7 @@ CQRS를 사용하는 가장 주된 이유는 무엇인가요?
 [^32]: Microsoft CQRS 패턴
 
 ### SD-033
-
-CQRS 패턴을 도입하면 시스템이 어떻게 복잡해지나요?
+CQRS 패턴을 도입하면 읽기/쓰기 모델 분리로 인해 시스템이 어떻게 복잡해지나요?
 
 <details>
 <summary>답변</summary>
@@ -692,8 +669,7 @@ CQRS 패턴을 도입하면 시스템이 어떻게 복잡해지나요?
 [^33]: Microsoft CQRS Journey
 
 ### SD-034
-
-CQRS에서 'Command 모델'과 'Query 모델'의 데이터 동기화는 어떻게 이루어지나요?
+CQRS에서 분리된 'Command 모델(쓰기)'과 'Query 모델(읽기)'의 데이터 동기화는 어떻게 이루어지나요?
 
 <details>
 <summary>답변</summary>
@@ -714,8 +690,7 @@ CQRS에서 'Command 모델'과 'Query 모델'의 데이터 동기화는 어떻�
 [^34]: CQRS 데이터 동기화
 
 ### SD-035
-
-이 동기화 과정에서 발생하는 '지연(lag)'으로 인해 '최종 일관성(Eventual Consistency)'이 나타납니다. 이 문제를 어떻게 처리해야 할까요?
+CQRS의 Command-Query 모델 동기화 과정에서 발생하는 '지연(lag)'으로 인한 '최종 일관성(Eventual Consistency)' 문제를 어떻게 처리해야 할까요?
 
 <details>
 <summary>답변</summary>
@@ -756,8 +731,7 @@ CQRS에서 'Query 모델(Read Model)'은 어떤 기술을 사용해 구현하는
 [^36]: Martin Fowler - Polyglot Persistence
 
 ### SD-037
-
-모든 시스템에 CQRS를 적용하는 것이 좋을까요? 어떤 경우에 CQRS가 적합하고, 어떤 경우에 부적합할까요?
+모든 시스템에 CQRS를 적용하는 것이 좋을까요? CQRS의 장단점을 고려했을 때, 어떤 경우에 적합하고 어떤 경우에 부적합할까요?
 
 <details>
 <summary>답변</summary>
@@ -780,8 +754,7 @@ CQRS에서 'Query 모델(Read Model)'은 어떤 기술을 사용해 구현하는
 [^37]: CQRS 적용 기준
 
 ### SD-038
-
-"CQRS는 이벤트 소싱이 아니다"라는 말에 대해 어떻게 생각하시나요? 둘의 관계를 설명해 주세요.
+"CQRS는 이벤트 소싱이 아니다"라는 말에 대해 어떻게 생각하시나요? CQRS와 이벤트 소싱의 관계를 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -800,8 +773,7 @@ CQRS에서 'Query 모델(Read Model)'은 어떤 기술을 사용해 구현하는
 [^38]: Greg Young CQRS 문서
 
 ### SD-039
-
-CQRS와 이벤트 소싱을 함께 사용할 때 얻을 수 있는 시너지는 무엇인가요?
+독립적으로 사용 가능한 CQRS와 이벤트 소싱을 함께 사용할 때 얻을 수 있는 시너지는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -844,8 +816,7 @@ CQRS와 이벤트 소싱을 함께 사용할 때 얻을 수 있는 시너지는 
 [^40]: MongoDB 샤딩 문서
 
 ### SD-041
-
-샤딩(Sharding)과 파티셔닝(Partitioning)의 차이점은 무엇인가요?
+데이터베이스의 샤딩(Sharding)과 파티셔닝(Partitioning)의 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -892,8 +863,7 @@ CQRS와 이벤트 소싱을 함께 사용할 때 얻을 수 있는 시너지는 
 [^42]: Vitess 샤딩 개념
 
 ### SD-043
-
-언제 수평 샤딩을 선택하고, 언제 수직 샤딩을 선택해야 할까요?
+수평 샤딩(행 기반 분할)과 수직 샤딩(컬럼 기반 분할) 중 어떤 상황에서 각각을 선택해야 할까요?
 
 <details>
 <summary>답변</summary>
@@ -935,8 +905,7 @@ CQRS와 이벤트 소싱을 함께 사용할 때 얻을 수 있는 시너지는 
 [^44]: MongoDB 샤드 키 선택
 
 ### SD-045
-
-샤딩 키를 잘못 선정하면 어떤 문제가 발생할 수 있나요?
+샤딩 키(Shard Key)를 잘못 선정하면 데이터 분산과 쿼리 성능에 어떤 문제가 발생할 수 있나요?
 
 <details>
 <summary>답변</summary>
@@ -954,8 +923,7 @@ CQRS와 이벤트 소싱을 함께 사용할 때 얻을 수 있는 시너지는 
 [^45]: Cassandra 데이터 모델링
 
 ### SD-046
-
-특정 샤드에만 데이터가 몰리는 '핫스팟' 문제를 완화하기 위한 전략에는 무엇이 있을까요?
+샤딩 환경에서 특정 샤드에만 데이터가 몰리는 '핫스팟(Hotspot)' 문제를 완화하기 위한 전략에는 무엇이 있을까요?
 
 <details>
 <summary>답변</summary>
@@ -1019,8 +987,7 @@ MongoDB는 샤딩을 어떻게 구현하나요? 'mongos', 'config server', 'shar
 [^48]: MongoDB 샤딩 아키텍처
 
 ### SD-049
-
-(MongoDB) '청크(Chunk)'란 무엇이며, '밸런서(Balancer)'는 어떤 역할을 하나요?
+MongoDB 샤딩에서 '청크(Chunk)'란 무엇이며, '밸런서(Balancer)'는 어떤 역할을 하나요?
 
 <details>
 <summary>답변</summary>
@@ -1084,8 +1051,7 @@ Cassandra와 같은 Dynamo-style DB는 '샤딩'이라는 용어 대신 '파티�
 [^51]: Cassandra 아키텍처
 
 ### SD-052
-
-(Cassandra) '가상 노드(Virtual Nodes)'가 왜 필요한가요?
+Cassandra의 Consistent Hashing에서 '가상 노드(Virtual Nodes)'가 왜 필요한가요?
 
 <details>
 <summary>답변</summary>
@@ -1150,8 +1116,7 @@ Vitess나 Citus와 같이 RDBMS를 샤딩해주는 미들웨어는 어떤 원리
 [^54]: Vitess 쿼리 처리
 
 ### SD-055
-
-샤딩된 환경에서 'JOIN' 연산은 어떻게 수행해야 할까요?
+샤딩된 환경에서 여러 샤드에 걸친 'JOIN' 연산은 어떻게 수행해야 할까요?
 
 <details>
 <summary>답변</summary>
@@ -1170,8 +1135,7 @@ Vitess나 Citus와 같이 RDBMS를 샤딩해주는 미들웨어는 어떤 원리
 [^55]: CockroachDB 조인 처리
 
 ### SD-056
-
-샤딩된 환경에서 '트랜잭션'은 어떻게 처리해야 할까요? (SAGA와의 연관성)
+샤딩된 환경에서 여러 샤드에 걸친 '트랜잭션'은 어떻게 처리해야 할까요? SAGA 패턴과의 연관성은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1213,8 +1177,7 @@ Vitess나 Citus와 같이 RDBMS를 샤딩해주는 미들웨어는 어떤 원리
 [^57]: MongoDB 리샤딩
 
 ### SD-058
-
-시스템 다운타임 없이 리샤딩을 수행하는 방법에 대해 설명해 주세요.
+샤드 수 변경이나 샤딩 키 변경 시, 시스템 다운타임 없이 리샤딩을 수행하는 방법에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1260,8 +1223,7 @@ CAP 이론(Theorem)에 대해 설명해 주세요. (Consistency, Availability, P
 [^59]: Eric Brewer CAP 이론 재고
 
 ### SD-060
-
-CAP 이론에서 왜 현대 분산 시스템은 'P(Partition Tolerance)'를 포기할 수 없는지 설명해 주세요.
+CAP 이론에서 Consistency, Availability, Partition Tolerance 중 왜 현대 분산 시스템은 'P(Partition Tolerance)'를 포기할 수 없는지 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1281,8 +1243,7 @@ CAP 이론에서 왜 현대 분산 시스템은 'P(Partition Tolerance)'를 포�
 [^60]: Coda Hale - Partition Tolerance
 
 ### SD-061
-
-CAP 이론에 따라 시스템은 CP 또는 AP를 선택해야 합니다. 각각의 특징과 대표적인 시스템 예시를 들어주세요.
+CAP 이론에서 P가 필수일 때 시스템은 CP(일관성 우선) 또는 AP(가용성 우선)를 선택해야 합니다. 각각의 특징과 대표적인 시스템 예시를 들어주세요.
 
 <details>
 <summary>답변</summary>
@@ -1303,8 +1264,7 @@ CAP 이론에 따라 시스템은 CP 또는 AP를 선택해야 합니다. 각각
 [^61]: CAP FAQ
 
 ### SD-062
-
-CP 시스템은 네트워크 파티션 발생 시 어떻게 동작하나요?
+CP(Consistency-Partition Tolerance) 시스템은 네트워크 파티션 발생 시 어떻게 동작하나요?
 
 <details>
 <summary>답변</summary>
@@ -1324,8 +1284,7 @@ CP 시스템은 네트워크 파티션 발생 시 어떻게 동작하나요?
 [^62]: ZooKeeper 내부 구조
 
 ### SD-063
-
-AP 시스템은 네트워크 파티션 발생 시 어떻게 동작하나요?
+AP(Availability-Partition Tolerance) 시스템은 네트워크 파티션 발생 시 CP 시스템과 달리 어떻게 동작하나요?
 
 <details>
 <summary>답변</summary>
@@ -1345,8 +1304,7 @@ AP 시스템은 네트워크 파티션 발생 시 어떻게 동작하나요?
 [^63]: Cassandra Tunable Consistency
 
 ### SD-064
-
-"CAP 이론은 셋 중 둘만 선택할 수 있다는 것이 아니다"라는 비판이 있습니다. 이 비판의 근거는 무엇인가요?
+"CAP 이론은 셋 중 둘만 선택할 수 있다는 것이 아니다"라는 비판이 있습니다. 이 비판의 근거와 CAP 이론의 한계는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1387,8 +1345,7 @@ CAP의 'C'는 '강한 일관성(Strong Consistency)'을 의미합니다. '최종
 [^65]: Werner Vogels - Eventual Consistency
 
 ### SD-066
-
-'강한 일관성'과 '최종 일관성' 사이에는 어떤 다른 일관성 모델들이 존재하나요?
+분산 시스템에서 '강한 일관성(Strong Consistency)'과 '최종 일관성(Eventual Consistency)' 사이에는 어떤 다른 일관성 모델들이 존재하나요?
 
 <details>
 <summary>답변</summary>
@@ -1450,8 +1407,7 @@ CAP의 'C'는 '강한 일관성(Strong Consistency)'을 의미합니다. '최종
 [^68]: Lamport 비잔틴 장군 논문
 
 ### SD-069
-
-이 문제가 분산 시스템에서 왜 중요한가요? (어떤 종류의 장애를 가정하는 것인가요?)
+비잔티움 장군 문제(Byzantine Generals Problem)가 분산 시스템에서 왜 중요한가요? 어떤 종류의 장애(Crash Fault vs Byzantine Fault)를 가정하는 것인가요?
 
 <details>
 <summary>답변</summary>
@@ -1472,8 +1428,7 @@ CAP의 'C'는 '강한 일관성(Strong Consistency)'을 의미합니다. '최종
 [^69]: PBFT 논문
 
 ### SD-070
-
-비잔티움 장애 허용(BFT, Byzantine Fault Tolerance)이 무엇인지, 그리고 이것이 블록체인과 어떤 관련이 있는지 설명해 주세요.
+비잔티움 장애 허용(BFT, Byzantine Fault Tolerance)이 무엇인지, 그리고 이것이 블록체인의 합의 알고리즘과 어떤 관련이 있는지 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1493,8 +1448,7 @@ CAP의 'C'는 '강한 일관성(Strong Consistency)'을 의미합니다. '최종
 [^70]: Hyperledger Fabric 문서
 
 ### SD-071
-
-BFT를 구현하기 위한 알고리즘(예: PBFT)과, 그렇지 않은 합의 알고리즘(예: Raft, Paxos)의 근본적인 차이는 무엇인가요?
+BFT를 구현하기 위한 알고리즘(예: PBFT)과 CFT(Crash Fault Tolerant) 합의 알고리즘(예: Raft, Paxos)의 근본적인 차이는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1538,8 +1492,7 @@ Raft 합의 알고리즘의 '리더 선출(Leader Election)' 과정에 대해 �
 [^72]: Raft 시각화
 
 ### SD-073
-
-Raft에서 '로그 복제(Log Replication)'는 어떻게 이루어지나요?
+Raft 알고리즘에서 리더 선출 후 '로그 복제(Log Replication)'는 어떻게 이루어지나요?
 
 <details>
 <summary>답변</summary>
@@ -1607,8 +1560,7 @@ Raft에서 '로그 복제(Log Replication)'는 어떻게 이루어지나요?
 [^75]: PostgreSQL Replication
 
 ### SD-076
-
-'반-동기식(Semi-Synchronous)' 복제는 무엇이며, 어떤 문제를 해결하기 위해 등장했나요?
+동기식과 비동기식 복제의 절충안인 '반-동기식(Semi-Synchronous)' 복제는 무엇이며, 어떤 문제를 해결하기 위해 등장했나요?
 
 <details>
 <summary>답변</summary>
@@ -1652,8 +1604,7 @@ Raft에서 '로그 복제(Log Replication)'는 어떻게 이루어지나요?
 [^77]: Redis 복제
 
 ### SD-078
-
-단일 리더 아키텍처의 가장 큰 장점과 단점은 무엇인가요?
+단일 리더(Single Leader) 복제 아키텍처의 가장 큰 장점과 단점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1676,8 +1627,7 @@ Raft에서 '로그 복제(Log Replication)'는 어떻게 이루어지나요?
 [^78]: Designing Data-Intensive Applications
 
 ### SD-079
-
-(단일 리더 문제) 만약 리더(Master) 노드가 다운되면 어떤 문제가 발생하나요?
+단일 리더 복제에서 만약 리더(Master) 노드가 다운되면 어떤 문제가 발생하나요?
 
 <details>
 <summary>답변</summary>
@@ -1695,8 +1645,7 @@ Raft에서 '로그 복제(Log Replication)'는 어떻게 이루어지나요?
 [^79]: MySQL Failover
 
 ### SD-080
-
-리더가 다운되었을 때 새로운 리더를 선출하는 과정(Failover)에 대해 설명해 주세요.
+단일 리더 복제에서 리더가 다운되었을 때 새로운 리더를 선출하는 과정(Failover)에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1715,8 +1664,7 @@ Raft에서 '로그 복제(Log Replication)'는 어떻게 이루어지나요?
 [^80]: Redis Sentinel
 
 ### SD-081
-
-이 Failover 과정에서 'Split-Brain' 문제가 발생할 수 있습니다. 이것이 무엇이며, 어떻게 방지할 수 있나요?
+리더 Failover 과정에서 발생할 수 있는 'Split-Brain' 문제가 무엇이며, 어떻게 방지할 수 있나요?
 
 <details>
 <summary>답변</summary>
@@ -1738,7 +1686,6 @@ Raft에서 '로그 복제(Log Replication)'는 어떻게 이루어지나요?
 [^81]: Martin Kleppmann - 분산 락
 
 ### SD-082
-
 비동기식 복제를 사용할 때, 리더 장애 조치(Failover) 과정에서 데이터 유실이 발생할 수 있습니다. 왜 그런지 설명해 주세요.
 
 <details>
@@ -1760,8 +1707,7 @@ Raft에서 '로그 복제(Log Replication)'는 어떻게 이루어지나요?
 [^82]: MySQL 복제 데이터 유실
 
 ### SD-083
-
-(단일 리더 문제) 리더로 모든 쓰기 요청이 몰릴 때 발생하는 쓰기 병목 현상을 어떻게 해결할 수 있을까요?
+단일 리더 아키텍처에서 리더로 모든 쓰기 요청이 몰릴 때 발생하는 쓰기 병목 현상을 어떻게 해결할 수 있을까요?
 
 <details>
 <summary>답변</summary>
@@ -1801,8 +1747,7 @@ Raft에서 '로그 복제(Log Replication)'는 어떻게 이루어지나요?
 [^84]: CouchDB 복제
 
 ### SD-085
-
-다중 리더 아키텍처는 어떤 경우에 유용한가요?
+다중 리더(Multi-Leader) 복제 아키텍처는 어떤 경우에 유용한가요?
 
 <details>
 <summary>답변</summary>
@@ -1820,8 +1765,7 @@ Raft에서 '로그 복제(Log Replication)'는 어떻게 이루어지나요?
 [^85]: DDIA 다중 리더
 
 ### SD-086
-
-(다중 리더 문제) 다중 리더 아키텍처의 가장 큰 단점, 즉 '쓰기 충돌(Write Conflict)' 문제에 대해 설명해 주세요.
+다중 리더 아키텍처의 가장 큰 단점인 '쓰기 충돌(Write Conflict)' 문제에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1843,8 +1787,7 @@ Raft에서 '로그 복제(Log Replication)'는 어떻게 이루어지나요?
 [^86]: CockroachDB 일관성 모델
 
 ### SD-087
-
-두 개의 리더에서 동일한 데이터를 동시에 수정할 경우 발생하는 이 충돌을 어떻게 감지하고 해결해야 할까요?
+다중 리더 환경에서 두 개의 리더에서 동일한 데이터를 동시에 수정할 경우 발생하는 쓰기 충돌을 어떻게 감지하고 해결해야 할까요?
 
 <details>
 <summary>답변</summary>
@@ -1867,8 +1810,7 @@ Raft에서 '로그 복제(Log Replication)'는 어떻게 이루어지나요?
 [^87]: CRDT 공식 사이트
 
 ### SD-088
-
-'Last Write Wins (LWW)'와 같은 자동 충돌 해결 전략의 문제점은 무엇인가요?
+쓰기 충돌 해결에 사용되는 'Last Write Wins (LWW)'와 같은 자동 충돌 해결 전략의 문제점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1912,8 +1854,7 @@ Raft에서 '로그 복제(Log Replication)'는 어떻게 이루어지나요?
 [^89]: Cassandra 아키텍처
 
 ### SD-090
-
-리더리스 아키텍처에서는 'Quorum'을 사용하여 일관성을 조절합니다. R, W, N 값의 관계(R+W > N)에 대해 설명해 주세요.
+리더리스(Leaderless) 아키텍처에서 일관성 조절에 사용하는 'Quorum'의 R, W, N 값의 관계(R+W > N)에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1934,8 +1875,7 @@ Raft에서 '로그 복제(Log Replication)'는 어떻게 이루어지나요?
 [^90]: DynamoDB 일관성
 
 ### SD-091
-
-리더리스 아키텍처는 '쓰기 충돌'을 어떻게 처리하나요?
+Quorum 기반 리더리스 아키텍처에서 '쓰기 충돌'은 어떻게 처리하나요?
 
 <details>
 <summary>답변</summary>
@@ -2031,8 +1971,7 @@ API 게이트웨이는 MSA에서 어떤 역할을 하며, 왜 필요한가요?
 [^94]: Kong API Gateway 문서
 
 ### SD-095
-
-서비스 메시(Service Mesh)는 무엇이며, API 게이트웨이나 기존 라이브러리 방식(예: Spring Cloud)과 어떻게 다른가요?
+서비스 메시(Service Mesh)는 무엇이며, API 게이트웨이나 기존 라이브러리 방식(예: Spring Cloud)의 서비스 간 통신과 어떻게 다른가요?
 
 <details>
 <summary>답변</summary>

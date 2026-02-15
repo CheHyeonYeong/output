@@ -38,7 +38,7 @@ Ktor는 JetBrains에서 개발한 Kotlin 기반의 비동기 웹 프레임워크
 [^1]: Ktor Framework 공식 사이트
 
 ### KTOR-002
-Ktor의 비동기 처리 방식에 대해 설명해 주세요. Kotlin Coroutine과 어떻게 연동되나요?
+Ktor의 비동기 처리 방식과 Kotlin Coroutine 연동에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -118,7 +118,7 @@ fun Application.configureRouting() {
 [^3]: Ktor 모듈 공식 문서
 
 ### KTOR-004
-Ktor의 경량성(Lightweight)이란 무엇을 의미하나요? 어떤 장단점이 있나요?
+Ktor의 경량성(Lightweight)이란 무엇을 의미하며, 어떤 장단점이 있나요?
 
 <details>
 <summary>답변</summary>
@@ -196,7 +196,7 @@ fun Application.configureRouting() {
 [^5]: Ktor 라우팅 공식 문서
 
 ### KTOR-006
-Ktor의 Route DSL에 대해 설명해 주세요.
+Ktor의 Route DSL 구조와 사용법에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -251,7 +251,7 @@ routing {
 [^6]: Ktor Type-safe 라우팅 공식 문서
 
 ### KTOR-007
-Path Parameter, Query Parameter를 처리하는 방법에 대해 설명해 주세요.
+Ktor 라우팅에서 Path Parameter와 Query Parameter를 처리하는 방법에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -465,7 +465,7 @@ fun Application.module() {
 [^10]: Ktor 서버 플러그인 공식 문서
 
 ### KTOR-011
-ContentNegotiation 플러그인의 역할과 사용 방법에 대해 설명해 주세요.
+Ktor의 ContentNegotiation 플러그인의 역할과 사용 방법에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -583,7 +583,7 @@ install(ContentNegotiation) {
 [^12]: Ktor 직렬화 공식 문서
 
 ### KTOR-013
-StatusPages 플러그인을 사용한 예외 처리 방법에 대해 설명해 주세요.
+Ktor의 StatusPages 플러그인을 사용한 예외 처리 방법에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -637,7 +637,7 @@ get("/users/{id}") {
 [^13]: Ktor StatusPages 공식 문서
 
 ### KTOR-014
-CORS 플러그인 설정 방법과 주요 옵션에 대해 설명해 주세요.
+Ktor의 CORS 플러그인 설정 방법과 주요 옵션에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -691,7 +691,7 @@ install(CORS) {
 [^14]: Ktor CORS 공식 문서
 
 ### KTOR-015
-커스텀 플러그인을 만드는 방법에 대해 설명해 주세요.
+Ktor에서 커스텀 플러그인을 만드는 방법에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -809,7 +809,7 @@ routing {
 [^16]: Ktor 인증 공식 문서
 
 ### KTOR-017
-JWT 인증을 Ktor에서 구현하는 방법에 대해 설명해 주세요.
+Ktor에서 JWT(JSON Web Token) 인증을 구현하는 방법에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -875,7 +875,7 @@ authenticate("auth-jwt") {
 [^17]: Ktor JWT 공식 문서
 
 ### KTOR-018
-Session 기반 인증을 Ktor에서 구현하는 방법은 무엇인가요?
+Ktor에서 Session 기반 인증을 구현하는 방법은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -943,7 +943,7 @@ post("/logout") {
 [^18]: Ktor 세션 인증 공식 문서
 
 ### KTOR-019
-OAuth 인증을 Ktor에서 구현하는 방법에 대해 설명해 주세요.
+Ktor에서 OAuth 2.0 인증을 구현하는 방법에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -1383,7 +1383,7 @@ class ApplicationTest {
 [^25]: Ktor 테스트 공식 문서
 
 ### KTOR-026
-testApplication을 사용한 통합 테스트 작성 방법은 무엇인가요?
+Ktor의 testApplication을 사용한 통합 테스트 작성 방법은 무엇인가요?
 
 <details>
 <summary>답변</summary>

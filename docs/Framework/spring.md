@@ -33,7 +33,7 @@ IoC와 DI에 대해 설명해 주세요.
 </details>
 
 ### SPRING-002
-후보 없이 특정 기능을 하는 클래스가 딱 한 개하면, 구체 클래스를 그냥 사용해도 되지 않나요? 그럼에도 불구하고 왜 Spring에선 Bean을 사용 할까요?
+후보 없이 특정 기능을 하는 클래스가 딱 한 개라면, 구체 클래스를 그냥 사용해도 되지 않나요? 그럼에도 불구하고 왜 Spring에선 Bean을 사용할까요?
 
 <details>
 <summary>답변</summary>
@@ -57,7 +57,7 @@ IoC와 DI에 대해 설명해 주세요.
 </details>
 
 ### SPRING-003
-Spring의 Bean 생성 주기에 대해 설명해 주세요.
+Spring Bean의 생성 주기(라이프사이클)에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -86,7 +86,7 @@ Spring의 Bean 생성 주기에 대해 설명해 주세요.
 </details>
 
 ### SPRING-004
-프로토타입 빈은 무엇인가요?
+Spring의 프로토타입 빈(Prototype Bean)은 무엇이며, 싱글톤 빈과 어떻게 다른가요?
 
 <details>
 <summary>답변</summary>
@@ -153,7 +153,7 @@ AOP에 대해 설명해 주세요.
 </details>
 
 ### SPRING-006
-@Aspect는 어떻게 동작하나요?
+Spring AOP에서 @Aspect는 어떻게 동작하나요?
 
 <details>
 <summary>답변</summary>
@@ -223,7 +223,7 @@ HTTP 요청 → Filter → DispatcherServlet → Interceptor → Controller
 </details>
 
 ### SPRING-008
-설명만 들어보면 인터셉터만 쓰는게 나아보이는데, 아닌가요? 필터는 어떤 상황에 사용 해야 하나요?
+Spring에서 Servlet Filter와 Spring Interceptor 중 Filter를 사용해야 하는 상황은 언제인가요?
 
 <details>
 <summary>답변</summary>
@@ -290,7 +290,7 @@ DispatcherServlet 의 역할에 대해 설명해 주세요.
 </details>
 
 ### SPRING-010
-요청이 들어온다고 가정할 때, DispatcherServlet은 한번에 여러 요청을 모두 받을 수 있나요?
+DispatcherServlet은 한 번에 여러 요청을 동시에 처리할 수 있나요?
 
 <details>
 <summary>답변</summary>
@@ -328,7 +328,7 @@ server:
 </details>
 
 ### SPRING-011
-@Controller 를 DispatcherServlet은 어떻게 구분 할까요?
+DispatcherServlet은 @Controller를 어떻게 구분하고 찾아내나요?
 
 <details>
 <summary>답변</summary>
@@ -409,7 +409,7 @@ JPA와 같은 ORM을 사용하는 이유가 무엇인가요?
 </details>
 
 ### SPRING-013
-영속성은 어떤 기능을 하나요? 이게 진짜 성능 향상에 큰 도움이 되나요?
+JPA의 영속성 컨텍스트는 어떤 기능을 하나요? 실제로 성능 향상에 큰 도움이 되나요?
 
 <details>
 <summary>답변</summary>
@@ -445,7 +445,7 @@ JPA와 같은 ORM을 사용하는 이유가 무엇인가요?
 </details>
 
 ### SPRING-014
-N + 1 문제에 대해 설명해 주세요.
+JPA의 N + 1 문제에 대해 설명해 주세요.
 
 <details>
 <summary>답변</summary>
@@ -536,7 +536,7 @@ for (Team team : teams) {
 </details>
 
 ### SPRING-016
-@Transactional(readonly=true) 는 어떤 기능인가요? 이게 도움이 되나요?
+Spring JPA에서 @Transactional(readOnly=true)의 기능과 성능 최적화 효과는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -579,7 +579,7 @@ public class UserService {
 </details>
 
 ### SPRING-017
-그런데, 읽기에 트랜잭션을 걸 필요가 있나요? @Transactional을 안 붙이면 되는거 아닐까요?
+Spring JPA에서 조회(읽기) 전용 메서드에도 @Transactional을 붙여야 하는 이유는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -668,7 +668,7 @@ public @interface MyAnnotation { }
 </details>
 
 ### SPRING-019
-별 기능이 없는 것 같은데, 어떻게 Spring 에서는 Annotation 이 그렇게 많은 기능을 하는 걸까요?
+Annotation 자체는 별 기능이 없는 것 같은데, 어떻게 Spring에서는 Annotation이 그렇게 많은 기능을 하는 걸까요?
 
 <details>
 <summary>답변</summary>
@@ -808,7 +808,7 @@ Server
 </details>
 
 ### SPRING-022
-혹시 Netty에 대해 들어보셨나요? 왜 이런 것을 사용할까요?
+Netty에 대해 설명해 주세요. Tomcat 대신 Netty를 사용하는 이유는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -896,7 +896,7 @@ Spring Framework의 기본 개념과 주요 특징에 대해 설명해주세요.
 </details>
 
 ### SPRING-024
-Spring Boot와 전통적 Spring Framework의 차이점은 무엇인가요?
+Spring Boot와 전통적인 Spring Framework의 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -943,7 +943,7 @@ Spring Boot와 전통적 Spring Framework의 차이점은 무엇인가요?
 </details>
 
 ### SPRING-025
-IoC(Inversion of Control)와 DI(Dependency Injection)의 개념 및 이점에 대해 설명해주세요.
+IoC(Inversion of Control)와 DI(Dependency Injection)의 개념 및 이점에 대해 심화하여 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -990,7 +990,7 @@ private OrderRepository orderRepository;
 </details>
 
 ### SPRING-026
-Spring Bean의 라이프사이클과 관련 콜백 메서드에 대해 설명해주세요.
+Spring Bean의 라이프사이클과 관련 콜백 메서드(@PostConstruct, @PreDestroy 등)에 대해 상세히 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1103,7 +1103,7 @@ public class UserController { }  // 요청 처리
 </details>
 
 ### SPRING-028
-AOP(Aspect Oriented Programming)를 활용한 공통 관심사 분리 방법에 대해 설명해주세요.
+AOP(Aspect Oriented Programming)를 활용한 공통 관심사(Cross-Cutting Concerns) 분리 방법에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1161,7 +1161,7 @@ public class LoggingAspect {
 </details>
 
 ### SPRING-029
-Spring에서 트랜잭션 관리와 @Transactional 어노테이션의 역할에 대해 설명해주세요.
+Spring에서 트랜잭션 관리 방식과 @Transactional 어노테이션의 주요 속성(propagation, isolation 등)에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1330,7 +1330,7 @@ Spring Boot의 자동 구성(Auto-Configuration) 원리에 대해 설명해주�
 </details>
 
 ### SPRING-032
-예외 처리를 위한 @ControllerAdvice의 역할과 활용 방법은 무엇인가요?
+Spring MVC에서 전역 예외 처리를 위한 @ControllerAdvice의 역할과 활용 방법은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1813,7 +1813,7 @@ spring:
 </details>
 
 ### SPRING-039
-Spring Boot에서 프로파일 관리와 환경별 설정 적용 방법은 무엇인가요?
+Spring Boot에서 프로파일(Profile) 관리와 환경별 설정 적용 방법은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1910,7 +1910,7 @@ public class MockEmailService implements EmailService { }
 ## 📌 Spring Bean 고급
 
 ### SPRING-040
-Spring Bean의 Scope(싱글톤, 프로토타입 등) 차이점과 활용 사례는 무엇인가요?
+Spring Bean의 Scope(싱글톤, 프로토타입, request, session 등) 차이점과 활용 사례는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1974,7 +1974,7 @@ public class SingletonBean {
 </details>
 
 ### SPRING-041
-Spring의 이벤트 발행 및 리스너(Event Listener) 메커니즘에 대해 설명해주세요.
+Spring의 이벤트 발행(ApplicationEventPublisher) 및 리스너(@EventListener) 메커니즘에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2204,7 +2204,7 @@ public class UserController {
 </details>
 
 ### SPRING-044
-Spring에서 비동기 처리(Asynchronous Processing)를 구현하는 방법에 대해 설명해주세요.
+Spring에서 비동기 처리(Asynchronous Processing)를 @Async와 CompletableFuture로 구현하는 방법에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2385,7 +2385,7 @@ public class UserService {
 </details>
 
 ### SPRING-046
-HttpMessageConverter의 역할과 Spring에서의 메시지 변환 과정을 설명해주세요.
+HttpMessageConverter의 역할과 Spring MVC에서의 HTTP 메시지 변환 과정을 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2685,7 +2685,7 @@ Spring Boot Starter의 개념과 주요 Starter들의 역할에 대해 설명해
 </details>
 
 ### SPRING-050
-Java Config와 XML Config를 통한 Bean 등록 및 설정 방식의 차이점은 무엇인가요?
+Java Config(@Configuration)와 XML Config를 통한 Bean 등록 및 설정 방식의 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>

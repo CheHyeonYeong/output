@@ -29,7 +29,7 @@ Elasticsearch는 분산 검색 및 분석 엔진으로, 다음과 같은 주요 
 [^1]: Elasticsearch 공식 문서 - 기본 개념 소개
 
 ### ES-002
-Elasticsearch에서 인덱스와 도큐먼트의 개념과 관계는 무엇인가요?
+Elasticsearch에서 인덱스(Index)와 도큐먼트(Document)의 개념과 관계는 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -51,7 +51,7 @@ Elasticsearch에서 인덱스와 도큐먼트의 개념과 관계는 무엇인�
 [^2]: Elasticsearch 공식 문서 - 도큐먼트와 인덱스
 
 ### ES-003
-Shard와 Replica의 역할 및 차이점은 무엇인가요?
+Elasticsearch에서 데이터 분산 저장을 위한 Primary Shard와 고가용성을 위한 Replica Shard의 역할 및 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -82,7 +82,7 @@ Shard와 Replica의 역할 및 차이점은 무엇인가요?
 [^3]: Elasticsearch 공식 문서 - 확장성과 복원력
 
 ### ES-004
-Elasticsearch에서 클러스터와 노드 간의 관계와 역할에 대해 설명해주세요.
+Elasticsearch에서 클러스터(Cluster)와 노드(Master, Data, Coordinating, Ingest Node) 간의 관계와 역할에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -155,7 +155,7 @@ Query DSL의 기본 구조와 사용 방법에 대해 설명해주세요.
 [^5]: Elasticsearch 공식 문서 - Query DSL
 
 ### ES-006
-Match 쿼리와 Term 쿼리의 차이점은 무엇인가요?
+Query DSL에서 전문 검색용 Match 쿼리와 정확한 값 매칭용 Term 쿼리의 차이점은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -192,7 +192,7 @@ Match 쿼리와 Term 쿼리의 차이점은 무엇인가요?
 [^7]: Elasticsearch 공식 문서 - Term query
 
 ### ES-007
-Range 쿼리의 활용 사례와 주의사항에 대해 설명해주세요.
+Query DSL에서 숫자, 날짜 등 범위 검색을 수행하는 Range 쿼리의 활용 사례와 주의사항에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -226,7 +226,7 @@ Range 쿼리의 활용 사례와 주의사항에 대해 설명해주세요.
 [^8]: Elasticsearch 공식 문서 - Range query
 
 ### ES-008
-Bool 쿼리의 구성 요소(Must, Should, Must Not, Filter)에 대해 설명해주세요.
+Query DSL에서 여러 쿼리를 논리적으로 조합하는 Bool 쿼리의 구성 요소(Must, Should, Must Not, Filter)에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -454,7 +454,7 @@ GET /index/_explain/doc_id
 [^13]: Elasticsearch 공식 문서 - Relevance tuning
 
 ### ES-013
-Boosting을 통한 검색 결과 가중치 조정 방법에 대해 설명해주세요.
+Elasticsearch에서 검색 결과의 관련성 점수(Relevance Score)를 개선하기 위해 Boosting을 통해 특정 조건에 가중치를 부여하는 방법에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -508,7 +508,7 @@ Boosting을 통한 검색 결과 가중치 조정 방법에 대해 설명해주�
 [^14]: Elasticsearch 공식 문서 - Boosting query
 
 ### ES-014
-Multi-match 쿼리와 Cross-field 검색의 차이점은 무엇인가요?
+여러 필드에서 동시에 검색하는 Multi-match 쿼리의 타입별 차이점과 Cross-field 검색의 특징은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -808,7 +808,7 @@ Client → Coordinating Node → Primary Shard → Replica Shards → Response
 [^20]: Elasticsearch 공식 문서 - Monitor a cluster
 
 ### ES-020
-Replica가 부족할 때 발생할 수 있는 문제와 해결 방법은 무엇인가요?
+Elasticsearch 클러스터 상태가 Yellow(Primary Shard는 할당되었으나 Replica Shard가 미할당된 상태)일 때 발생할 수 있는 문제와 해결 방법은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -861,7 +861,7 @@ PUT _cluster/settings
 ## 📌 Elasticsearch 노드 유형
 
 ### ES-021
-Data Node, Master Node, Client Node의 역할과 차이점에 대해 설명해주세요.
+Elasticsearch의 Data Node, Master Node, Coordinating Node(Client Node)의 역할과 차이점에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1086,7 +1086,7 @@ PUT _index_template/my_template
 [^25]: Elasticsearch 공식 문서 - Index templates
 
 ### ES-025
-인덱스 롤오버(Rollover) 전략과 사용 사례에 대해 설명해주세요.
+Elasticsearch에서 인덱스가 특정 조건(max_age, max_size, max_docs)을 충족하면 자동으로 새 인덱스를 생성하는 롤오버(Rollover) 전략과 사용 사례에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1585,7 +1585,7 @@ PUT _cluster/settings
 ## 📌 Elasticsearch ILM
 
 ### ES-033
-Index Lifecycle Management(ILM)의 기능과 필요성에 대해 설명해주세요.
+인덱스 롤오버와 Time-based Index를 자동화하는 Index Lifecycle Management(ILM)의 기능(Hot/Warm/Cold/Delete 단계)과 필요성에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1797,7 +1797,7 @@ POST _security/api_key
 [^36]: Elasticsearch 공식 문서 - Secure the Elastic Stack
 
 ### ES-036
-Role-Based Access Control(RBAC)과 Document Level Security의 차이에 대해 설명해주세요.
+Elasticsearch 보안에서 Role-Based Access Control(RBAC), Document Level Security(DLS), Field Level Security(FLS)의 차이에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -1872,7 +1872,7 @@ PUT _security/role/public_viewer
 ## 📌 Elasticsearch 커스텀 분석기
 
 ### ES-037
-커스텀 분석기(Custom Analyzer)를 생성하고 적용하는 방법은 무엇인가요?
+Character Filter, Tokenizer, Token Filter를 조합하여 커스텀 분석기(Custom Analyzer)를 생성하고 적용하는 방법은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -1968,7 +1968,7 @@ POST /my_index/_analyze
 ## 📌 Elasticsearch 멀티테넌시
 
 ### ES-038
-멀티테넌시를 지원하기 위한 Elasticsearch의 접근 방식은 무엇인가요?
+Document Level Security를 활용하여 멀티테넌시를 지원하기 위한 Elasticsearch의 접근 방식(테넌트별 인덱스, DLS, Alias 필터 등)은 무엇인가요?
 
 <details>
 <summary>답변</summary>
@@ -2115,7 +2115,7 @@ PUT /logs/_settings
 ## 📌 Elasticsearch 성능 지표
 
 ### ES-040
-Latency와 Throughput 튜닝을 위한 Elasticsearch 설정 방법에 대해 설명해주세요.
+검색 지연시간(Latency)과 인덱싱 처리량(Throughput) 튜닝을 위한 Elasticsearch 설정 방법에 대해 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -2190,7 +2190,7 @@ PUT /logs/_settings
 ## 📌 Elasticsearch 복잡한 검색
 
 ### ES-041
-복잡한 검색 조건을 구현하기 위한 Query DSL 활용 사례를 설명해주세요.
+Bool Query, Nested Query, Multi-match, Function Score 등을 조합하여 복잡한 검색 조건을 구현하기 위한 Query DSL 활용 사례를 설명해주세요.
 
 <details>
 <summary>답변</summary>

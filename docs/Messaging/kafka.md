@@ -20,9 +20,13 @@ Kafka는 분산 스트리밍 플랫폼으로, 다음과 같은 주요 컴포넌�
 - **Consumer**: Topic에서 메시지를 읽어 처리하는 클라이언트
 - **Topic**: 메시지가 저장되는 논리적 채널. 카테고리 또는 피드 이름과 유사
 - **Partition**: Topic을 물리적으로 분할한 단위. 병렬 처리와 확장성을 제공
-- **ZooKeeper/KRaft**: 클러스터 메타데이터 관리 및 리더 선출 담당
+- **ZooKeeper/KRaft**: 클러스터 메타데이터 관리 및 Controller 선출 담당 (KRaft는 Kafka 3.3+에서 프로덕션 사용 가능, 4.0에서 ZooKeeper 제거 예정)
 
 메시지 흐름: Producer → Broker(Topic/Partition) → Consumer
+
+**핵심 설계 원칙**
+- 메시지는 파티션에 순차적으로 추가되는 불변 로그(immutable log) 형태로 저장
+- Consumer는 Pull 방식으로 메시지를 가져옴 (Broker가 Push하지 않음)
 
 **참고자료**
 - [Apache Kafka Documentation](https://kafka.apache.org/documentation/#gettingStarted)[^1]
@@ -165,6 +169,12 @@ Kafka에서 Consumer Group의 개념과 이를 통해 메시지 병렬 처리를
 - 최적 병렬성: Consumer 수 = 파티션 수
 - 서로 다른 Consumer Group은 같은 메시지를 독립적으로 소비 가능
 
+**파티션 수 결정 시 트레이드오프**
+- 파티션 증가: 병렬성/처리량 향상, 하지만 브로커 메모리 사용량 증가, 리밸런스 시간 증가, 리더 선출 시간 증가
+- 파티션 감소: 운영 간소화, 하지만 병렬 처리 제한
+- 경험적 가이드라인: (목표 처리량) / (단일 파티션 처리량) 또는 (Consumer 인스턴스 수)의 배수로 설정
+- 파티션은 추가만 가능하고 삭제 불가능하므로 초기 설계 시 신중히 결정
+
 **참고자료**
 - [Apache Kafka Documentation - Consumer Groups](https://kafka.apache.org/documentation/#intro_consumers)[^6]
 
@@ -194,9 +204,13 @@ Kafka에서 리플리케이션(replication)의 필요성과 설정 방법은 무
 
 **동작 방식**
 - 각 파티션에는 1개의 Leader와 N-1개의 Follower
-- Producer/Consumer는 Leader와만 통신
-- Follower는 Leader로부터 데이터를 복제
+- Producer/Consumer는 기본적으로 Leader와 통신 (Kafka 2.4+에서는 `replica.selector.class` 설정으로 Follower 읽기 가능)
+- Follower는 Leader로부터 데이터를 복제 (Pull 방식)
 - Leader 장애 시 ISR 중 하나가 새 Leader로 선출
+
+**Follower Fetching (Kafka 2.4+)**
+- `replica.selector.class=org.apache.kafka.common.replica.RackAwareReplicaSelector` 설정으로 같은 랙의 복제본에서 읽기 가능
+- 지리적으로 분산된 클러스터에서 읽기 지연 시간 감소
 
 ```bash
 kafka-topics.sh --create --topic my-topic \
@@ -223,15 +237,22 @@ Kafka의 리플리케이션 구조에서 장애 복구(failover) 메커니즘은
 4. 메타데이터 업데이트 및 클라이언트에 전파
 
 **Failover 설정**
-- `unclean.leader.election.enable`: ISR 외 복제본의 리더 승격 허용 여부 (기본: false)
+- `unclean.leader.election.enable`: ISR 외 복제본의 리더 승격 허용 여부 (기본: false, Kafka 0.11+)
 - `leader.imbalance.check.interval.seconds`: 리더 재분배 주기
 - `controlled.shutdown.enable`: 정상 종료 시 리더 이전 여부
+
+**트레이드오프: unclean.leader.election.enable**
+- `false` (기본값, 권장): 데이터 일관성 우선. ISR이 모두 장애 시 파티션 불가용
+- `true`: 가용성 우선. 데이터 손실 가능하지만 서비스 중단 최소화
+- 결정 기준: 데이터 손실 vs 서비스 중단 중 어떤 것이 더 치명적인지에 따라 선택
 
 **클라이언트 복구**
 - Producer: 재시도 로직으로 새 Leader에 재전송
 - Consumer: 새 Leader로부터 이어서 소비
 
-**주의**: `unclean.leader.election.enable=true`는 데이터 손실 가능성이 있으므로 신중히 설정
+**중요**: `unclean.leader.election.enable=true`는 데이터 손실 가능성이 있음
+- ISR 외의 복제본이 리더가 되면 복제되지 않은 메시지 손실
+- 가용성 vs 데이터 일관성의 트레이드오프에서 가용성을 선택하는 경우에만 활성화
 
 **참고자료**
 - [Apache Kafka Documentation - Leader Election](https://kafka.apache.org/documentation/#design_replicatedlog)[^8]
@@ -327,9 +348,12 @@ Kafka에서 Exactly-Once Semantics를 구현하는 방법에 대해 설명해주
 **Exactly-Once Semantics (EOS) 구현 방법**
 
 **1. Idempotent Producer**
-- `enable.idempotence=true` 설정
+- `enable.idempotence=true` 설정 (Kafka 3.0+에서는 기본값 true)
 - Producer ID와 시퀀스 번호로 중복 메시지 방지
 - 단일 파티션 내에서 exactly-once 보장
+- 요구사항: `acks=all`, `retries > 0`, `max.in.flight.requests.per.connection <= 5`
+
+**트레이드오프**: Exactly-once는 추가적인 메타데이터 교환과 트랜잭션 오버헤드로 인해 처리량이 약 3-20% 감소할 수 있음. 지연 시간에 민감하거나 처리량이 최우선인 경우 at-least-once + 멱등성 처리가 더 적합할 수 있음
 
 **2. Transactional API**
 - 여러 파티션에 걸친 원자적 쓰기
@@ -347,7 +371,11 @@ producer.commitTransaction();
 - 수동 오프셋 커밋으로 처리 완료 후 커밋
 
 **Kafka Streams**
-- `processing.guarantee=exactly_once_v2` 설정으로 자동 EOS 지원
+- `processing.guarantee=exactly_once_v2` 설정으로 자동 EOS 지원 (Kafka 2.5+에서 v2 권장, 이전 exactly_once는 deprecated)
+
+**주의사항**
+- Exactly-once는 Kafka 내부에서만 보장됨. 외부 시스템과의 연동 시에는 해당 시스템도 트랜잭션을 지원해야 완전한 EOS 달성 가능
+- Consumer의 `isolation.level=read_committed` 설정 필수
 
 **참고자료**
 - [Apache Kafka Documentation - Transactions](https://kafka.apache.org/documentation/#semantics)[^11]
@@ -371,12 +399,13 @@ Kafka Producer 측에서 발생할 수 있는 메시지 중복 문제를 Exactly
 
 **1. Idempotent Producer 활성화**
 ```properties
-enable.idempotence=true
-acks=all
+enable.idempotence=true  # Kafka 3.0+에서는 기본값 true
+acks=all                 # 필수 조건
 retries=Integer.MAX_VALUE
-max.in.flight.requests.per.connection=5
+max.in.flight.requests.per.connection=5  # 1~5 사이 값 필수
 ```
 - PID(Producer ID) + Sequence Number로 중복 감지 및 무시
+- `max.in.flight.requests.per.connection`이 5 이하일 때만 순서 보장과 함께 멱등성 동작
 
 **2. Transactional Producer 사용**
 - 트랜잭션 단위로 원자적 전송 보장
@@ -410,9 +439,13 @@ Kafka Consumer가 재시작될 때 오프셋(offset) 관리를 어떻게 수행�
 3. 해당 Offset부터 메시지 소비 재개
 
 **Offset Reset 정책 (auto.offset.reset)**
-- `earliest`: 가장 처음 Offset부터 시작
-- `latest`: 가장 최근 Offset부터 시작 (기본값)
-- `none`: Offset 없으면 예외 발생
+- `earliest`: 가장 처음 Offset부터 시작 (토픽의 모든 데이터 재처리)
+- `latest`: 가장 최근 Offset부터 시작 (기본값, 새 메시지만 처리)
+- `none`: Offset 없으면 예외 발생 (명시적 오프셋 관리 필요 시)
+
+**트레이드오프**
+- `earliest`: 데이터 손실 없음, 하지만 대량 재처리로 인한 Consumer Lag 발생 가능
+- `latest`: 빠른 시작, 하지만 Consumer 중단 기간의 메시지 손실 가능
 
 **커밋 전략**
 ```properties
@@ -465,7 +498,16 @@ min.cleanable.dirty.ratio=0.5   # 컴팩션 트리거 비율
 
 **Tombstone 레코드**
 - 키에 null 값을 전송하면 해당 키 삭제 표시
-- `delete.retention.ms` 후 완전 삭제
+- `delete.retention.ms` 후 완전 삭제 (기본값: 24시간)
+
+**Log Compaction 트레이드오프**
+- 장점: 스토리지 절약, 빠른 복구(최종 상태만 필요)
+- 단점: 이력 조회 불가, 컴팩션 중 CPU/I/O 사용량 증가
+- `min.cleanable.dirty.ratio`: 낮을수록 자주 컴팩션 (CPU 사용량 증가), 높을수록 스토리지 사용량 증가
+
+**주의사항**
+- 키가 null인 메시지는 컴팩션 대상이 아니며 일반 retention 정책 적용
+- 컴팩션은 active segment가 아닌 이전 segment에만 적용됨
 
 **참고자료**
 - [Apache Kafka Documentation - Log Compaction](https://kafka.apache.org/documentation/#compaction)[^14]
@@ -502,9 +544,17 @@ Kafka 성능 튜닝을 위한 주요 고려 사항에는 어떤 것들이 있나
 - `log.flush.interval.messages`: 디스크 플러시 간격
 
 **일반 고려사항**
-- 파티션 수 적정 설계
-- JVM 힙 설정 (6-8GB 권장)
-- 페이지 캐시를 위한 OS 메모리 확보
+- 파티션 수 적정 설계 (브로커당 2,000~4,000개 이하 권장)
+- JVM 힙 설정 (6-8GB 권장, 과도한 힙은 GC 지연 유발)
+- 페이지 캐시를 위한 OS 메모리 확보 (Kafka 성능의 핵심)
+
+**성능 튜닝의 트레이드오프**
+- `batch.size` 증가: 처리량 향상 vs 지연시간 증가
+- `linger.ms` 증가: 배치 효율 vs 첫 메시지 지연
+- `compression.type`: 네트워크 절약 vs CPU 사용량 증가
+- `acks=all`: 데이터 안정성 vs 지연시간 증가
+
+**권장 접근법**: 기본값으로 시작하여 모니터링 기반으로 병목 지점을 식별한 후 점진적 튜닝
 
 **참고자료**
 - [Apache Kafka Documentation - Configuration](https://kafka.apache.org/documentation/#configuration)[^15]
@@ -541,8 +591,14 @@ Kafka 클러스터 성능 튜닝을 위해 네트워크 및 하드웨어 설정�
 - 최소 8코어 이상 권장
 
 **파티션/브로커 비율**
-- 브로커당 파티션 수 제한 (4,000개 이하 권장)
+- 브로커당 파티션 수 제한 (ZooKeeper: 4,000개 이하 권장, KRaft: 더 많은 파티션 지원)
 - 리더 파티션 균등 분배
+- 전체 클러스터 파티션 수도 고려 (ZooKeeper 모드: 수십만 개 한계, KRaft: 수백만 개 가능)
+
+**하드웨어 선택 트레이드오프**
+- **SSD vs HDD**: SSD는 랜덤 I/O 성능 향상, 하지만 Kafka는 순차 I/O 중심이므로 HDD도 적합. 비용 대비 용량이 중요하면 HDD 고려
+- **메모리**: JVM 힙보다 페이지 캐시용 메모리가 더 중요. 총 메모리의 절반 이상을 OS에 남겨둘 것
+- **네트워크**: 복제 팩터와 Consumer 수에 따라 필요 대역폭이 배수로 증가
 
 **참고자료**
 - [Apache Kafka Documentation - Hardware and OS](https://kafka.apache.org/documentation/#hwandos)[^16]
@@ -583,7 +639,18 @@ acks=all
 min.insync.replicas=2
 replication.factor=3
 ```
-→ 최소 2개 브로커 장애까지 데이터 안전
+→ 최대 1개 브로커 장애까지 쓰기 가능, 데이터 손실 없음
+
+**함정 주의**
+- `min.insync.replicas=2`, `replication.factor=3`일 때 2개 브로커 장애 시 쓰기 불가 (읽기는 가능)
+- `acks=all`이지만 `min.insync.replicas=1`이면 Leader 한 대만으로 쓰기 성공 가능
+
+**데이터 손실 방지 vs 가용성 트레이드오프**
+| 설정 | 허용 가능한 브로커 장애 (쓰기) | 데이터 안정성 |
+|------|------------------------------|--------------|
+| RF=3, ISR=1 | 2개 | 낮음 |
+| RF=3, ISR=2 | 1개 | 높음 |
+| RF=3, ISR=3 | 0개 | 최고 (하지만 가용성 낮음) |
 
 **참고자료**
 - [Apache Kafka Documentation - Durability](https://kafka.apache.org/documentation/#design_ha)[^17]
@@ -761,9 +828,14 @@ Kafka 리플리케이션에서 In-Sync Replica(ISR)의 역할과 브로커 재�
 3. **데이터 일관성**: 동기화된 복제본만 서비스 참여
 
 **중요성**
-- ISR 크기가 `min.insync.replicas` 미만이면 Producer 쓰기 실패
+- ISR 크기가 `min.insync.replicas` 미만이면 Producer 쓰기 실패 (`NotEnoughReplicasException`)
 - ISR 축소는 데이터 손실 위험 신호
 - Under-replicated 파티션 모니터링 필수
+
+**ISR 관련 함정 주의**
+- ISR은 "완전히 동기화된" 복제본이 아니라 "충분히 최신" 복제본을 의미
+- `replica.lag.time.max.ms` 내에 복제 요청을 보낸 복제본은 ISR에 포함됨
+- 따라서 ISR 내 복제본도 약간의 지연이 있을 수 있음
 
 **관련 설정**
 ```properties
@@ -813,12 +885,17 @@ kafka-topics.sh --create --topic ordered-topic --partitions 1
 ```properties
 # 멱등성 활성화 시 순서 보장 (실패 시에도)
 enable.idempotence=true
-max.in.flight.requests.per.connection=5  # 멱등성과 함께 사용 시 안전
+max.in.flight.requests.per.connection=5  # 1~5 사이: 멱등성과 함께 순서 보장
 ```
 
 **주의사항**
 - `max.in.flight.requests.per.connection > 1`이고 멱등성 비활성화 시, 재시도로 인해 순서 역전 가능
+- 멱등성 활성화 시에도 `max.in.flight.requests.per.connection > 5`이면 순서 보장 불가
 - Consumer는 단일 스레드로 파티션 처리 권장
+
+**함정 주의**: "Kafka는 순서를 보장한다"는 부분적으로만 맞음
+- 정확히는 "단일 파티션 내에서, 올바른 Producer 설정 시에만" 순서 보장
+- 파티션 간 순서 보장 필요 시 단일 파티션 사용 또는 애플리케이션 레벨 타임스탬프 기반 정렬 필요
 
 **참고자료**
 - [Apache Kafka Documentation - Message Ordering](https://kafka.apache.org/documentation/#design_quotasandguarantees)[^22]
@@ -861,6 +938,13 @@ Kafka Producer의 ACK 설정 옵션(0, 1, all)이 메시지 순서 보장과 신
 | 1 | 중간 | Leader만 | 중간 |
 | all | 낮음 | ISR 전체 | 낮음 |
 
+**운영 환경 트레이드오프 가이드**
+- **acks=0**: 로그, 메트릭 등 손실 허용 가능한 대량 데이터에 적합. 처리량 최대화가 목표일 때
+- **acks=1**: 대부분의 일반 애플리케이션에 적합. 처리량과 내구성의 균형
+- **acks=all + min.insync.replicas=2**: 금융, 주문 등 데이터 손실이 허용되지 않는 경우. 지연시간 증가 감수
+
+**주의**: `acks=all`이라도 `min.insync.replicas=1`이면 Leader 한 대만으로도 쓰기 성공 가능하므로 실질적으로 acks=1과 동일한 내구성
+
 **참고자료**
 - [Apache Kafka Documentation - Producer Configs](https://kafka.apache.org/documentation/#producerconfigs_acks)[^23]
 
@@ -890,24 +974,29 @@ Kafka와 RabbitMQ 같은 다른 메시징 시스템의 주요 차이점은 무�
 **주요 차이점**
 
 1. **메시지 재처리**
-   - Kafka: Offset 조정으로 재처리 가능
-   - RabbitMQ: 기본적으로 소비 후 삭제
+   - Kafka: Offset 조정으로 재처리 가능 (메시지는 retention 기간 동안 보관)
+   - RabbitMQ: 기본적으로 소비 후 삭제 (Dead Letter Queue로 재처리 가능)
 
 2. **처리량**
-   - Kafka: 높은 처리량에 최적화 (초당 수백만 건)
-   - RabbitMQ: 중간 처리량, 낮은 지연시간
+   - Kafka: 높은 처리량에 최적화 (초당 수백만 건), 순차 I/O 활용
+   - RabbitMQ: 중간 처리량, 낮은 지연시간 (밀리초 단위)
 
 3. **Consumer 확장**
-   - Kafka: 파티션 기반 병렬 처리
-   - RabbitMQ: 큐 경쟁 방식
+   - Kafka: 파티션 기반 병렬 처리 (파티션 수가 병렬성 상한)
+   - RabbitMQ: 큐 경쟁 방식 (Consumer 수에 제한 없음)
 
 4. **사용 사례**
-   - Kafka: 로그 수집, 이벤트 스트리밍, 데이터 파이프라인
-   - RabbitMQ: 작업 큐, RPC, 복잡한 라우팅
+   - Kafka: 로그 수집, 이벤트 스트리밍, 데이터 파이프라인, 이벤트 소싱
+   - RabbitMQ: 작업 큐, RPC, 복잡한 라우팅, 마이크로서비스 통신
 
 **선택 기준**
-- 대용량 스트리밍 → Kafka
-- 복잡한 라우팅, 유연한 메시징 패턴 → RabbitMQ
+- 대용량 스트리밍, 이벤트 재처리, 장기 보관 → Kafka
+- 복잡한 라우팅, 유연한 메시징 패턴, 낮은 지연시간 우선 → RabbitMQ
+- 둘 다 필요한 경우: Kafka + RabbitMQ 혼합 아키텍처도 고려
+
+**함정 주의**: "Kafka가 RabbitMQ보다 항상 좋다"는 잘못된 일반화
+- 단순한 작업 큐나 RPC 패턴에는 RabbitMQ가 더 적합할 수 있음
+- 운영 복잡도, 팀 경험, 기존 인프라도 고려 필요
 
 **참고자료**
 - [Apache Kafka Documentation - Introduction](https://kafka.apache.org/documentation/#introduction)[^24]
@@ -1157,6 +1246,16 @@ max.poll.interval.ms=300000
 - `max.poll.records` 조정
 - 처리 로직 최적화
 
+**Rebalance 관련 트레이드오프**
+- `session.timeout.ms` 짧게: 빠른 장애 감지 vs 네트워크 지연으로 인한 불필요한 리밸런스
+- `session.timeout.ms` 길게: 안정적 vs 실제 장애 시 늦은 감지
+- `max.poll.interval.ms`: 긴 처리 허용 vs 느린 hang 감지
+- Static Membership: 리밸런스 감소 vs 실제 장애 Consumer 감지 지연
+
+**실제 운영 팁**
+- 배포 시 Consumer를 점진적으로 재시작하여 동시 리밸런스 방지
+- Kubernetes 환경에서는 PodDisruptionBudget과 함께 사용
+
 **참고자료**
 - [Apache Kafka Documentation - Consumer Rebalance](https://kafka.apache.org/documentation/#consumerconfigs_partition.assignment.strategy)[^29]
 
@@ -1208,15 +1307,20 @@ producer.send(record, (metadata, exception) -> {
 5. **파티션 수 증가**
 - 더 많은 브로커에 부하 분산
 
-6. **ACK 수준 조정** (내구성 트레이드오프)
+6. **ACK 수준 조정** (내구성 트레이드오프 - 마지막 수단)
 ```properties
-acks=1  # all에서 1로 변경 (주의 필요)
+acks=1  # all에서 1로 변경 (데이터 손실 가능성 증가)
 ```
 
 **하드웨어 개선**
 - 네트워크 대역폭 확장
 - 브로커 디스크 I/O 개선 (SSD)
 - 브로커 수 증가
+
+**병목 진단 권장 순서**
+1. 모니터링 지표로 병목 위치 파악 (Producer 버퍼? 브로커 I/O? 네트워크?)
+2. 해당 영역의 설정 먼저 조정 (batch.size, linger.ms, compression 등)
+3. 내구성 관련 설정(acks)은 데이터 손실 허용 가능한 경우에만 최후 수단으로 변경
 
 **참고자료**
 - [Apache Kafka Documentation - Producer Performance](https://kafka.apache.org/documentation/#producerconfigs)[^30]
@@ -1244,7 +1348,9 @@ ZooKeeper의 역할과 KRaft 모드의 차이점에 대해 설명해주세요.
 **KRaft (Kafka Raft) 모드**
 - Kafka 자체 내장 메타데이터 관리 (ZooKeeper 제거)
 - Raft 합의 프로토콜 사용
-- Kafka 3.3부터 프로덕션 준비 완료
+- Kafka 3.3부터 프로덕션 준비 완료 (KIP-833)
+- Kafka 3.5+에서 ZooKeeper에서 KRaft로 무중단 마이그레이션 지원
+- **Kafka 4.0에서 ZooKeeper 모드 완전 제거 예정** (KIP-833)
 
 **주요 차이점**
 
@@ -1433,13 +1539,15 @@ kafka-reassign-partitions.sh --execute \
 
 **파티션 수 증가**
 - 운영 중 파티션 추가 가능 (감소 불가)
-- 키 기반 파티셔닝 시 기존 데이터 순서 영향
+- **함정 주의**: 키 기반 파티셔닝 시 파티션 추가하면 동일 키가 다른 파티션으로 라우팅됨
+  - 기존 데이터는 이전 파티션에, 새 데이터는 새 파티션에 저장
+  - 키별 순서 보장이 필요한 경우 파티션 추가 전 신중히 검토
 
 **모범 사례**
-- 충분한 초기 파티션 수 계획
-- `auto.create.topics.enable=false` 권장
-- Rack-awareness 설정으로 장애 도메인 분리
-- Leader 재분배 자동화
+- 충분한 초기 파티션 수 계획 (예상 최대 처리량의 2배 이상)
+- `auto.create.topics.enable=false` 권장 (의도치 않은 토픽 생성 방지)
+- Rack-awareness 설정으로 장애 도메인 분리 (`broker.rack`)
+- Leader 재분배 자동화 (`auto.leader.rebalance.enable=true`)
 
 **확장 전 체크리스트**
 - [ ] 디스크 용량 계획
@@ -1461,9 +1569,10 @@ Kafka에서 ZooKeeper 모드에서 KRaft 모드로 전환 시 고려해야 할 �
 <summary>답변</summary>
 
 **KRaft 전환 전 확인사항**
-- Kafka 버전 3.3 이상 (프로덕션 권장 3.6+)
-- 모든 클라이언트 호환성 확인
+- Kafka 버전 3.3 이상 (프로덕션 권장 3.5+ 마이그레이션, 3.6+ 신규 클러스터)
+- 모든 클라이언트 호환성 확인 (특히 AdminClient 버전)
 - 현재 ZooKeeper 클러스터 상태 정상 확인
+- 일부 기능은 KRaft에서 아직 미지원될 수 있으므로 사용 중인 기능 확인 필요
 
 **마이그레이션 절차**
 
@@ -1555,7 +1664,17 @@ socket.receive.buffer.bytes=102400
 - `fetch-latency-avg`: Consumer fetch 지연
 - `request-latency-avg`: 전체 요청 지연
 
-**주의**: 지연 최소화는 처리량/내구성과 트레이드오프 관계
+**트레이드오프 요약**
+| 목표 | 희생되는 것 | 주요 설정 |
+|------|------------|----------|
+| 낮은 지연 | 처리량, 내구성 | linger.ms=0, acks=1 |
+| 높은 처리량 | 지연시간 | linger.ms=50+, batch.size 증가 |
+| 높은 내구성 | 지연시간, 처리량 | acks=all, min.insync.replicas=2 |
+
+**실제 운영 팁**
+- 지연시간 요구사항을 먼저 정의 (P99 < 10ms? 100ms?)
+- 요구사항 달성 후 처리량 최적화
+- 내구성은 데이터 중요도에 따라 결정
 
 **참고자료**
 - [Apache Kafka Documentation - Performance](https://kafka.apache.org/documentation/#configuration)[^36]
@@ -1735,13 +1854,22 @@ executor.submit(() -> process(record));
 - 병렬 처리 단위 확대
 - Consumer 추가 여유 확보
 
-5. **일시적 해결**
-- Consumer Group 리셋 (데이터 손실 주의)
+5. **일시적 해결 (주의 필요)**
+- Consumer Group 리셋 (건너뛴 메시지는 처리되지 않으므로 데이터 손실 가능)
 - `auto.offset.reset=latest`로 재시작
 
 **알림 설정 권장값**
-- Warning: Lag > 10,000
-- Critical: Lag > 100,000 또는 지속 증가
+- Warning: Lag > 10,000 또는 지속적 증가 추세
+- Critical: Lag > 100,000 또는 처리량 대비 Lag 증가율이 높을 때
+
+**Lag 모니터링 함정 주의**
+- Lag 절대값보다 **추세**가 더 중요 (Lag이 높아도 감소 추세면 괜찮음)
+- 배포/재시작 직후 일시적 Lag 증가는 정상
+- 파티션별 Lag을 확인하여 특정 파티션 병목 식별 필요
+
+**근본 원인 해결**
+- 단순 Consumer 추가보다 처리 로직 최적화가 효과적인 경우도 많음
+- 외부 시스템(DB, API) 호출이 병목일 수 있음
 
 **참고자료**
 - [Apache Kafka Documentation - Consumer Lag](https://kafka.apache.org/documentation/#basic_ops_consumer_lag)[^39]
@@ -1799,12 +1927,20 @@ isolation.level=read_committed  # 커밋된 트랜잭션만 읽기
 - 단일 파티션 내 순서 보장
 - 키 기반 파티셔닝으로 관련 메시지 동일 파티션
 
-**일관성 vs 가용성 트레이드오프**
-| 설정 | 일관성 | 가용성 |
-|------|--------|--------|
-| acks=all, min.insync.replicas=2 | 높음 | 중간 |
-| acks=1 | 중간 | 높음 |
-| unclean.leader.election=true | 낮음 | 높음 |
+**일관성 vs 가용성 트레이드오프 (CAP 정리 관점)**
+
+Kafka는 네트워크 파티션(P) 발생 시 일관성(C)과 가용성(A) 사이에서 선택해야 합니다.
+
+| 설정 | 일관성 | 가용성 | 선택 권장 상황 |
+|------|--------|--------|----------------|
+| acks=all, min.insync.replicas=2 | 높음 | 중간 | 금융, 주문 등 데이터 손실 불가 |
+| acks=1 | 중간 | 높음 | 일반 애플리케이션 |
+| unclean.leader.election=true | 낮음 | 높음 | 가용성이 데이터 일관성보다 중요한 경우 |
+
+**실제 운영에서의 고려사항**
+- 모든 설정을 최고 수준(acks=all, ISR=2, RF=3)으로 하면 비용과 지연시간 증가
+- 데이터 중요도에 따라 토픽별로 다른 설정 적용 가능
+- 장애 시나리오별 영향 분석 후 결정
 
 **참고자료**
 - [Apache Kafka Documentation - Semantics](https://kafka.apache.org/documentation/#semantics)[^40]
@@ -1935,6 +2071,13 @@ try {
 | 처리 후 커밋 | 없음 | 가능 | 중간 |
 | 커밋 후 처리 | 가능 | 없음 | 중간 |
 
+**운영 환경 권장사항**
+- **at-least-once 보장 (대부분의 경우)**: 처리 완료 후 커밋 + Consumer 측 멱등성 처리
+- **at-most-once 보장 (드문 경우)**: 커밋 후 처리. 중복보다 손실이 나은 경우에만
+- **exactly-once 보장**: Kafka Transactions 사용 또는 Kafka Streams의 `exactly_once_v2`
+
+**함정 주의**: 자동 커밋은 `poll()` 호출 시 이전 `poll()`의 오프셋을 커밋함. 따라서 `poll()` 직후 장애 시 아직 처리되지 않은 메시지의 오프셋이 커밋될 수 있음
+
 **참고자료**
 - [Apache Kafka Documentation - Offset Management](https://kafka.apache.org/documentation/#consumerconfigs_enable.auto.commit)[^42]
 
@@ -2007,10 +2150,17 @@ public void handleDlt(String message) {
 ```
 
 **DLQ 운영 모범 사례**
-- DLQ 토픽 별도 모니터링 및 알림
-- 메시지 원본 정보 보존 (헤더 활용)
-- DLQ 메시지 재처리 도구 준비
-- DLQ 보존 기간 충분히 설정
+- DLQ 토픽 별도 모니터링 및 알림 (DLQ에 메시지가 쌓이면 즉시 인지)
+- 메시지 원본 정보 보존 (헤더에 원본 토픽, 오프셋, 에러 메시지, 타임스탬프 포함)
+- DLQ 메시지 재처리 도구 준비 (수동 재처리, 자동 재시도 등)
+- DLQ 보존 기간 충분히 설정 (원본 토픽보다 길게)
+
+**DLQ vs 재시도 토픽 트레이드오프**
+- 재시도 토픽 사용: 자동 복구 가능, 하지만 무한 재시도로 리소스 낭비 가능
+- DLQ 직행: 수동 개입 필요, 하지만 일시적 오류도 DLQ로 이동
+- 권장: 제한된 횟수 재시도 후 DLQ로 이동 (예: 3회 재시도 후 DLQ)
+
+**함정 주의**: DLQ 메시지 재처리 시 순서가 보장되지 않음. 순서가 중요한 경우 별도 처리 필요
 
 **참고자료**
 - [Apache Kafka Documentation - Error Handling](https://kafka.apache.org/documentation/)[^43]
@@ -2041,12 +2191,18 @@ Kafka 메시지 스키마 관리(Schema Registry)의 역할과 필요성은 무�
 4. **스키마 진화**: 필드 추가/삭제 시 기존 Consumer 영향 최소화
 
 **호환성 모드**
-| 모드 | 설명 |
-|------|------|
-| BACKWARD | 새 스키마로 이전 데이터 읽기 가능 |
-| FORWARD | 이전 스키마로 새 데이터 읽기 가능 |
-| FULL | 양방향 호환 |
-| NONE | 호환성 검사 없음 |
+| 모드 | 설명 | 허용되는 변경 |
+|------|------|--------------|
+| BACKWARD | 새 스키마로 이전 데이터 읽기 가능 | 필드 삭제, default 있는 필드 추가 |
+| FORWARD | 이전 스키마로 새 데이터 읽기 가능 | 필드 추가, default 있는 필드 삭제 |
+| FULL | 양방향 호환 | default 있는 필드 추가/삭제만 가능 |
+| NONE | 호환성 검사 없음 | 모든 변경 가능 (위험) |
+
+**트레이드오프**
+- BACKWARD (기본값, 권장): Consumer를 먼저 업데이트해야 함, 안전한 배포
+- FORWARD: Producer를 먼저 업데이트해야 함
+- FULL: 가장 안전하지만 변경 제약이 큼
+- NONE: 유연하지만 런타임 오류 위험
 
 **사용 예시 (Avro)**
 ```java
@@ -2277,9 +2433,20 @@ public void onOrderCreated(OrderCreatedEvent event) {
 ```
 
 **모범 사례**
-- 이벤트 스키마 버전 관리
-- 멱등성 처리 필수
+- 이벤트 스키마 버전 관리 (Schema Registry 활용)
+- 멱등성 처리 필수 (동일 이벤트 재처리해도 결과 동일)
 - 서비스별 Consumer Group 분리
+- 이벤트 순서 의존성 최소화 설계
+
+**마이크로서비스에서의 Kafka 트레이드오프**
+- **이벤트 기반**: 느슨한 결합, 확장성 우수 vs 디버깅 어려움, 최종 일관성만 보장
+- **동기 API 호출**: 단순함, 강한 일관성 vs 높은 결합도, 장애 전파
+- Saga 패턴: 분산 트랜잭션 대안 vs 구현 복잡도 증가
+
+**실제 운영 고려사항**
+- 이벤트 재처리로 인한 부작용 방지 (멱등한 핸들러 설계)
+- 서비스 간 이벤트 스키마 계약 관리
+- 장애 시 보상 트랜잭션 설계
 
 **참고자료**
 - [Apache Kafka Documentation - Use Cases](https://kafka.apache.org/documentation/#uses)[^47]

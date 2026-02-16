@@ -21,14 +21,23 @@ IoC와 DI에 대해 설명해 주세요.
 - IoC를 구현하는 디자인 패턴 중 하나
 - 객체가 필요로 하는 의존성을 외부에서 주입받는 방식
 - 주입 방식 3가지:
-  - **생성자 주입** (권장): 불변성 보장, 테스트 용이
-  - **Setter 주입**: 선택적 의존성에 사용
-  - **필드 주입**: 간단하지만 테스트 어려움
+  - **생성자 주입** (권장): 불변성 보장, 테스트 용이, 필수 의존성 명확화
+  - **Setter 주입**: 선택적/변경 가능한 의존성에 사용
+  - **필드 주입**: 간결하지만 테스트 어려움, final 사용 불가
+
+**주입 방식별 트레이드오프**
+| 방식 | 장점 | 단점 |
+|------|------|------|
+| 생성자 주입 | 불변성, 테스트 용이, 순환 참조 조기 발견 | 의존성 많으면 생성자가 길어짐 |
+| Setter 주입 | 선택적 의존성 표현, 런타임 변경 가능 | 불변성 미보장, NPE 가능 |
+| 필드 주입 | 코드 간결 | 테스트 어려움, final 불가, 의존성 숨김 |
 
 **장점**
 - 결합도 감소, 유연성 증가
 - 단위 테스트 용이 (Mock 객체 주입 가능)
 - 코드 재사용성 향상
+
+**참고**: Spring 공식 문서는 필수 의존성에 생성자 주입을, 선택적 의존성에만 Setter 주입을 권장합니다.
 
 </details>
 
@@ -95,19 +104,21 @@ Spring의 프로토타입 빈(Prototype Bean)은 무엇이며, 싱글톤 빈과 
 - 요청할 때마다 새로운 인스턴스를 생성하는 스코프
 - `@Scope("prototype")` 또는 `@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)`로 설정
 
-**싱글톤 vs 프로토타입**
+**싱글톤 vs 프로토타입 트레이드오프**
 | 구분 | 싱글톤 | 프로토타입 |
 |------|--------|------------|
 | 인스턴스 수 | 1개 | 요청마다 새로 생성 |
 | 생명주기 관리 | 컨테이너가 전체 관리 | 생성과 DI까지만 관리 |
-| @PreDestroy | 호출됨 | 호출 안됨 |
+| @PreDestroy | 호출됨 | 호출 안됨 (직접 관리 필요) |
+| 메모리 | 효율적 | 매번 새 객체 생성 |
+| 스레드 안전성 | 상태 저장 시 문제 | 인스턴스별 독립 상태 |
 
 **사용 사례**
-- 상태를 가지는(stateful) 객체
-- 매번 새로운 인스턴스가 필요한 경우
+- **싱글톤**: 상태 없는(stateless) 서비스, 레포지토리
+- **프로토타입**: 상태를 가지는(stateful) 객체, 매번 새로운 인스턴스가 필요한 경우
 
-**주의사항**
-싱글톤 Bean에서 프로토타입 Bean을 주입받으면, 프로토타입도 한 번만 주입되어 싱글톤처럼 동작함
+**주의사항 (함정 질문)**
+싱글톤 Bean에서 프로토타입 Bean을 주입받으면, 프로토타입도 **한 번만 주입**되어 싱글톤처럼 동작함
 → 해결: `ObjectProvider`, `Provider<T>`, 또는 `@Lookup` 사용
 
 ```java
@@ -168,16 +179,26 @@ Spring AOP에서 @Aspect는 어떻게 동작하나요?
 **프록시 생성 방식**
 - **JDK 동적 프록시**: 인터페이스 기반 (인터페이스가 있을 때)
 - **CGLIB 프록시**: 클래스 기반, 상속을 이용 (인터페이스가 없을 때)
-- Spring Boot 2.0+에서는 기본적으로 CGLIB 사용
+- Spring Boot 2.0+에서는 `spring.aop.proxy-target-class=true`가 기본값으로, **CGLIB를 기본 사용**
+
+**JDK 프록시 vs CGLIB 트레이드오프**
+| 구분 | JDK 동적 프록시 | CGLIB |
+|------|----------------|-------|
+| 요구 조건 | 인터페이스 필수 | 클래스 상속 (final 클래스 불가) |
+| 성능 | 리플렉션 기반, 약간 느림 | 바이트코드 생성, 더 빠름 |
+| 유연성 | 인터페이스 기반 설계 강제 | 구체 클래스도 프록시 가능 |
 
 **동작 흐름 예시 (@Around)**
 ```
 Client → Proxy → @Around (before) → Target 메서드 → @Around (after) → Proxy → Client
 ```
 
-**주의사항**
-- **Self-invocation 문제**: 같은 클래스 내에서 this.method() 호출 시 프록시를 거치지 않아 AOP 미적용
-- 해결: 자기 자신을 주입받거나 `AopContext.currentProxy()` 사용
+**주의사항 (함정 질문)**
+- **Self-invocation 문제**: 같은 클래스 내에서 `this.method()` 호출 시 프록시를 거치지 않아 AOP 미적용
+- 해결 방법:
+  1. 자기 자신을 주입받아 호출 (`@Autowired private MyService self;`)
+  2. `AopContext.currentProxy()` 사용 (`@EnableAspectJAutoProxy(exposeProxy=true)` 필요)
+  3. 별도 클래스로 분리 (가장 권장되는 방법)
 
 </details>
 
@@ -216,9 +237,14 @@ HTTP 요청 → Filter → DispatcherServlet → Interceptor → Controller
 | 예외 처리 | 서블릿 예외 처리 | @ControllerAdvice 사용 가능 |
 
 **Interceptor 메서드**
-- `preHandle()`: 컨트롤러 실행 전
-- `postHandle()`: 컨트롤러 실행 후, 뷰 렌더링 전
-- `afterCompletion()`: 뷰 렌더링 후, 완료 시점
+- `preHandle()`: 컨트롤러 실행 전 (false 반환 시 요청 중단)
+- `postHandle()`: 컨트롤러 실행 후, 뷰 렌더링 전 (예외 발생 시 호출 안 됨)
+- `afterCompletion()`: 뷰 렌더링 후, 완료 시점 (예외 발생해도 항상 호출)
+
+**Filter vs Interceptor 선택 기준**
+- **Spring Bean 접근이 많이 필요하면**: Interceptor
+- **Request/Response 조작이 필요하면**: Filter
+- **Spring MVC 외부에서도 동작해야 하면**: Filter
 
 </details>
 
@@ -423,7 +449,7 @@ JPA의 영속성 컨텍스트는 어떤 기능을 하나요? 실제로 성능 �
 1. **1차 캐시**
    - 같은 트랜잭션 내에서 동일 엔티티 조회 시 DB 접근 없이 캐시에서 반환
    - 동일성(identity) 보장: `em.find(Member.class, 1L) == em.find(Member.class, 1L)`
-   - ⚠️ 트랜잭션 범위 한정이라 효과는 제한적
+   - ⚠️ 트랜잭션 범위 한정이라 효과는 제한적 (2차 캐시와 구분 필요)
 
 2. **쓰기 지연 (Write-behind)**
    - INSERT/UPDATE를 즉시 실행하지 않고 모았다가 커밋 시점에 일괄 실행
@@ -470,11 +496,12 @@ for (Team team : teams) {
 
 **해결 방법**
 
-1. **Fetch Join (JPQL)**
+1. **Fetch Join (JPQL)** - 가장 직접적인 해결책
    ```java
    @Query("SELECT t FROM Team t JOIN FETCH t.members")
    List<Team> findAllWithMembers();
    ```
+   - ⚠️ 페이징과 함께 사용 시 주의 (컬렉션 Fetch Join + 페이징 = 메모리 로딩)
 
 2. **@EntityGraph**
    ```java
@@ -531,7 +558,12 @@ for (Team team : teams) {
 **주의사항**
 - **Checked Exception**은 기본적으로 롤백 안 됨 (rollbackFor 필요)
 - **Self-invocation**: 같은 클래스 내 호출 시 프록시 우회로 트랜잭션 미적용
-- **public 메서드**에만 적용 가능
+- **public 메서드**에만 적용 가능 (Spring 6+에서는 protected도 가능)
+
+**왜 Checked Exception은 롤백되지 않는가?**
+- Spring의 설계 철학: Checked Exception은 **복구 가능한 비즈니스 예외**로 간주
+- Unchecked Exception(RuntimeException)은 **프로그래밍 오류**로 간주하여 롤백
+- 필요시 `@Transactional(rollbackFor = Exception.class)` 명시
 
 </details>
 
@@ -547,12 +579,13 @@ Spring JPA에서 @Transactional(readOnly=true)의 기능과 성능 최적화 효
 
 **성능 최적화 효과**
 
-1. **영속성 컨텍스트 최적화**
+1. **영속성 컨텍스트 최적화 (Hibernate 5.2+)**
    - 변경 감지(Dirty Checking) 비활성화
    - 스냅샷 저장 안 함 → **메모리 절약**
+   - ⚠️ 단, `FlushMode.MANUAL` 설정 여부는 JPA 구현체와 버전에 따라 다름
 
 2. **Flush 모드 변경**
-   - FlushMode가 MANUAL로 설정
+   - Hibernate에서 FlushMode가 MANUAL로 설정될 수 있음
    - 불필요한 flush 연산 방지
 
 3. **DB 레벨 최적화 (DB 벤더에 따라 다름)**
@@ -597,6 +630,11 @@ Spring JPA에서 조회(읽기) 전용 메서드에도 @Transactional을 붙여�
 3. **Dirty Read / Non-Repeatable Read**
    - 트랜잭션 없이 조회하면 커밋되지 않은 데이터 읽을 가능성
    - 같은 데이터를 두 번 읽었을 때 다른 값이 나올 수 있음
+
+**OSIV에 대한 이해**
+- **OSIV = true (기본값)**: 영속성 컨텍스트가 HTTP 요청 전체 유지, View에서도 지연 로딩 가능
+- **OSIV = false (권장)**: 트랜잭션 범위 내에서만 지연 로딩, DB 커넥션 점유 시간 감소
+- 운영 환경에서는 OSIV 비활성화 권장 (`spring.jpa.open-in-view=false`)
 
 **@Transactional이 필요한 경우**
 ```java
@@ -703,6 +741,11 @@ Annotation 자체는 별 기능이 없는 것 같은데, 어떻게 Spring에서�
 
 **결론**: Annotation은 메타데이터, 실제 동작은 Spring의 **BeanPostProcessor, AOP 프록시, Reflection** 덕분
 
+**심화 이해**
+- `@Component`는 `ClassPathBeanDefinitionScanner`가 처리
+- `@Autowired`는 `AutowiredAnnotationBeanPostProcessor`가 처리
+- `@Transactional`은 `TransactionInterceptor`가 AOP로 처리
+
 </details>
 
 ### SPRING-020
@@ -750,6 +793,12 @@ public class Member { }
 **@Data 사용해도 되는 경우**
 - DTO (단순 데이터 전달 객체)
 - 연관관계 없는 단순 클래스
+- 값 객체(Value Object)로 불변성이 필요 없는 경우
+
+**JPA Entity에서 Lombok 사용 시 주의**
+- `@EqualsAndHashCode`: 연관 엔티티 제외, ID만 사용 권장
+- `@ToString`: 지연 로딩 필드 제외 (LazyInitializationException 방지)
+- `@Builder`: `@NoArgsConstructor(access = PROTECTED)`와 함께 사용
 
 </details>
 
@@ -804,6 +853,12 @@ Server
 |------|------------|--------------|
 | 처리 대상 | 정적 콘텐츠 | 동적 콘텐츠 |
 | 예시 | Nginx, Apache HTTP | Tomcat, Jetty |
+
+**Tomcat 버전과 Spring Boot**
+| Spring Boot | Tomcat | Servlet |
+|-------------|--------|---------|
+| 2.x | 9.x | 4.0 |
+| 3.x | 10.x | 6.0 (Jakarta) |
 
 </details>
 
@@ -977,8 +1032,13 @@ private OrderRepository orderRepository;
 **생성자 주입이 권장되는 이유**
 - **불변성**: final 키워드 사용 가능
 - **테스트 용이**: Mock 객체 쉽게 주입
-- **순환 참조 방지**: 컴파일 타임에 발견 가능
+- **순환 참조 조기 발견**: 애플리케이션 시작 시점에 실패하여 즉시 인지 가능
 - **필수 의존성 명확화**: 생성 시점에 주입 필수
+
+**참고 (Spring Boot 2.6+)**
+- 순환 참조는 기본적으로 **금지**됨 (애플리케이션 시작 실패)
+- 허용하려면 `spring.main.allow-circular-references=true` 설정 필요
+- 순환 참조 자체를 피하는 설계가 권장됨 (의존 방향 재설계, 이벤트 사용 등)
 
 **IoC/DI의 이점**
 1. 느슨한 결합 (Loose Coupling)
@@ -1048,6 +1108,10 @@ Spring Bean의 라이프사이클과 관련 콜백 메서드(@PostConstruct, @Pr
 - 자바 표준(JSR-250)으로 스프링에 의존하지 않음
 - 코드 수정 불가 시 `@Bean`의 initMethod/destroyMethod 사용
 
+**주의사항**
+- `@PostConstruct`에서 다른 Bean을 호출할 때 해당 Bean이 완전히 초기화되지 않았을 수 있음
+- 복잡한 초기화 로직은 `ApplicationRunner` 또는 `SmartInitializingSingleton` 사용 권장
+
 </details>
 
 ### SPRING-027
@@ -1078,11 +1142,20 @@ Spring Bean의 라이프사이클과 관련 콜백 메서드(@PostConstruct, @Pr
 **@Repository의 특별한 기능**
 - **예외 변환**: DB 관련 예외를 `DataAccessException`으로 자동 변환
 - JPA, JDBC 등 기술에 종속적인 예외를 스프링 예외로 추상화
+- `PersistenceExceptionTranslationPostProcessor`가 이 변환을 담당
 
 **@Service의 역할**
 - 현재 특별한 추가 기능은 없음
 - 비즈니스 계층임을 **의미적으로 표현**
 - 향후 AOP 등에서 특별 처리 가능성
+
+**@Component vs @Bean 트레이드오프**
+| 구분 | @Component | @Bean |
+|------|------------|-------|
+| 적용 대상 | 클래스 레벨 | 메서드 레벨 (@Configuration 내) |
+| Bean 이름 | 클래스명 (첫 글자 소문자) | 메서드명 |
+| 외부 라이브러리 | 사용 불가 | 사용 가능 |
+| 조건부 생성 | @Conditional 필요 | 메서드 내 로직으로 제어 가능 |
 
 **사용 예시**
 ```java
@@ -1210,9 +1283,13 @@ NEVER        // 트랜잭션 있으면 예외
 ```
 
 **주의사항**
-- public 메서드에만 적용
-- self-invocation 시 프록시 우회
+- public 메서드에만 적용 (Spring 6+에서는 protected도 가능)
+- self-invocation 시 프록시 우회 → `AopContext.currentProxy()` 또는 자기 자신 주입으로 해결
 - Checked Exception은 기본 롤백 안 함
+
+**전파 속성 사용 시 주의**
+- `REQUIRES_NEW`는 **새 DB 커넥션**을 사용하므로 커넥션 풀 고갈 주의
+- `NESTED`는 JDBC Savepoint 지원 DB에서만 동작 (JPA에서는 제한적)
 
 </details>
 
@@ -1500,7 +1577,8 @@ public class UserController {
 
 3. **적절한 상태 코드 반환**
    - 200: 성공, 201: 생성됨, 204: 내용 없음
-   - 400: 잘못된 요청, 401: 인증 필요, 403: 권한 없음, 404: 없음
+   - 400: 잘못된 요청, 401: 인증 필요 (Unauthenticated), 403: 권한 없음 (Unauthorized), 404: 없음
+   - 409: 충돌 (리소스 상태 충돌), 422: 처리 불가 (유효성 검증 실패)
 
 4. **일관된 응답 형식**
    ```json
@@ -1548,16 +1626,18 @@ Spring Boot Actuator를 통한 애플리케이션 모니터링 방법은 무엇�
 
 **주요 엔드포인트**
 
-| 엔드포인트 | 설명 |
-|------------|------|
-| /actuator/health | 애플리케이션 상태 |
-| /actuator/info | 애플리케이션 정보 |
-| /actuator/metrics | 메트릭 정보 |
-| /actuator/env | 환경 변수 |
-| /actuator/loggers | 로거 설정 |
-| /actuator/beans | 등록된 Bean 목록 |
-| /actuator/threaddump | 스레드 덤프 |
-| /actuator/heapdump | 힙 덤프 |
+| 엔드포인트 | 설명 | 기본 노출 |
+|------------|------|-----------|
+| /actuator/health | 애플리케이션 상태 | O |
+| /actuator/info | 애플리케이션 정보 | O |
+| /actuator/metrics | 메트릭 정보 | X |
+| /actuator/env | 환경 변수 | X |
+| /actuator/loggers | 로거 설정 (동적 변경 가능) | X |
+| /actuator/beans | 등록된 Bean 목록 | X |
+| /actuator/threaddump | 스레드 덤프 | X |
+| /actuator/heapdump | 힙 덤프 | X |
+
+**주의**: 민감한 엔드포인트는 기본적으로 비활성화되어 있으며, 운영 환경에서는 보안 설정 필수
 
 **설정 예시**
 ```yaml
@@ -1609,10 +1689,10 @@ Spring Cloud를 활용한 마이크로서비스 아키텍처 구현 전략에 �
 
 **1. Service Discovery (Eureka)**
 ```java
-// 서비스 등록
-@EnableEurekaClient
+// 서비스 등록 (Spring Cloud 2021.0.0+에서는 @EnableEurekaClient 불필요)
 @SpringBootApplication
 public class UserServiceApplication { }
+// spring-cloud-starter-netflix-eureka-client 의존성만 있으면 자동 등록
 
 // 서비스 발견
 @FeignClient(name = "order-service")
@@ -1809,6 +1889,12 @@ spring:
 - **Self-invocation**: 같은 클래스 내 호출 시 캐시 미적용 (프록시 우회)
 - **캐시 키 설계**: 충돌 방지를 위해 명확한 키 전략 필요
 - **TTL 설정**: 데이터 정합성을 위해 만료 시간 설정 권장
+- **@Cacheable과 @Transactional**: 둘 다 프록시 기반이므로 순서 주의 (외부 호출부터 적용)
+
+**캐시 무효화 전략**
+- **Cache-Aside**: 애플리케이션이 캐시 관리 (가장 일반적)
+- **Write-Through**: 쓰기 시 캐시도 함께 업데이트
+- **이벤트 기반**: 데이터 변경 이벤트로 캐시 무효화
 
 </details>
 
@@ -2192,14 +2278,19 @@ public class UserController {
 
 **Spring MVC가 더 나은 경우**
 1. **CPU 집약적 작업**: 복잡한 연산
-2. **JDBC/JPA 사용**: 블로킹 드라이버
+2. **JDBC/JPA 사용**: 블로킹 드라이버 (R2DBC 미사용 시)
 3. **기존 동기 라이브러리 의존**
 4. **팀의 학습 곡선 고려**
+5. **디버깅 용이성**: 동기 코드가 스택 트레이스 추적 쉬움
 
 **주의사항**
 - 전체 스택이 논블로킹이어야 효과 있음
 - 하나라도 블로킹 호출이 있으면 이벤트 루프 블록
 - R2DBC (리액티브 DB 드라이버) 필요
+
+**참고 (Java 21+)**
+- Virtual Threads를 사용하면 MVC에서도 높은 동시성 달성 가능
+- `spring.threads.virtual.enabled=true` 설정으로 활성화
 
 </details>
 
@@ -2282,16 +2373,18 @@ public class AsyncExceptionHandler implements AsyncUncaughtExceptionHandler {
 ```
 
 **주의사항**
-- **Self-invocation 불가**: 같은 클래스 내 호출 시 @Async 미적용
+- **Self-invocation 불가**: 같은 클래스 내 호출 시 @Async 미적용 (프록시 우회)
 - **void 또는 Future 반환**: 다른 타입 반환 시 결과를 받을 수 없음
-- **트랜잭션 분리**: @Async 메서드는 별도 트랜잭션
+- **트랜잭션 분리**: @Async 메서드는 별도 트랜잭션 (호출자의 트랜잭션과 독립)
+- **예외 처리**: void 메서드의 예외는 AsyncUncaughtExceptionHandler로 처리
 
 **반환 타입**
 | 타입 | 설명 |
 |------|------|
-| void | 결과 불필요 |
+| void | 결과 불필요, 예외 전파 안 됨 |
 | Future<T> | 결과 대기 가능 |
-| CompletableFuture<T> | 조합, 체이닝 가능 |
+| CompletableFuture<T> | 조합, 체이닝 가능 (권장) |
+| ListenableFuture<T> | Spring 6에서 deprecated, CompletableFuture 사용 권장 |
 
 </details>
 
@@ -2468,10 +2561,15 @@ RestTemplate과 WebClient의 차이점 및 사용 사례에 대해 설명해주�
 
 | 구분 | RestTemplate | WebClient |
 |------|--------------|-----------|
-| 방식 | 동기/블로킹 | 비동기/논블로킹 |
+| 방식 | 동기/블로킹 | 비동기/논블로킹 (동기도 지원) |
 | 스레드 | 응답까지 스레드 점유 | 논블로킹으로 스레드 효율적 |
-| 지원 | 유지보수 모드 (Deprecated 예정) | 권장 |
+| 상태 | 유지보수 모드 (신규 기능 추가 안 함) | 권장 |
 | 의존성 | spring-web | spring-webflux |
+
+**RestTemplate 상태 명확화**
+- "Deprecated"가 아닌 **유지보수 모드**: 버그 수정은 하지만 신규 기능 추가 없음
+- 기존 코드에서 계속 사용 가능하나, **새 프로젝트에서는 WebClient 또는 RestClient 권장**
+- Spring Framework 6.1+에서는 **RestClient** 도입 (동기 방식의 현대적 대안)
 
 **RestTemplate 사용**
 ```java

@@ -15,6 +15,11 @@ HTTP에 대해 설명해 주세요.
 
 HTTP(HyperText Transfer Protocol)는 웹에서 클라이언트와 서버 간 데이터를 주고받는 애플리케이션 계층 프로토콜입니다. 요청-응답 모델 기반이며, Stateless 특성을 가집니다.
 
+**주요 특징**:
+- **요청-응답 모델**: 클라이언트가 요청하고 서버가 응답 (서버가 먼저 푸시 불가, HTTP/2 Server Push 제외)
+- **Stateless**: 각 요청이 독립적, 이전 요청 정보를 서버가 유지하지 않음
+- **텍스트 기반** (HTTP/1.x): 사람이 읽을 수 있는 형태, 디버깅 용이
+
 **참고자료**
 - [RFC 9110 - HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110)[^1]
 
@@ -155,9 +160,13 @@ HTTP/3.0의 주요 특징에 대해 설명해 주세요.
 <summary>답변</summary>
 
 - **QUIC 프로토콜**: UDP 기반으로 TCP의 HOL Blocking 해결
-- **0-RTT 연결**: 이전 연결 정보로 빠른 재연결
-- **연결 마이그레이션**: IP 변경 시에도 연결 유지 (Connection ID 사용)
-- **내장 TLS 1.3**: 보안이 기본 포함
+- **0-RTT 연결**: 이전 연결 정보로 빠른 재연결 (단, Replay Attack 취약점 존재)
+- **연결 마이그레이션**: IP 변경 시에도 연결 유지 (Connection ID 사용, 모바일 환경에서 유용)
+- **내장 TLS 1.3**: 보안이 기본 포함, 암호화되지 않은 HTTP/3는 존재하지 않음
+
+**트레이드오프**:
+- 장점: 지연시간 감소, HOL Blocking 해결, 연결 이동성
+- 단점: UDP 기반으로 일부 방화벽/네트워크에서 차단될 수 있음, CPU 사용량 증가 가능
 
 **참고자료**
 - [RFC 9114 - HTTP/3](https://www.rfc-editor.org/rfc/rfc9114)[^9]
@@ -178,6 +187,8 @@ HTTP는 **신뢰성 있는 데이터 전송**이 필요하기 때문입니다.
 - TCP는 순서 보장, 재전송, 흐름/혼잡 제어 제공
 - UDP는 이런 기능이 없어 애플리케이션에서 직접 구현 필요
 
+**역사적 맥락**: HTTP가 설계될 당시(1991년)에는 TCP가 신뢰성 있는 전송의 유일한 선택지였습니다. 이후 HTTP/3에서 QUIC이 등장하며 UDP 위에서 신뢰성을 구현하는 방식으로 전환됩니다.
+
 **참고자료**
 - [RFC 9110 Section 3.3](https://www.rfc-editor.org/rfc/rfc9110#section-3.3)[^10]
 
@@ -191,11 +202,16 @@ HTTP는 신뢰성을 위해 TCP를 사용하는데, 왜 HTTP/3에서는 UDP를 �
 <details>
 <summary>답변</summary>
 
-QUIC 프로토콜이 UDP 위에서 TCP의 기능을 구현합니다.
+QUIC 프로토콜이 UDP 위에서 TCP의 기능을 직접 구현합니다.
 
-- **신뢰성**: QUIC이 재전송, 순서 보장 직접 구현
+- **신뢰성**: QUIC이 재전송, 순서 보장, 흐름/혼잡 제어 직접 구현
 - **TCP HOL 해결**: 스트림 단위 독립 처리로 한 스트림 손실이 다른 스트림에 영향 없음
-- **UDP 선택 이유**: 커널 수정 없이 사용자 공간에서 빠른 개선 가능
+- **UDP 선택 이유**:
+  - 커널 수정 없이 사용자 공간에서 빠른 개선 가능 (TCP는 OS 커널에 구현)
+  - 중간 장치(NAT, 방화벽)가 TCP를 수정하는 문제 회피 (ossification 문제)
+  - UDP는 이미 널리 지원됨
+
+**결론**: UDP가 신뢰성이 생긴 것이 아니라, QUIC이라는 새 프로토콜이 UDP를 전송 수단으로 사용하는 것입니다.
 
 **참고자료**
 - [RFC 9000 - QUIC](https://www.rfc-editor.org/rfc/rfc9000)[^11]
@@ -256,12 +272,16 @@ HTTP 응답코드 401 (Unauthorized)과 403 (Forbidden)은 의미적으로 어�
 <details>
 <summary>답변</summary>
 
-- **401 Unauthorized**: 인증(Authentication) 필요. 로그인하지 않은 상태
-- **403 Forbidden**: 인가(Authorization) 실패. 로그인은 했지만 권한 없음
+- **401 Unauthorized**: 인증(Authentication) 필요 또는 실패. 유효한 자격 증명이 없음
+- **403 Forbidden**: 인가(Authorization) 실패. 서버가 요청을 이해했으나 수행 거부
+
+**주의**: 401은 이름이 "Unauthorized"이지만 실제로는 **인증(Authentication)**에 관한 것입니다.
 
 예: 관리자 페이지 접근 시
-- 비로그인 사용자 -> 401
-- 일반 사용자 -> 403
+- 비로그인 사용자 -> 401 + WWW-Authenticate 헤더
+- 일반 사용자 (로그인했지만 권한 없음) -> 403
+
+**함정 질문 대비**: 403은 "존재는 확인됨"을 암시할 수 있어, 리소스 존재 자체를 숨기려면 404를 반환하기도 합니다.
 
 **참고자료**
 - [RFC 9110 Section 15.5.2, 15.5.4](https://www.rfc-editor.org/rfc/rfc9110#section-15.5.2)[^14]
@@ -326,10 +346,12 @@ HTTP Method는 리소스에 대해 수행할 동작을 정의합니다.
 | GET | 리소스 조회 | O | O |
 | POST | 리소스 생성 | X | X |
 | PUT | 리소스 전체 수정 | O | X |
-| PATCH | 리소스 부분 수정 | X | X |
+| PATCH | 리소스 부분 수정 | 구현에 따라 다름 | X |
 | DELETE | 리소스 삭제 | O | X |
 | HEAD | 헤더만 조회 | O | O |
 | OPTIONS | 지원 메서드 확인 | O | O |
+
+**PATCH 멱등성 참고**: RFC 5789에 따르면 PATCH는 멱등하지 않을 수 있으나, 구현 방식에 따라 멱등하게 만들 수 있습니다. 예를 들어 `{"name": "John"}`처럼 최종 상태를 지정하면 멱등하고, `{"$inc": {"count": 1}}`처럼 연산을 지정하면 비멱등합니다.
 
 **참고자료**
 - [RFC 9110 Section 9](https://www.rfc-editor.org/rfc/rfc9110#section-9)[^17]
@@ -344,12 +366,15 @@ HTTP Method의 멱등성에 대해 설명해 주세요.
 <details>
 <summary>답변</summary>
 
-**멱등성(Idempotency)**은 동일한 요청을 여러 번 보내도 결과가 같은 특성입니다.
+**멱등성(Idempotency)**은 동일한 요청을 여러 번 보내도 서버 상태가 같은 특성입니다 (응답 코드는 다를 수 있음).
 
 - **멱등 메서드**: GET, PUT, DELETE, HEAD, OPTIONS
-- **비멱등 메서드**: POST, PATCH
+- **비멱등 메서드**: POST
+- **조건부**: PATCH (구현에 따라 다름)
 
-예: `DELETE /users/1`을 여러 번 호출해도 결과는 "해당 유저 없음"으로 동일합니다.
+예: `DELETE /users/1`을 여러 번 호출하면 첫 번째는 200/204, 이후는 404를 반환할 수 있지만, 서버 상태(해당 유저 삭제됨)는 동일하므로 멱등합니다.
+
+**주의**: 멱등성은 "응답이 같다"가 아니라 "서버 상태가 같다"입니다.
 
 **참고자료**
 - [RFC 9110 Section 9.2.2](https://www.rfc-editor.org/rfc/rfc9110#section-9.2.2)[^18]
@@ -386,14 +411,16 @@ HTTP Method 중 POST와 PUT, PATCH의 차이는 무엇인가요?
 <details>
 <summary>답변</summary>
 
-| 메서드 | 용도 | 멱등성 |
-|--------|------|--------|
-| POST | 리소스 생성 (서버가 URI 결정) | X |
-| PUT | 리소스 전체 교체/생성 (클라이언트가 URI 지정) | O |
-| PATCH | 리소스 부분 수정 | X |
+| 메서드 | 용도 | 멱등성 | URI 결정 |
+|--------|------|--------|---------|
+| POST | 리소스 생성, 또는 정의되지 않은 작업 | X | 서버 |
+| PUT | 리소스 전체 교체 (없으면 생성) | O | 클라이언트 |
+| PATCH | 리소스 부분 수정 | 구현에 따라 다름 | 클라이언트 |
 
-- PUT은 전체 데이터를 보내 덮어쓰기
-- PATCH는 변경할 필드만 전송
+- **PUT**: 전체 리소스를 보내 완전히 대체. 누락된 필드는 삭제될 수 있음
+- **PATCH**: 변경할 필드만 전송. JSON Patch, JSON Merge Patch 등 형식 사용
+
+**PUT과 POST의 핵심 차이**: PUT은 같은 요청을 여러 번 보내도 결과가 같음(멱등), POST는 여러 리소스가 생성될 수 있음(비멱등)
 
 **참고자료**
 - [RFC 9110 Section 9.3.3, 9.3.4](https://www.rfc-editor.org/rfc/rfc9110#section-9.3.3)[^20]
@@ -412,6 +439,10 @@ HTTP 1.1 이후로 GET 요청에도 Body에 데이터를 실을 수 있게 되�
 2. **호환성**: 일부 서버/프록시/라이브러리가 GET Body를 무시하거나 오류 발생
 3. **의미론 위반**: GET은 "조회"의 의미, Body는 "데이터 전송"의 의미
 4. **로깅/디버깅 어려움**: URL만 로그에 남으면 요청 재현 불가
+
+**RFC 9110 참고**: "GET 요청 메시지 내의 콘텐츠는 정의된 의미가 없으며, 요청의 의미나 대상을 변경할 수 없다. 일부 구현은 콘텐츠가 포함된 GET 요청을 거부할 수 있다."
+
+**대안**: 복잡한 조회 조건이 필요하면 POST를 사용하거나, GraphQL처럼 별도 쿼리 언어를 활용합니다.
 
 **참고자료**
 - [RFC 9110 Section 9.3.1](https://www.rfc-editor.org/rfc/rfc9110#section-9.3.1)[^21]
@@ -432,11 +463,19 @@ HTTP 1.1 이후로 GET 요청에도 Body에 데이터를 실을 수 있게 되�
 
 | 구분 | 쿠키 | 세션 |
 |------|------|------|
-| 저장 위치 | 클라이언트 (브라우저) | 서버 |
-| 보안 | 상대적으로 취약 | 상대적으로 안전 |
-| 용량 | 약 4KB 제한 | 서버 메모리 의존 |
-| 만료 | 설정된 기간 | 브라우저 종료 또는 타임아웃 |
-| 속도 | 빠름 | 서버 조회 필요 |
+| 저장 위치 | 클라이언트 (브라우저) | 서버 (메모리, DB, Redis 등) |
+| 보안 | 상대적으로 취약 (탈취 가능) | 상대적으로 안전 (서버 보관) |
+| 용량 | 약 4KB 제한 (도메인당) | 서버 리소스 의존 |
+| 만료 | Expires/Max-Age로 설정 | 서버 설정 타임아웃 |
+| 속도 | 빠름 (로컬) | 서버 조회 필요 |
+| 확장성 | 좋음 (Stateless) | 서버 확장 시 동기화 필요 |
+
+**쿠키 보안 옵션**:
+- `HttpOnly`: JavaScript에서 접근 불가 (XSS 방지)
+- `Secure`: HTTPS에서만 전송
+- `SameSite`: CSRF 방지 (Strict/Lax/None)
+
+**실제 사용**: 세션도 세션 ID를 쿠키에 저장하여 전달합니다. 쿠키와 세션은 대립 개념이 아닌 함께 사용되는 기술입니다.
 
 **참고자료**
 - [RFC 6265 - HTTP State Management](https://www.rfc-editor.org/rfc/rfc6265)[^22]
@@ -470,14 +509,21 @@ HTTP는 Stateless 프로토콜인데, 서버에 사용자 상태를 저장하는
 <details>
 <summary>답변</summary>
 
-맞습니다. 세션은 서버에 상태를 저장하므로 Stateless 원칙에 위배됩니다.
+맞습니다. 엄밀히 말하면 세션은 서버에 상태를 저장하므로 HTTP의 Stateless 원칙에 위배됩니다.
 
-**세션의 문제점**:
-- 서버 메모리 사용
-- 서버 확장 시 세션 동기화 필요
-- 서버 장애 시 세션 유실
+**그러나 이는 의도된 트레이드오프입니다**:
+- HTTP Stateless는 **프로토콜 레벨**의 특성 (각 요청이 독립적으로 처리 가능)
+- 세션은 **애플리케이션 레벨**에서 상태 관리 (인증, 사용자 경험을 위해 필요)
 
-**대안**: JWT(JSON Web Token) 같은 토큰 방식은 상태를 클라이언트에 저장하여 Stateless 유지 가능합니다.
+**세션의 장단점**:
+- 장점: 민감 정보를 서버에 보관, 세션 무효화 즉시 가능
+- 단점: 서버 메모리 사용, 확장 시 세션 동기화 필요, 서버 장애 시 세션 유실
+
+**JWT의 장단점**:
+- 장점: Stateless 유지, 서버 확장 용이
+- 단점: 토큰 탈취 시 만료 전까지 무효화 어려움, 토큰 크기가 큼
+
+**실무**: 요구사항에 따라 선택. 보안이 중요하면 세션 + Redis, 확장성이 중요하면 JWT + Refresh Token 조합을 많이 사용합니다.
 
 **참고자료**
 - [RFC 7519 - JWT](https://www.rfc-editor.org/rfc/rfc7519)[^24]
@@ -492,12 +538,24 @@ HTTP는 Stateless 프로토콜인데, 서버에 사용자 상태를 저장하는
 <details>
 <summary>답변</summary>
 
-1. **Sticky Session**: 로드밸런서가 같은 사용자를 같은 서버로 라우팅
-2. **세션 클러스터링**: 서버 간 세션 복제 (Tomcat Session Replication)
-3. **세션 스토리지**: Redis, Memcached 등 외부 저장소에 세션 저장
-4. **토큰 방식**: JWT로 Stateless하게 전환
+1. **Sticky Session (Session Affinity)**:
+   - 로드밸런서가 같은 사용자를 같은 서버로 라우팅
+   - 단점: 서버 장애 시 세션 유실, 부하 불균형 가능
 
-가장 일반적인 방식은 Redis를 이용한 세션 스토리지입니다.
+2. **세션 클러스터링**:
+   - 서버 간 세션 복제 (Tomcat Session Replication)
+   - 단점: 서버 수 증가 시 복제 오버헤드 증가 (N^2)
+
+3. **세션 스토리지 (가장 권장)**:
+   - Redis, Memcached 등 외부 저장소에 세션 저장
+   - 장점: 서버 무관하게 세션 접근, 장애 복구 용이
+   - 단점: 외부 스토리지 의존, 네트워크 지연
+
+4. **토큰 방식 (JWT)**:
+   - Stateless하게 전환, 서버에 세션 저장 안 함
+   - 단점: 토큰 무효화 어려움, 토큰 크기
+
+**실무 선택 기준**: 보안 중시 -> Redis 세션, 확장성 중시 -> JWT + Refresh Token
 
 **참고자료**
 - [MDN - HTTP Session](https://developer.mozilla.org/en-US/docs/Web/HTTP/Session)[^25]
@@ -516,17 +574,22 @@ HTTP는 Stateless 프로토콜인데, 서버에 사용자 상태를 저장하는
 <details>
 <summary>답변</summary>
 
-**대칭키 암호화**:
+**대칭키 암호화 (Symmetric)**:
 - 암호화/복호화에 동일한 키 사용
-- 빠른 속도, 키 교환 문제 존재
-- 예: AES, DES
+- 빠른 속도 (공개키 대비 100~1000배)
+- 키 교환 문제 존재 (어떻게 안전하게 키를 전달할 것인가?)
+- 예: AES-256 (권장), ChaCha20, ~~DES~~ (취약, 사용 금지)
 
-**공개키(비대칭키) 암호화**:
-- 공개키로 암호화, 개인키로 복호화 (또는 반대)
-- 느린 속도, 안전한 키 교환
-- 예: RSA, ECDSA
+**공개키(비대칭키) 암호화 (Asymmetric)**:
+- 공개키로 암호화 -> 개인키로 복호화 (기밀성)
+- 개인키로 서명 -> 공개키로 검증 (무결성, 부인방지)
+- 느린 속도, 안전한 키 교환 가능
+- 예: RSA (키 교환), ECDSA (서명), ECDH (키 합의)
 
-HTTPS는 공개키로 대칭키를 교환한 후, 대칭키로 통신합니다.
+**HTTPS 동작 (TLS 1.3)**:
+1. 공개키 암호화로 키 합의 (ECDHE)
+2. 합의된 대칭키로 실제 데이터 암호화 (AES-GCM)
+3. 하이브리드 방식으로 성능과 보안 모두 확보
 
 **참고자료**
 - [RFC 8446 - TLS 1.3](https://www.rfc-editor.org/rfc/rfc8446)[^26]
@@ -563,10 +626,15 @@ SSL과 TLS의 차이는 무엇인가요?
 
 TLS는 SSL의 후속 버전입니다.
 
-- **SSL**: Netscape에서 개발, SSL 3.0이 마지막 버전 (보안 취약점으로 사용 중단)
-- **TLS**: IETF에서 표준화, SSL 3.0 기반으로 TLS 1.0 시작
+- **SSL 1.0~3.0**: Netscape에서 개발, 모든 버전 보안 취약점으로 사용 중단
+  - SSL 3.0: POODLE 공격 취약 (2014년)
+- **TLS 1.0~1.1**: IETF에서 표준화, 현재는 deprecated (RFC 8996, 2021년)
+- **TLS 1.2**: 현재 널리 사용, 안전함
+- **TLS 1.3**: 최신 표준 (RFC 8446, 2018년), 핸드셰이크 단축, 취약 암호 제거
 
-현재는 TLS 1.2/1.3이 표준이며, "SSL"은 관용적으로 TLS를 포함하여 부르는 경우가 많습니다.
+**실무 권장**: TLS 1.2 이상만 허용, TLS 1.3 우선 사용
+
+**용어 혼동**: "SSL 인증서"라고 부르지만 실제로는 TLS를 사용합니다. 관용적 표현입니다.
 
 **참고자료**
 - [RFC 8446 - TLS 1.3](https://www.rfc-editor.org/rfc/rfc8446)[^28]
@@ -581,14 +649,20 @@ XSS에 대해서 설명해 주세요.
 <details>
 <summary>답변</summary>
 
-**XSS(Cross-Site Scripting)**는 공격자가 웹페이지에 악성 스크립트를 삽입하는 공격입니다.
+**XSS(Cross-Site Scripting)**는 공격자가 웹페이지에 악성 스크립트를 삽입하여 다른 사용자의 브라우저에서 실행되게 하는 공격입니다.
 
 **유형**:
-- **Stored XSS**: DB에 저장된 악성 스크립트가 실행
-- **Reflected XSS**: URL 파라미터의 스크립트가 즉시 반영
-- **DOM-based XSS**: 클라이언트 측 JS에서 발생
+- **Stored XSS**: DB에 저장된 악성 스크립트가 페이지 로드 시 실행 (가장 위험)
+- **Reflected XSS**: URL 파라미터의 스크립트가 응답에 즉시 반영되어 실행
+- **DOM-based XSS**: 서버 응답이 아닌 클라이언트 측 JS에서 DOM 조작 시 발생
 
-**방지**: 입력값 검증, 출력 인코딩, CSP 헤더 사용
+**방지 (다층 방어 필수)**:
+- **출력 인코딩**: HTML 컨텍스트에 맞게 이스케이프 (`<` -> `&lt;`)
+- **입력값 검증**: 허용된 패턴만 허용 (화이트리스트)
+- **CSP 헤더**: Content-Security-Policy로 인라인 스크립트 차단
+- **HttpOnly 쿠키**: JS로 쿠키 접근 방지
+
+**함정**: 입력값 검증만으로는 부족합니다. 출력 시점에 컨텍스트에 맞는 인코딩이 핵심입니다.
 
 **참고자료**
 - [OWASP XSS Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html)[^29]
@@ -605,10 +679,13 @@ CSRF와 XSS는 어떤 차이가 있나요?
 
 | 구분 | XSS | CSRF |
 |------|-----|------|
-| 공격 대상 | 사용자 브라우저 | 서버 |
-| 공격 방식 | 악성 스크립트 실행 | 사용자 권한으로 요청 위조 |
-| 목적 | 쿠키 탈취, 세션 하이재킹 | 사용자 모르게 행위 수행 |
-| 방지 | 입력 검증, 출력 인코딩 | CSRF 토큰, SameSite 쿠키 |
+| 공격 대상 | 사용자 브라우저 | 서버 (사용자 세션 이용) |
+| 공격 방식 | 악성 스크립트를 피해자 브라우저에서 실행 | 피해자가 의도치 않은 요청을 보내게 함 |
+| 신뢰 악용 | 사용자가 사이트를 신뢰 | 서버가 사용자(브라우저)를 신뢰 |
+| 목적 | 쿠키 탈취, 세션 하이재킹, 키로깅 | 비밀번호 변경, 송금 등 사용자 모르게 행위 수행 |
+| 방지 | 출력 인코딩, CSP, HttpOnly | CSRF 토큰, SameSite 쿠키, Referer 검증 |
+
+**핵심 차이**: XSS는 "악성 코드 삽입", CSRF는 "정상 요청을 속여서 보냄"
 
 **참고자료**
 - [OWASP CSRF Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)[^30]
@@ -721,11 +798,16 @@ TCP와 UDP의 차이에 대해 설명해 주세요.
 
 | 구분 | TCP | UDP |
 |------|-----|-----|
-| 연결 | 연결 지향 (3-way handshake) | 비연결 |
-| 신뢰성 | 순서 보장, 재전송 | 보장 안 함 |
-| 속도 | 상대적으로 느림 | 빠름 |
+| 연결 | 연결 지향 (3-way handshake) | 비연결 (Connectionless) |
+| 신뢰성 | 순서 보장, 재전송, 중복 제거 | 보장 안 함 |
+| 속도 | 오버헤드로 상대적으로 느림 | 빠름 (헤더 8바이트) |
 | 흐름/혼잡 제어 | 있음 | 없음 |
-| 용도 | HTTP, 파일 전송 | 스트리밍, DNS, 게임 |
+| 데이터 단위 | 스트림 (바이트 흐름) | 데이터그램 (메시지 경계 유지) |
+| 용도 | HTTP, 파일 전송, 이메일 | 스트리밍, DNS, VoIP, 게임 |
+
+**언제 무엇을 선택?**:
+- TCP: 데이터 무결성이 중요, 모든 바이트가 도착해야 함
+- UDP: 실시간성 중요, 일부 손실 허용, 또는 직접 신뢰성 구현할 때 (QUIC, WebRTC)
 
 **참고자료**
 - [RFC 9293 - TCP](https://www.rfc-editor.org/rfc/rfc9293)[^35]
@@ -821,12 +903,16 @@ TCP의 혼잡 제어 처리 방법에 대해 설명해 주세요.
 <details>
 <summary>답변</summary>
 
-1. **Slow Start**: 지수적으로 윈도우 크기 증가 (1 -> 2 -> 4 -> 8...)
-2. **Congestion Avoidance**: 임계점 도달 후 선형 증가
-3. **Fast Retransmit**: 3개의 중복 ACK 수신 시 즉시 재전송
-4. **Fast Recovery**: 손실 후 Slow Start 대신 혼잡 회피 상태로 복구
+1. **Slow Start**: 지수적으로 윈도우 크기 증가 (1 -> 2 -> 4 -> 8...) ssthresh까지
+2. **Congestion Avoidance**: ssthresh 도달 후 선형 증가 (AIMD: Additive Increase)
+3. **Fast Retransmit**: 3개의 중복 ACK 수신 시 타임아웃 기다리지 않고 즉시 재전송
+4. **Fast Recovery**: 손실 후 ssthresh를 cwnd/2로 설정, Slow Start 대신 Congestion Avoidance로 복구
 
-손실 감지 시 윈도우 크기를 절반으로 줄이고 다시 증가시킵니다.
+**손실 감지 방식에 따른 차이**:
+- **타임아웃**: cwnd = 1 MSS, ssthresh = cwnd/2 (심각한 혼잡으로 판단)
+- **3 중복 ACK**: ssthresh = cwnd/2, cwnd = ssthresh (네트워크는 동작 중으로 판단)
+
+**현대 알고리즘**: CUBIC (Linux 기본), BBR (Google) 등이 기존 Reno/NewReno를 대체
 
 **참고자료**
 - [RFC 5681 - TCP Congestion Control](https://www.rfc-editor.org/rfc/rfc5681)[^40]
@@ -891,15 +977,18 @@ TCP 3-Way Handshake에서 ACK, SYN 같은 정보는 어떻게 전달하는 것�
 
 **TCP 헤더의 플래그 비트**를 통해 전달합니다.
 
-TCP 헤더에는 6개의 제어 플래그가 있습니다:
-- **SYN**: 연결 요청
-- **ACK**: 확인 응답
-- **FIN**: 연결 종료
-- **RST**: 연결 리셋
-- **PSH**: 데이터 즉시 전달
+TCP 헤더에는 제어 플래그들이 있습니다 (RFC 9293 기준 9개):
+- **CWR**: Congestion Window Reduced (혼잡 윈도우 축소)
+- **ECE**: ECN-Echo (명시적 혼잡 알림)
 - **URG**: 긴급 데이터
+- **ACK**: 확인 응답
+- **PSH**: 데이터 즉시 전달
+- **RST**: 연결 리셋
+- **SYN**: 연결 요청
+- **FIN**: 연결 종료
+- (NS: Nonce Sum - 실험적)
 
-각 플래그는 1비트로, 설정(1) 또는 해제(0) 상태입니다.
+기존 RFC 793에서는 6개(URG, ACK, PSH, RST, SYN, FIN)였으나, ECN(RFC 3168) 추가로 현재는 더 많습니다. 각 플래그는 1비트로, 설정(1) 또는 해제(0) 상태입니다.
 
 **참고자료**
 - [RFC 9293 Section 3.1](https://www.rfc-editor.org/rfc/rfc9293#section-3.1)[^43]
@@ -965,9 +1054,15 @@ TCP 3-Way Handshake를 악용한 SYN Flooding 공격에 대해 설명해 주세�
 **공격 방식**:
 1. 공격자가 위조된 IP로 대량의 SYN 패킷 전송
 2. 서버가 SYN-ACK 전송 후 ACK 대기 (half-open 상태)
-3. 대기 큐가 가득 차 정상 연결 불가
+3. 대기 큐(backlog)가 가득 차 정상 연결 불가
 
-**방어**: SYN Cookie, SYN Proxy, 방화벽 rate limiting
+**방어 방법**:
+- **SYN Cookie**: 상태를 저장하지 않고 SYN-ACK의 시퀀스 번호에 정보 인코딩. ACK 수신 시 쿠키 검증으로 연결 수립 (Linux: `net.ipv4.tcp_syncookies=1`)
+- **SYN Proxy**: 방화벽이 먼저 3-way handshake 완료 후 실제 서버에 연결
+- **Rate Limiting**: 동일 IP의 SYN 패킷 수 제한
+- **Backlog 큐 증가**: `net.ipv4.tcp_max_syn_backlog` 조정
+
+**SYN Cookie 트레이드오프**: 일부 TCP 옵션(window scaling 등)이 제한될 수 있음
 
 **참고자료**
 - [RFC 4987 - TCP SYN Flooding Attacks](https://www.rfc-editor.org/rfc/rfc4987)[^46]
@@ -985,11 +1080,18 @@ TCP 3-Way Handshake는 연결 수립에 시간이 걸리는데, 왕복 시간을
 **TLS 1.3**과 **QUIC**에서 0-RTT를 지원합니다.
 
 **원리**:
-1. 최초 연결 시 서버가 Session Ticket/PSK 발급
-2. 재연결 시 저장된 키로 첫 패킷부터 암호화된 데이터 전송
+1. 최초 연결 시 서버가 Session Ticket/PSK(Pre-Shared Key) 발급
+2. 재연결 시 저장된 키로 첫 패킷부터 암호화된 데이터 전송 (Early Data)
 3. Handshake와 데이터 전송이 동시에 진행
 
-**주의**: Replay Attack 취약점이 있어, 멱등한 요청에만 사용 권장
+**보안 트레이드오프**:
+- **Replay Attack 취약**: 공격자가 0-RTT 데이터를 캡처하여 재전송 가능
+- **Forward Secrecy 없음**: PSK가 유출되면 0-RTT 데이터 복호화 가능
+
+**안전한 사용**:
+- 멱등한 요청(GET)에만 0-RTT 사용
+- 서버에서 중복 요청 탐지 로직 구현
+- 민감한 작업(로그인, 결제)은 0-RTT 사용 금지
 
 **참고자료**
 - [RFC 8446 Section 2.3](https://www.rfc-editor.org/rfc/rfc8446#section-2.3)[^47]
@@ -1004,14 +1106,18 @@ TCP 4-Way Handshake(연결 종료 과정)에 대해 설명해 주세요.
 <details>
 <summary>답변</summary>
 
-TCP 연결 종료를 위한 4단계 과정입니다.
+TCP 연결 종료를 위한 4단계 과정입니다 (정상 종료 시).
 
-1. **FIN**: 클라이언트 -> 서버 (종료 요청)
-2. **ACK**: 서버 -> 클라이언트 (요청 확인)
-3. **FIN**: 서버 -> 클라이언트 (서버도 종료 준비 완료)
-4. **ACK**: 클라이언트 -> 서버 (종료 확인)
+1. **FIN**: Active Close측 -> Passive Close측 (종료 요청, 더 이상 보낼 데이터 없음)
+2. **ACK**: Passive Close측 -> Active Close측 (FIN 수신 확인)
+3. **FIN**: Passive Close측 -> Active Close측 (자신도 종료 준비 완료)
+4. **ACK**: Active Close측 -> Passive Close측 (종료 확인, TIME_WAIT 진입)
 
-양방향 스트림을 각각 독립적으로 종료하기 때문에 4단계가 필요합니다.
+**왜 4단계인가?**: TCP는 전이중(Full-Duplex) 통신이므로 각 방향을 독립적으로 종료합니다.
+- 클라이언트가 FIN을 보내도 서버는 아직 데이터를 보낼 수 있음 (Half-Close)
+- 서버가 모든 데이터를 보낸 후 자신의 FIN을 전송
+
+**3-Way로 줄어드는 경우**: 서버가 ACK와 FIN을 동시에 보내면 3단계로 단축 가능 (Delayed ACK)
 
 **참고자료**
 - [RFC 9293 Section 3.6](https://www.rfc-editor.org/rfc/rfc9293#section-3.6)[^48]
@@ -1090,7 +1196,16 @@ TCP 연결 종료(4-Way Handshake) 이후 왜 연결이 바로 끝나지 않고,
 1. **지연된 패킷 처리**: 네트워크에 남아있는 이전 연결의 패킷이 새 연결에 영향 주지 않도록
 2. **마지막 ACK 손실 대비**: 상대방이 FIN을 재전송하면 ACK를 다시 보낼 수 있도록
 
-TIME_WAIT 시간은 **2MSL**(Maximum Segment Lifetime, 보통 60초)입니다. 이 시간 동안 같은 소켓 쌍으로 새 연결이 불가합니다.
+TIME_WAIT 시간은 **2MSL**(Maximum Segment Lifetime)입니다.
+- Linux 기본: 60초 (MSL=30초)
+- 이 시간 동안 같은 5-tuple(src IP, src Port, dst IP, dst Port, Protocol)로 새 연결 불가
+
+**TIME_WAIT가 많으면?**:
+- 서버 측: 클라이언트 포트가 다르므로 큰 문제 없음
+- 클라이언트 측: ephemeral port 고갈 가능
+- 해결: `SO_REUSEADDR`, `tcp_tw_reuse`, 커넥션 풀 사용
+
+**주의**: `tcp_tw_recycle`은 NAT 환경에서 문제를 일으켜 Linux 4.12에서 제거됨
 
 **참고자료**
 - [RFC 9293 Section 3.6.1](https://www.rfc-editor.org/rfc/rfc9293#section-3.6.1)[^52]
@@ -1111,11 +1226,19 @@ TIME_WAIT 시간은 **2MSL**(Maximum Segment Lifetime, 보통 60초)입니다. �
 
 | 구분 | 소켓(TCP/UDP) | 웹소켓 |
 |------|--------------|--------|
-| 계층 | Transport Layer | Application Layer |
-| 프로토콜 | TCP/UDP 직접 사용 | HTTP 업그레이드 후 WS 프로토콜 |
-| 환경 | 모든 애플리케이션 | 웹 브라우저 |
-| 연결 | 직접 연결 | HTTP Handshake 후 연결 |
-| 데이터 | 바이트 스트림 | 메시지 기반 프레임 |
+| 계층 | Transport Layer (L4) | Application Layer (L7) |
+| 프로토콜 | TCP/UDP 직접 사용 | HTTP Upgrade 후 WS 프로토콜 (TCP 위) |
+| 환경 | 모든 애플리케이션 | 주로 웹 브라우저 (서버 간도 가능) |
+| 연결 수립 | 3-way handshake (TCP) | HTTP Handshake + Upgrade |
+| 데이터 형식 | 바이트 스트림 | 메시지 기반 프레임 (텍스트/바이너리) |
+| 방화벽 | 별도 포트 오픈 필요 | 80/443 사용으로 방화벽 친화적 |
+
+**웹소켓의 장점**:
+- 브라우저에서 양방향 실시간 통신 가능
+- HTTP와 같은 포트 사용으로 프록시/방화벽 통과 용이
+- 연결 유지 후 오버헤드 적음 (헤더가 작음)
+
+**웹소켓 vs 일반 소켓**: 웹소켓은 일반 TCP 소켓을 웹 환경에서 사용하기 위해 HTTP로 감싼 것
 
 **참고자료**
 - [RFC 6455 - WebSocket Protocol](https://www.rfc-editor.org/rfc/rfc6455)[^53]
@@ -1283,11 +1406,12 @@ IPv4와 IPv6의 차이에 대해 설명해 주세요.
 | 구분 | IPv4 | IPv6 |
 |------|------|------|
 | 주소 길이 | 32비트 | 128비트 |
-| 주소 개수 | 약 43억 개 | 거의 무한대 |
+| 주소 개수 | 약 43억 개 | 약 3.4 x 10^38 개 |
 | 표기법 | 점으로 구분 (192.168.0.1) | 콜론으로 구분 (2001:db8::1) |
 | 헤더 크기 | 가변 (20-60바이트) | 고정 (40바이트) |
-| 체크섬 | 있음 | 없음 |
-| IPSec | 선택 | 필수 |
+| 체크섬 | 있음 | 없음 (상위 계층에서 처리) |
+| IPSec | 선택 | 권장 (초기에는 필수였으나 RFC 6434에서 권장으로 변경) |
+| 브로드캐스트 | 지원 | 미지원 (멀티캐스트로 대체) |
 
 **참고자료**
 - [RFC 8200 - IPv6](https://www.rfc-editor.org/rfc/rfc8200)[^61]
@@ -1681,12 +1805,20 @@ DNS 캐시에 잘못된 IP 정보가 저장되어 있을 경우 어떻게 보정
 <details>
 <summary>답변</summary>
 
-1. **TTL 만료**: 캐시된 레코드는 TTL 후 자동 삭제, 새로 질의
-2. **캐시 플러시**: 수동으로 DNS 캐시 삭제 (`ipconfig /flushdns`)
-3. **DNSSEC**: DNS 응답에 서명 추가하여 위변조 감지
-4. **DNS 캐시 포이즈닝 방지**: 랜덤 포트, 트랜잭션 ID 사용
+**이미 캐시된 잘못된 정보 처리**:
+1. **TTL 만료 대기**: 캐시된 레코드는 TTL 후 자동 삭제, 새로 질의
+2. **캐시 플러시**: 수동으로 DNS 캐시 삭제
+   - Windows: `ipconfig /flushdns`
+   - Linux: `systemd-resolve --flush-caches` 또는 `sudo systemctl restart systemd-resolved`
+   - macOS: `sudo dscacheutil -flushcache`
 
-DNSSEC은 DNS 응답의 무결성과 출처를 검증합니다.
+**잘못된 정보 유입 방지 (DNS Cache Poisoning 대응)**:
+1. **DNSSEC**: DNS 응답에 디지털 서명 추가하여 위변조 감지
+2. **소스 포트 랜덤화**: 예측 가능한 포트 사용 방지
+3. **트랜잭션 ID 랜덤화**: 응답 위조 어렵게 함
+4. **DNS over HTTPS/TLS**: 암호화로 중간자 공격 방지
+
+**주의**: DNSSEC은 무결성과 출처는 검증하지만, 기밀성(암호화)은 제공하지 않습니다.
 
 **참고자료**
 - [RFC 4033 - DNSSEC](https://www.rfc-editor.org/rfc/rfc4033)[^79]
@@ -2010,13 +2142,18 @@ L4 로드밸런서와 L7 로드밸런서의 차이에 대해 설명해 주세요
 
 | 구분 | L4 로드밸런서 | L7 로드밸런서 |
 |------|--------------|--------------|
-| 계층 | Transport (TCP/UDP) | Application (HTTP) |
-| 분산 기준 | IP, Port | URL, Header, Cookie |
-| 속도 | 빠름 | 상대적으로 느림 |
-| 기능 | 단순 분산 | 콘텐츠 기반 라우팅, SSL 종료 |
-| 예시 | AWS NLB | AWS ALB, Nginx |
+| 계층 | Transport (TCP/UDP) | Application (HTTP/HTTPS) |
+| 분산 기준 | IP, Port | URL, Header, Cookie, Host |
+| 속도 | 빠름 (패킷 수준 처리) | 상대적으로 느림 (요청 파싱 필요) |
+| 기능 | 단순 분산, TCP/UDP 모두 지원 | 콘텐츠 기반 라우팅, SSL 종료, 캐싱 |
+| 연결 방식 | DSR, NAT | Proxy (클라이언트-LB, LB-서버 별개 연결) |
+| 예시 | AWS NLB, HAProxy (L4 모드) | AWS ALB, Nginx, HAProxy (L7 모드) |
 
-L4는 패킷 레벨, L7은 요청 내용 레벨에서 결정합니다.
+**선택 기준**:
+- **L4**: 고성능 필요, 비HTTP 프로토콜, 단순한 분산
+- **L7**: URL 기반 라우팅, A/B 테스팅, SSL 오프로딩, WebSocket 등
+
+**트레이드오프**: L7은 기능이 많지만 처리 오버헤드가 있고, L4는 빠르지만 HTTP 인식 기능 없음
 
 **참고자료**
 - [RFC 7098](https://www.rfc-editor.org/rfc/rfc7098)[^93]
@@ -2085,14 +2222,19 @@ L4는 패킷 레벨, L7은 요청 내용 레벨에서 결정합니다.
 - 하나의 도메인에 여러 A 레코드(IP) 등록
 - DNS 서버가 질의마다 IP 순서를 바꿔 응답
 
-**장점**: 구현 간단, 추가 장비 불필요
+**장점**: 구현 간단, 추가 장비 불필요, 비용 없음
 
 **단점**:
-- 헬스 체크 불가 (장애 서버로도 라우팅)
-- DNS 캐싱으로 균등 분산 어려움
-- 세밀한 제어 불가
+- 헬스 체크 불가 (장애 서버로도 라우팅 - 치명적)
+- DNS 캐싱으로 균등 분산 어려움 (TTL 동안 같은 IP)
+- 세밀한 제어 불가 (가중치, 세션 유지 등)
+- 빠른 장애 대응 어려움 (TTL 만료 대기)
 
-AWS Route 53의 가중치 기반 라우팅 등 고급 DNS 서비스로 보완 가능합니다.
+**개선된 DNS 기반 로드밸런싱** (AWS Route 53 등):
+- 헬스 체크 + 자동 장애 조치 (Failover)
+- 가중치 기반 라우팅 (Weighted)
+- 지연시간 기반 라우팅 (Latency-based)
+- 지리적 라우팅 (Geolocation)
 
 **참고자료**
 - [RFC 1794 - DNS Round Robin](https://www.rfc-editor.org/rfc/rfc1794)[^96]
@@ -2137,12 +2279,21 @@ AWS Route 53의 가중치 기반 라우팅 등 고급 DNS 서비스로 보완 �
 **NAT(Network Address Translation)**은 사설 IP를 공인 IP로 변환하는 기술입니다.
 
 **종류**:
-- **Static NAT**: 1:1 고정 매핑
-- **Dynamic NAT**: 풀에서 동적 할당
-- **PAT/NAPT**: 포트 번호까지 변환 (가장 일반적, 1:N)
+- **Static NAT**: 1:1 고정 매핑 (서버 공개용)
+- **Dynamic NAT**: 공인 IP 풀에서 동적 할당
+- **PAT/NAPT (Port Address Translation)**: 포트 번호까지 변환 (가장 일반적, 1:N)
 
-**장점**: IPv4 주소 절약, 내부 네트워크 보안
-**단점**: End-to-End 연결성 저해, P2P 통신 어려움
+**장점**:
+- IPv4 주소 절약 (하나의 공인 IP로 여러 기기 인터넷 사용)
+- 내부 네트워크 구조 은폐 (보안상 이점)
+
+**단점**:
+- **End-to-End 연결성 저해**: 외부에서 내부로 직접 연결 불가
+- **P2P 통신 어려움**: 양쪽 모두 NAT 뒤에 있으면 연결 복잡 (STUN/TURN/ICE 필요)
+- **일부 프로토콜 호환 문제**: FTP Active 모드, SIP 등
+- **포트 고갈**: 동시 연결 수 제한 (약 65,000개 포트)
+
+**NAT Traversal 기법**: STUN, TURN, ICE, UPnP 등으로 NAT 뒤 기기 간 통신 해결
 
 **참고자료**
 - [RFC 3022 - NAT](https://www.rfc-editor.org/rfc/rfc3022)[^98]

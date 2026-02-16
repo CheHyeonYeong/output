@@ -150,6 +150,15 @@ index 접근: map[index / CHUNK_SIZE][index % CHUNK_SIZE]
 **시간복잡도**
 - 평균: 삽입, 삭제, 검색 모두 O(1)
 - 최악(모든 키가 충돌): O(n)
+- 공간복잡도: O(n)
+
+**해시 테이블 vs 배열 vs BST**
+| 연산 | 배열 (정렬) | 해시 테이블 | BST (균형) |
+|-----|-----------|-----------|-----------|
+| 검색 | O(log n) | O(1) 평균 | O(log n) |
+| 삽입 | O(n) | O(1) 평균 | O(log n) |
+| 순서 유지 | O | X | O |
+| 범위 검색 | O(log n + k) | O(n) | O(log n + k) |
 
 **참고자료**
 - [HashMap (Java SE 21)](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/HashMap.html)[^5]
@@ -201,11 +210,15 @@ index 접근: map[index / CHUNK_SIZE][index % CHUNK_SIZE]
 - **이차 탐사**: `h(k, i) = (h(k) + c1*i + c2*i^2) mod m`
 - **이중 해싱**: `h(k, i) = (h1(k) + i*h2(k)) mod m`
 
-| 방식 | 클러스터링 | 캐시 성능 | 삭제 |
-|------|-----------|----------|------|
-| 체이닝 | 없음 | 낮음 | 쉬움 |
-| 선형 탐사 | 심함 | 높음 | 어려움 |
-| 이중 해싱 | 적음 | 중간 | 어려움 |
+| 방식 | 클러스터링 | 캐시 성능 | 삭제 | 적합한 상황 |
+|------|-----------|----------|------|-----------|
+| 체이닝 | 없음 | 낮음 (포인터 추적) | 쉬움 | Load Factor 높을 때, 삭제 빈번 |
+| 선형 탐사 | 심함 (1차 클러스터링) | 높음 | 어려움 (Tombstone 필요) | 캐시 효율 중요, 삭제 적을 때 |
+| 이중 해싱 | 적음 | 중간 | 어려움 (Tombstone 필요) | 균등 분포 필요, 클러스터링 방지 |
+
+**트레이드오프 정리**
+- 체이닝: 메모리 오버헤드(포인터) vs 구현 단순성 및 삭제 용이성
+- 개방 주소법: 메모리 효율 vs Load Factor 증가 시 성능 급락 (보통 0.7 이하 유지)
 
 **참고자료**
 - [Hash table - Wikipedia](https://en.wikipedia.org/wiki/Hash_table#Collision_resolution)[^7]
@@ -227,8 +240,9 @@ index 접근: map[index / CHUNK_SIZE][index % CHUNK_SIZE]
 - 이를 통해 최악의 경우에도 O(log n) 보장
 
 **Python (dict)**
-- **개방 주소법** (Pseudo-random probing) 사용
-- 해시값을 기반으로 의사 난수 탐사 수행
+- **개방 주소법** 사용 (Python 3.6+: Compact dict)
+- 랜덤 탐사(pseudo-random probing) 방식으로 충돌 해결
+- 삽입 순서 유지 (Python 3.7+에서 언어 스펙으로 보장)
 
 **C++ (unordered_map)**
 - **체이닝** 방식 사용
@@ -318,7 +332,8 @@ HashMap<K,V> map = new HashMap<>(initialCapacity, loadFactor);
 
 **1. 세분화된 락 (Lock Striping)**
 - 전체 테이블이 아닌 버킷 그룹별로 락 적용
-- Java ConcurrentHashMap이 사용하는 방식
+- Java 7 ConcurrentHashMap: Segment 기반 락
+- Java 8+ ConcurrentHashMap: Node 단위 CAS + synchronized (더 세분화됨)
 - 동시에 다른 세그먼트 접근 가능
 
 **2. Lock-Free 구조**
@@ -421,11 +436,11 @@ BST에서 중위 순회를 수행하면 **오름차순으로 정렬된 결과**�
 <summary>답변</summary>
 
 **시간복잡도**
-| 연산 | 평균 | 최악 |
-|------|------|------|
-| 검색 | O(log n) | O(n) |
-| 삽입 | O(log n) | O(n) |
-| 삭제 | O(log n) | O(n) |
+| 연산 | 평균 | 최악 | 공간복잡도 |
+|------|------|------|----------|
+| 검색 | O(log n) | O(n) | O(1) |
+| 삽입 | O(log n) | O(n) | O(1) |
+| 삭제 | O(log n) | O(n) | O(1) |
 
 **평균 O(log n) 이유**
 - 균형 잡힌 BST의 높이는 log n
@@ -436,6 +451,12 @@ BST에서 중위 순회를 수행하면 **오름차순으로 정렬된 결과**�
 - 편향 트리(Skewed Tree)인 경우
 - 예: 1, 2, 3, 4, 5 순서로 삽입하면 오른쪽으로만 편향
 - 높이가 n이 되어 연결 리스트와 동일한 성능
+
+**함정 질문 대비: 왜 해시 테이블 대신 BST를 쓰나요?**
+- 순서 유지: BST는 정렬된 순회 가능 (중위 순회 O(n))
+- 범위 쿼리: k1~k2 사이 값 검색 가능
+- 최소/최대값: O(log n)에 접근 가능
+- 해시 테이블은 이런 연산에 O(n) 필요
 
 **참고자료**
 - [Binary search tree - Wikipedia](https://en.wikipedia.org/wiki/Binary_search_tree#Time_complexity)[^14]
@@ -468,6 +489,8 @@ BST에서 중위 순회를 수행하면 **오름차순으로 정렬된 결과**�
 
 **해결책**: AVL Tree, Red-Black Tree 등 자가 균형 BST 사용
 
+**면접 팁**: "BST의 한계"를 물을 때 "랜덤 삽입의 평균은 O(log n)"이라고 보완 설명 가능. 실제로 랜덤 순서 삽입 시 평균 높이는 약 1.39 log n으로 좋은 성능을 보임.
+
 **참고자료**
 - [Self-balancing binary search tree - Wikipedia](https://en.wikipedia.org/wiki/Self-balancing_binary_search_tree)[^15]
 
@@ -494,9 +517,13 @@ BST에서 중위 순회를 수행하면 **오름차순으로 정렬된 결과**�
    - 해당 값으로 현재 노드 대체 후 그 노드 삭제
 
 **편향 발생 케이스**
-- **정렬된 데이터 삽입**: 1, 2, 3, 4, 5 → 오른쪽 편향
-- **역순 정렬 데이터**: 5, 4, 3, 2, 1 → 왼쪽 편향
-- **특정 패턴**: 1, 10, 2, 9, 3, 8 → 지그재그 편향
+- **정렬된 데이터 삽입**: 1, 2, 3, 4, 5 -> 오른쪽 편향 (연결 리스트화)
+- **역순 정렬 데이터**: 5, 4, 3, 2, 1 -> 왼쪽 편향
+- **특정 패턴**: 1, 10, 2, 9, 3, 8 -> 지그재그 편향
+
+**삭제 시 주의사항**
+- 후속자(오른쪽 서브트리 최솟값) 대신 선행자(왼쪽 서브트리 최댓값)를 일관되게 사용하면 편향 가능
+- 랜덤하게 선택하면 균형 유지에 도움
 
 **참고자료**
 - [Binary search tree operations](https://en.wikipedia.org/wiki/Binary_search_tree#Operations)[^16]
@@ -550,17 +577,27 @@ BST에서 중위 순회를 수행하면 **오름차순으로 정렬된 결과**�
 - **최대 힙 (Max Heap)**: 부모 >= 자식
 - **최소 힙 (Min Heap)**: 부모 <= 자식
 
+**시간복잡도**
+| 연산 | 시간복잡도 |
+|------|----------|
+| 삽입 (insert) | O(log n) |
+| 삭제 (extract-min/max) | O(log n) |
+| 최솟값/최댓값 조회 (peek) | O(1) |
+| 힙 구성 (heapify) | O(n) |
+| 임의 원소 삭제 | O(n) - 탐색 필요 |
+| decrease-key (인덱스 알 때) | O(log n) |
+
 **특징**
 - 루트에 최댓값(최대 힙) 또는 최솟값(최소 힙) 위치
-- 삽입/삭제: O(log n)
-- 최댓값/최솟값 조회: O(1)
 - 완전 이진 트리이므로 배열로 효율적 구현 가능
+- 형제 노드 간에는 순서 관계 없음 (BST와 다름)
 
 **활용**
 - 우선순위 큐 구현
 - 힙 정렬
-- 다익스트라 알고리즘
+- 다익스트라 알고리즘 (최소 힙)
 - 중앙값 찾기 (최대 힙 + 최소 힙)
+- Top-K 문제 (크기 K 힙 유지)
 
 **참고자료**
 - [PriorityQueue (Java SE 21)](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/PriorityQueue.html)[^18]
@@ -644,7 +681,7 @@ BST에서 중위 순회를 수행하면 **오름차순으로 정렬된 결과**�
 <summary>답변</summary>
 
 **시간복잡도**
-- **힙 구성**: O(n) - Bottom-up heapify
+- **힙 구성**: O(n) - Bottom-up heapify (Floyd's method)
 - **정렬**: O(n log n) - n개 요소 각각 O(log n) 삭제
 - **전체**: O(n log n) - 최선, 평균, 최악 모두 동일
 
@@ -661,6 +698,15 @@ BST에서 중위 순회를 수행하면 **오름차순으로 정렬된 결과**�
 ```
 
 힙 연산 중 루트와 마지막 요소 교환 과정에서 원래 순서가 깨집니다.
+
+**힙 정렬의 트레이드오프**
+| 장점 | 단점 |
+|------|------|
+| 최악 O(n log n) 보장 | Unstable |
+| In-place O(1) 공간 | 캐시 지역성 낮음 (부모-자식 접근 패턴) |
+| 최댓값/최솟값 빠른 추출 | 실제 성능은 Quick Sort보다 느림 |
+
+**실무 사용**: 대부분 Intro Sort의 fallback으로 사용됨 (재귀 깊이 초과 시)
 
 **참고자료**
 - [Heapsort - Wikipedia](https://en.wikipedia.org/wiki/Heapsort)[^21]
@@ -714,16 +760,22 @@ Red-Black Tree는 **색상 규칙**과 **회전 연산**을 통해 균형을 유
 - 규칙 위반 시 다음 연산 수행:
   - **Recoloring**: 부모/삼촌이 RED면 색상 변경
   - **Rotation**: 부모가 RED, 삼촌이 BLACK이면 회전
+- **삽입 시 최대 회전 횟수: 2회** (O(1))
 
 **2. 삭제 시**
 - BLACK 노드 삭제 시 "이중 흑색" 문제 발생
 - 형제 노드의 색상에 따라 회전 및 재색칠
+- **삭제 시 최대 회전 횟수: 3회** (O(1))
 
 **회전 연산**
 - **Left Rotation**: 오른쪽 자식을 부모로 올림
 - **Right Rotation**: 왼쪽 자식을 부모로 올림
 
 이 규칙들로 인해 **가장 긴 경로가 가장 짧은 경로의 2배를 넘지 않아** 균형이 유지됩니다.
+
+**함정 질문: 왜 삽입 노드를 RED로?**
+- BLACK으로 삽입하면 Black Height가 즉시 깨짐 (성질 5 위반)
+- RED로 삽입하면 성질 4(No Double Red)만 위반 가능 - 복구가 더 쉬움
 
 **참고자료**
 - [Red-black tree - Wikipedia](https://en.wikipedia.org/wiki/Red%E2%80%93black_tree#Insertion)[^23]
@@ -776,24 +828,28 @@ Red-Black Tree의 주요 성질에 대해 설명해 주세요.
 **1. 삽입/삭제 성능**
 - AVL Tree보다 회전 횟수가 적음
 - 삽입: 최대 2회 회전, 삭제: 최대 3회 회전
-- AVL은 삭제 시 O(log n)회 회전 가능
+- AVL은 삭제 시 O(log n)회 회전 가능 (경로를 따라 올라가며)
 
 **2. 구현 단순성**
 - 2-3-4 Tree보다 구현이 간단 (노드 타입이 하나)
 - 2-3-4 Tree는 노드 분할/병합 로직 복잡
 
 **3. 균형 유지 비용**
-| 트리 | 삽입 회전 | 삭제 회전 |
-|-----|---------|---------|
-| AVL | O(log n) | O(log n) |
-| Red-Black | O(1) | O(1) |
+| 트리 | 삽입 회전 | 삭제 회전 | 높이 | 검색 성능 |
+|-----|---------|---------|------|----------|
+| AVL | O(1) 회전, O(log n) 균형 조정 | O(log n) | <= 1.44 log n | 더 빠름 |
+| Red-Black | O(1) | O(1) | <= 2 log n | 약간 느림 |
 
 **4. 실제 사용 사례**
 - Java: TreeMap, TreeSet
 - C++ STL: map, set
-- Linux: CFS 스케줄러
+- Linux: CFS 스케줄러, 메모리 관리
 
-**AVL이 나은 경우**: 검색이 삽입/삭제보다 훨씬 많은 경우 (더 엄격한 균형)
+**AVL이 나은 경우**: 검색이 삽입/삭제보다 훨씬 많은 경우 (더 엄격한 균형 = 낮은 높이 = 빠른 검색)
+
+**면접 핵심**: "왜 Java/C++에서 RB Tree?"
+- 삽입/삭제가 빈번한 일반적인 사용 패턴에 적합
+- 회전 횟수 상한이 상수이므로 예측 가능한 성능
 
 **참고자료**
 - [TreeMap (Java SE 21)](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/TreeMap.html)[^25]
@@ -848,26 +904,31 @@ Quick Sort와 Merge Sort를 비교해 주세요.
 |------|-----------|------------|
 | **평균 시간** | O(n log n) | O(n log n) |
 | **최악 시간** | O(n^2) | O(n log n) |
-| **공간** | O(log n) | O(n) |
+| **공간** | O(log n) 스택 | O(n) 추가 배열 |
 | **Stable** | No | Yes |
 | **방식** | 분할 정복 (In-place) | 분할 정복 |
-| **캐시 효율** | 좋음 | 보통 |
+| **캐시 효율** | 좋음 (연속 메모리 접근) | 보통 (병합 시 복사) |
 
 **Quick Sort 장점**
 - In-place로 메모리 효율적
 - 캐시 지역성이 좋아 실제로 더 빠름
-- 평균적으로 상수 계수가 작음
+- 평균적으로 상수 계수가 작음 (약 1.39n log n vs 2n log n)
 
 **Merge Sort 장점**
 - 최악에도 O(n log n) 보장
 - Stable 정렬
-- 연결 리스트 정렬에 적합 (O(1) 공간)
-- 병렬화 용이
+- 연결 리스트 정렬에 적합 (O(1) 공간으로 구현 가능)
+- 병렬화 용이 (분할된 작업이 독립적)
+- 외부 정렬에 적합
 
 **선택 기준**
-- 일반적인 경우: Quick Sort
+- 일반적인 경우 (배열): Quick Sort
 - 안정성 필요: Merge Sort
-- 최악 보장 필요: Merge Sort
+- 최악 보장 필요: Merge Sort 또는 Heap Sort
+- 연결 리스트: Merge Sort
+- 외부 정렬: Merge Sort 기반
+
+**실무 참고**: 대부분의 표준 라이브러리는 Intro Sort (Quick + Heap + Insertion) 또는 Tim Sort (Merge + Insertion) 사용
 
 **참고자료**
 - [Quicksort - Wikipedia](https://en.wikipedia.org/wiki/Quicksort)[^27]
@@ -987,11 +1048,13 @@ void mergeSortIterative(int[] arr) {
 **장점**
 - 스택 오버플로우 위험 없음
 - 호출 스택 오버헤드 없음
-- 연결 리스트에서 특히 효율적 (O(1) 공간)
+- 연결 리스트에서 특히 효율적 (O(1) 공간 - 노드 재연결만 필요)
 
 **단점**
 - Top-Down보다 코드가 약간 복잡
-- 캐시 효율이 약간 낮을 수 있음
+- 캐시 효율이 약간 낮을 수 있음 (메모리 접근 패턴)
+
+**면접 팁**: "모든 재귀는 반복문으로 변환 가능"의 좋은 예시
 
 **참고자료**
 - [Merge sort - Bottom-up](https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation)[^30]
@@ -1009,8 +1072,8 @@ Radix Sort에 대해 설명해 주세요.
 **Radix Sort**는 자릿수별로 정렬을 반복하는 **비교 기반이 아닌** 정렬 알고리즘입니다.
 
 **종류**
-- **LSD (Least Significant Digit)**: 가장 작은 자릿수부터 정렬
-- **MSD (Most Significant Digit)**: 가장 큰 자릿수부터 정렬
+- **LSD (Least Significant Digit)**: 가장 작은 자릿수부터 정렬 - 고정 길이 키에 적합
+- **MSD (Most Significant Digit)**: 가장 큰 자릿수부터 정렬 - 가변 길이 문자열에 적합
 
 **LSD Radix Sort 과정**
 ```
@@ -1022,14 +1085,23 @@ Radix Sort에 대해 설명해 주세요.
 ```
 
 **시간복잡도**: O(d * (n + k))
-- d: 최대 자릿수
+- d: 최대 자릿수 (정수의 경우 log_k(max_value))
 - n: 요소 개수
-- k: 기수 (10진법이면 10)
+- k: 기수 (10진법이면 10, 256이면 바이트 단위)
+
+**공간복잡도**: O(n + k)
 
 **특징**
 - Stable (Counting Sort 사용 시)
 - 정수, 문자열 정렬에 적합
 - 음수 처리 시 추가 로직 필요
+
+**비교 정렬과의 비교**
+- 비교 정렬 하한: O(n log n)
+- Radix Sort: O(d * n) - d가 상수이면 O(n)
+- 단, d = O(log n)이면 O(n log n)과 동일
+
+**실제 사용 사례**: 정수 정렬, 문자열 정렬, 부동소수점 정렬 (비트 조작 후)
 
 **참고자료**
 - [Radix sort - Wikipedia](https://en.wikipedia.org/wiki/Radix_sort)[^31]
@@ -1154,25 +1226,29 @@ Bubble Sort, Selection Sort, Insertion Sort의 성능을 비교해 주세요.
 
 **K-way Merge Sort 방식**
 
-**1단계: 분할 및 내부 정렬**
+**1단계: 분할 및 내부 정렬 (Run 생성)**
 1. 데이터를 메모리에 맞는 청크로 분할 (예: 3.5GB씩)
-2. 각 청크를 메모리에서 정렬
-3. 정렬된 청크를 임시 파일로 저장
-4. 약 15개의 정렬된 파일 생성
+2. 각 청크를 메모리에서 정렬 (Quick Sort 등 내부 정렬 사용)
+3. 정렬된 청크(run)를 임시 파일로 저장
+4. 50GB / 3.5GB = 약 15개의 정렬된 파일(run) 생성
 
 **2단계: K-way Merge**
-1. 각 파일에서 일부를 버퍼로 읽음
+1. 각 파일에서 일부를 버퍼로 읽음 (버퍼 크기 고려)
 2. **최소 힙**으로 각 파일의 최솟값 관리
-3. 힙에서 최솟값 추출 → 출력
+3. 힙에서 최솟값 추출 -> 출력 버퍼로
 4. 해당 파일에서 다음 값 읽어 힙에 삽입
 5. 모든 파일이 끝날 때까지 반복
 
 **최적화 기법**
-- **Replacement Selection**: 초기 런 길이를 평균 2배로
-- **Polyphase Merge**: 테이프 장치 최적화
-- **SSD 활용**: 랜덤 읽기 성능 향상
+- **Replacement Selection**: 초기 런 길이를 평균 2배로 늘림
+- **Double Buffering**: 읽기/쓰기를 병렬화하여 I/O 대기 감소
+- **SSD 활용**: 랜덤 읽기 성능 향상, HDD보다 효율적
 
-**시간복잡도**: O(n log n)
+**시간복잡도 분석**
+- 각 요소는 읽기/쓰기를 O(log(파일 수)) 번 수행
+- 전체: O(n log n) 비교 + O(n/B * log_M(n/M)) I/O (B: 블록 크기, M: 메모리)
+
+**실무 도구**: Unix `sort` 명령어, Hadoop MapReduce
 
 **참고자료**
 - [External sorting - Wikipedia](https://en.wikipedia.org/wiki/External_sorting)[^35]
@@ -1222,6 +1298,12 @@ Bubble Sort, Selection Sort, Insertion Sort의 성능을 비교해 주세요.
 | 공간 | O(V^2) | O(V + E) |
 | 간선 확인 | O(1) | O(degree) |
 | 모든 간선 순회 | O(V^2) | O(V + E) |
+| 정점 추가 | O(V^2) 재할당 | O(1) |
+| 간선 추가 | O(1) | O(1) |
+
+**언제 어떤 것을 사용?**
+- **인접 행렬**: 밀집 그래프 (E가 V^2에 가까울 때), 간선 존재 확인이 빈번한 경우
+- **인접 리스트**: 희소 그래프 (E << V^2), 그래프 순회가 주 연산인 경우, 메모리 제약이 있는 경우
 
 **참고자료**
 - [Graph (data structure) - Wikipedia](https://en.wikipedia.org/wiki/Graph_(abstract_data_type))[^36]
@@ -1360,24 +1442,29 @@ Bubble Sort, Selection Sort, Insertion Sort의 성능을 비교해 주세요.
 
 **상황별 최단 거리 알고리즘**
 
-| 조건 | 알고리즘 | 시간복잡도 |
-|-----|---------|-----------|
-| 가중치 없음 | BFS | O(V + E) |
-| 가중치 양수 (단일 출발) | Dijkstra | O((V+E) log V) |
-| 음수 가중치 (단일 출발) | Bellman-Ford | O(VE) |
-| 모든 쌍 | Floyd-Warshall | O(V^3) |
-| 음수 사이클 탐지 | Bellman-Ford | O(VE) |
-| DAG | 위상정렬 + DP | O(V + E) |
+| 조건 | 알고리즘 | 시간복잡도 | 공간복잡도 |
+|-----|---------|-----------|----------|
+| 가중치 없음 | BFS | O(V + E) | O(V) |
+| 가중치 양수 (단일 출발) | Dijkstra | O((V+E) log V) | O(V) |
+| 음수 가중치 (단일 출발) | Bellman-Ford | O(VE) | O(V) |
+| 모든 쌍 | Floyd-Warshall | O(V^3) | O(V^2) |
+| 음수 사이클 탐지 | Bellman-Ford | O(VE) | O(V) |
+| DAG | 위상정렬 + DP | O(V + E) | O(V) |
+| 가중치 0 또는 1 | 0-1 BFS (Deque) | O(V + E) | O(V) |
 
 **주요 알고리즘**
 
-**BFS**: 가중치 없는 그래프에서 최단 경로
+**BFS**: 가중치 없는(또는 동일한) 그래프에서 최단 경로
 
 **Dijkstra**: 우선순위 큐로 최소 거리 정점 선택, 음수 가중치 불가
+- 힙 사용: O((V+E) log V), 희소 그래프에 유리
+- 배열 사용: O(V^2), 밀집 그래프에 유리
 
 **Bellman-Ford**: 모든 간선을 V-1번 완화, 음수 가중치 가능
+- V번째 반복에서 갱신 발생 시 음수 사이클 존재
 
 **Floyd-Warshall**: DP로 모든 쌍 최단 거리, `d[i][j] = min(d[i][j], d[i][k] + d[k][j])`
+- k를 경유지로 고려, 음수 간선 가능 (음수 사이클 제외)
 
 **참고자료**
 - [Shortest path problem - Wikipedia](https://en.wikipedia.org/wiki/Shortest_path_problem)[^40]
@@ -1521,21 +1608,30 @@ f(n) = g(n) + h(n)
 
 **휴리스틱 조건**
 - **Admissible**: h(n) <= 실제 비용 (과대평가 금지) → 최단 경로 보장
-- **Consistent**: h(n) <= cost(n, m) + h(m) → 효율성 향상
+- **Consistent** (Monotonic): h(n) <= cost(n, m) + h(m) → 효율성 향상, 재방문 불필요
+
+**일반적인 휴리스틱 함수**
+- 2D 그리드 (4방향): 맨해튼 거리
+- 2D 그리드 (8방향): 체비셰프 거리 또는 옥타일 거리
+- 유클리드 거리: 항상 admissible하지만 계산 비용 높음
 
 **다익스트라와 비교**
 
 | 항목 | Dijkstra | A* |
 |-----|---------|-----|
 | 휴리스틱 | 없음 (h=0) | 있음 |
-| 탐색 방향 | 모든 방향 | 목표 방향 |
-| 탐색 노드 수 | 많음 | 적음 |
+| 탐색 방향 | 모든 방향 (동심원) | 목표 방향 (타원형) |
+| 탐색 노드 수 | 많음 | 적음 (좋은 h일수록) |
 | 최적성 | 항상 최적 | admissible h면 최적 |
+| 적용 대상 | 일반 그래프 | 목표가 명확한 경우 |
 
 **성능**
 - 좋은 휴리스틱: 다익스트라보다 **훨씬 빠름**
 - h=0이면 다익스트라와 동일
+- h=실제비용 (완벽한 휴리스틱)이면 최적 경로만 탐색
 - 최악: 다익스트라와 같은 O((V+E) log V)
+
+**주의**: 음수 가중치가 있으면 A*도 사용 불가
 
 **참고자료**
 - [A* search algorithm - Wikipedia](https://en.wikipedia.org/wiki/A*_search_algorithm)[^44]
@@ -1813,8 +1909,9 @@ void union(int x, int y) {
 ```
 
 **시간복잡도**
-- 두 최적화 적용 시: O(α(n)) ≈ O(1)
-- α: 아커만 함수의 역함수 (매우 느리게 증가)
+- 두 최적화 적용 시: 분할상환 O(α(n)) ≈ 실질적으로 O(1)
+- α: 아커만 함수의 역함수 (n이 우주의 원자 수여도 5 미만)
+- 단일 연산 최악: O(log n), 하지만 연속 m개 연산은 O(m * α(n))
 
 **참고자료**
 - [Disjoint-set data structure - Wikipedia](https://en.wikipedia.org/wiki/Disjoint-set_data_structure)[^50]
@@ -1833,31 +1930,31 @@ MST를 구하는 Kruskal 알고리즘과 Prim 알고리즘 중, 어떤 것이 �
 
 | 알고리즘 | 시간복잡도 | 적합한 경우 |
 |---------|-----------|-----------|
-| Kruskal | O(E log E) | 희소 그래프 |
-| Prim (힙) | O(E log V) | 밀집 그래프 |
+| Kruskal | O(E log E) = O(E log V) | 희소 그래프 |
+| Prim (힙) | O(E log V) | 중간~밀집 그래프 |
 | Prim (배열) | O(V^2) | 매우 밀집된 그래프 |
 
 **비교 분석**
 
-**희소 그래프 (E ≈ V)**
+**희소 그래프 (E ~ V)**
 - Kruskal: O(V log V)
-- Prim: O(V log V)
-- 비슷하지만 Kruskal이 구현 간단
+- Prim (힙): O(V log V)
+- 비슷하지만 Kruskal이 구현 간단하고 간선 리스트로 바로 사용 가능
 
-**밀집 그래프 (E ≈ V^2)**
+**밀집 그래프 (E ~ V^2)**
 - Kruskal: O(V^2 log V)
 - Prim (힙): O(V^2 log V)
 - Prim (배열): O(V^2)
 - **Prim (배열)이 유리**
 
 **추가 고려사항**
-- Kruskal: 간선 정렬 필요, Union-Find 오버헤드
-- Prim: 시작점 필요, 우선순위 큐 관리
+- Kruskal: 간선 정렬 필요, Union-Find 오버헤드, 간선 리스트 형태 입력에 적합
+- Prim: 시작점 필요, 우선순위 큐 관리, 인접 행렬/리스트 입력에 적합
 
 **결론**
-- E < V log V: Kruskal
-- E > V log V: Prim
-- 일반적으로 큰 차이 없음
+- E < V log V (희소): Kruskal 선호
+- E > V log V (밀집): Prim 선호
+- 입력 형태에 따라 선택 (간선 리스트 vs 인접 행렬)
 
 **참고자료**
 - [Prim's algorithm - Wikipedia](https://en.wikipedia.org/wiki/Prim%27s_algorithm)[^51]
@@ -2066,8 +2163,13 @@ Map<K,V> syncMap = Collections.synchronizedMap(new HashMap<>());
 - 문자열을 문자 단위로 트리에 저장
 - 접두사 검색에 최적화
 - 시간: 삽입/검색 O(m), m = 문자열 길이
-- 공간: O(알파벳 크기 * 총 문자 수)
-- 활용: 자동완성, 사전
+- 공간: O(알파벳 크기 * 총 노드 수) - 포인터 오버헤드 큼
+- 활용: 자동완성, 사전, IP 라우팅 테이블
+- **트레이드오프**: 메모리 많이 사용 vs 접두사 연산 효율적
+
+**압축 Trie (Radix Tree / Patricia Trie)**
+- 자식이 하나인 노드들을 압축
+- 공간 효율 개선
 
 **Suffix Tree / Suffix Array**
 - 모든 접미사를 저장
@@ -2289,13 +2391,20 @@ while (left < right) { mid = (left+right)/2; ... }
 | **최적 보장** | 특정 조건 시만 | 항상 보장 |
 | **시간복잡도** | 일반적으로 낮음 | 상태 수에 비례 |
 | **공간복잡도** | O(1) 가능 | 상태 저장 필요 |
-| **되돌림** | 없음 | 있음 (서브문제 재활용) |
+| **되돌림** | 없음 (한번 선택하면 끝) | 있음 (서브문제 재활용) |
+| **증명** | 귀류법/교환 논증 필요 | 점화식 정의로 자연스럽게 |
 
 **그리디 알고리즘**
 - 각 단계에서 **지역 최적해** 선택
 - **탐욕 선택 속성**: 지역 최적이 전역 최적으로 이어짐
 - **최적 부분 구조**: 부분 문제의 최적해로 전체 최적해 구성
-- 예: 거스름돈, 활동 선택, Huffman 코딩
+- 예: 거스름돈 (특정 화폐 단위), 활동 선택, Huffman 코딩, MST, Dijkstra
+
+**함정 질문: 거스름돈 문제는 항상 그리디로 풀 수 있나요?**
+- 아니오. 화폐 단위가 [1, 3, 4]이고 6원을 거슬러 줄 때
+- 그리디: 4 + 1 + 1 = 3개
+- 최적: 3 + 3 = 2개
+- 일반적인 화폐 시스템에서는 DP 필요
 
 **동적 계획법**
 - **중복 부분 문제**: 같은 부분 문제가 반복

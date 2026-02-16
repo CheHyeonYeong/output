@@ -46,7 +46,13 @@ Docker 컨테이너와 가상 머신(VM)의 차이점을 아키텍처 관점에�
 | **격리 수준** | 프로세스 격리 | 완전한 격리 |
 | **성능** | 네이티브에 가까움 | 하이퍼바이저 오버헤드 |
 
-컨테이너는 호스트 OS 커널을 공유하므로 가볍고 빠르지만, VM은 하이퍼바이저 위에 완전한 OS를 실행하여 더 강한 격리를 제공합니다.
+**트레이드오프:**
+- **컨테이너 장점**: 빠른 시작, 적은 리소스, 높은 밀도, 이식성
+- **컨테이너 단점**: 커널 공유로 인한 보안 경계가 VM보다 약함, 다른 OS 커널(예: Linux 컨테이너를 Windows에서 직접 실행) 불가
+- **VM 장점**: 완전한 하드웨어 격리, 다른 OS 실행 가능, 강력한 보안 경계
+- **VM 단점**: 무거운 오버헤드, 느린 부팅, 리소스 비효율
+
+**실무 고려사항**: 멀티테넌트 환경에서 강력한 격리가 필요하면 VM이나 gVisor/Kata Containers 같은 샌드박스 런타임 고려. 단일 조직 내 마이크로서비스라면 컨테이너가 효율적.
 
 **참고자료**
 - [What is a Container?](https://docs.docker.com/get-started/overview/#docker-objects)[^2]
@@ -96,7 +102,12 @@ Docker 이미지는 여러 개의 읽기 전용 레이어로 구성됩니다. Do
 - **배포 효율성**: 변경된 레이어만 전송하면 됨
 - **버전 관리**: 각 레이어가 변경 이력을 나타냄
 
-컨테이너 실행 시 최상위에 쓰기 가능한 레이어가 추가됩니다(Copy-on-Write).
+**트레이드오프 및 주의점:**
+- **레이어 수 증가의 단점**: 너무 많은 레이어는 이미지 pull/push 시 오버헤드 발생, 일부 스토리지 드라이버에서 성능 저하 (overlay2는 최대 128개 레이어 제한)
+- **Copy-on-Write(CoW) 비용**: 컨테이너에서 파일 수정 시 전체 파일을 복사 후 수정하므로 대용량 파일 수정에 비효율적
+- **삭제된 파일의 레이어 잔존**: 이전 레이어에서 생성된 파일을 삭제해도 이미지 크기는 줄지 않음 (whiteout 파일로 숨김 처리만 됨)
+
+컨테이너 실행 시 최상위에 쓰기 가능한 레이어가 추가됩니다(Copy-on-Write). 쓰기 작업이 빈번한 데이터는 볼륨 사용 권장.
 
 **참고자료**
 - [About storage drivers](https://docs.docker.com/storage/storagedriver/)[^4]
@@ -125,6 +136,12 @@ Docker 컨테이너 격리를 구현하는 Linux 커널 기술인 namespace와 c
 - 프로세스 그룹 단위로 관리
 
 Namespace는 "무엇을 볼 수 있는지", cgroups는 "얼마나 사용할 수 있는지"를 제어합니다.
+
+**중요한 보안 함정 - 커널 공유의 의미:**
+- 모든 컨테이너가 호스트 커널을 공유하므로, 커널 취약점은 모든 컨테이너에 영향
+- Namespace는 "격리"가 아닌 "가시성 제한"에 가까움 - 커널 레벨 공격에는 취약
+- 이것이 컨테이너가 VM보다 보안 경계가 약한 이유
+- **완화 방법**: 커널 업데이트, seccomp/AppArmor/SELinux 적용, User Namespace 활성화, gVisor/Kata Containers 같은 샌드박스 런타임 사용
 
 **참고자료**
 - [Docker and Linux Kernel](https://docs.docker.com/get-started/overview/#the-underlying-technology)[^5]
@@ -176,9 +193,15 @@ Docker 이미지 레이어를 구현하는 Union File System(UnionFS)이란 무�
 - Copy-on-Write(CoW) 전략으로 효율적인 스토리지 사용
 
 **주요 구현체:**
-- **overlay2**: 현재 Docker 기본 스토리지 드라이버 (권장)
-- **aufs**: 레거시, 일부 오래된 커널에서 사용
-- **btrfs**, **zfs**: 특수 파일 시스템 환경
+- **overlay2**: 현재 Docker 기본 스토리지 드라이버 (권장, Linux 커널 4.0+ 필요)
+- **fuse-overlayfs**: Rootless 모드에서 사용
+- **btrfs**, **zfs**: 해당 파일 시스템 사용 시 선택
+- **vfs**: 테스트용, CoW 미지원으로 매우 비효율적
+
+**스토리지 드라이버 선택 트레이드오프:**
+- **overlay2**: 대부분의 경우 최선, 하지만 XFS에서 d_type=true 필요
+- **btrfs/zfs**: 스냅샷 기능 우수하나 설정 복잡성 증가
+- 운영 환경에서는 backing 파일시스템과 호환성 확인 필수
 
 **참고자료**
 - [Use the OverlayFS storage driver](https://docs.docker.com/storage/storagedriver/overlayfs-driver/)[^7]
@@ -291,7 +314,7 @@ Dockerfile의 주요 명령어(FROM, RUN, CMD, ENTRYPOINT, COPY, ADD)의 역할�
 | **FROM** | 베이스 이미지 지정 | Dockerfile 시작점, 멀티스테이지 가능 |
 | **RUN** | 빌드 시 명령 실행 | 새 레이어 생성, 패키지 설치 등 |
 | **CMD** | 컨테이너 실행 시 기본 명령 | docker run 인자로 덮어쓰기 가능 |
-| **ENTRYPOINT** | 컨테이너 실행 시 고정 명령 | CMD와 조합 가능, 덮어쓰기 어려움 |
+| **ENTRYPOINT** | 컨테이너 실행 시 고정 명령 | CMD와 조합 가능, `--entrypoint`로 덮어쓰기 가능 |
 | **COPY** | 파일/디렉토리 복사 | 로컬 파일만, 단순하고 명확 |
 | **ADD** | 파일 복사 + 추가 기능 | URL 다운로드, tar 자동 추출 |
 
@@ -369,8 +392,11 @@ ADD app.tar.gz /app/
 ```
 
 **ADD 주의점:**
-- URL 다운로드보다 `RUN curl` 또는 `RUN wget` 권장 (레이어 최적화)
-- 예상치 못한 tar 추출 발생 가능
+- URL 다운로드보다 `RUN curl` 또는 `RUN wget` 권장 (레이어 최적화, 캐시 무효화 제어 가능)
+- 예상치 못한 tar 추출 발생 가능 (의도치 않은 파일 추출로 보안 위험)
+- ADD로 URL에서 다운로드 시 파일 권한을 600으로 설정하며 실행 권한 없음
+
+**Best Practice**: Docker 공식 문서에서는 대부분의 경우 COPY 사용을 권장하며, ADD는 로컬 tar 아카이브 자동 추출이 필요한 경우에만 사용하도록 권고
 
 **참고자료**
 - [COPY vs ADD](https://docs.docker.com/reference/dockerfile/#copy)[^13]
@@ -523,18 +549,35 @@ Dockerfile에서 ENV와 ARG의 차이점을 설명해 주세요.
 |------|-----|-----|
 | **사용 시점** | 빌드 시에만 | 빌드 + 런타임 |
 | **설정 방법** | `--build-arg` | `-e` 또는 `docker run` |
-| **레이어** | 이미지에 포함 안 됨 | 이미지에 포함 |
+| **이미지 포함** | 값은 미포함, 이력에 노출 가능 | 이미지에 포함 |
 | **기본값** | Dockerfile에서 지정 가능 | Dockerfile에서 지정 가능 |
+| **스코프** | FROM 이후 해당 빌드 스테이지 내에서만 | 모든 스테이지와 런타임에서 |
 
 **예시:**
 ```dockerfile
-# ARG - 빌드 시 버전 지정
+# ARG - 빌드 시 버전 지정 (FROM 앞에서 선언 가능)
 ARG NODE_VERSION=18
 FROM node:${NODE_VERSION}
+
+# 주의: FROM 이후에는 ARG를 다시 선언해야 사용 가능
+ARG NODE_VERSION  # 재선언 필요, 기본값 없이 이전 값 상속
 
 # ENV - 런타임 환경 변수
 ENV NODE_ENV=production
 ENV PORT=3000
+```
+
+**ARG 스코프 함정 (자주 틀리는 부분):**
+```dockerfile
+ARG VERSION=1.0
+FROM alpine
+
+# 오류! VERSION이 여기서 비어있음 - FROM 이후 스코프가 리셋됨
+RUN echo $VERSION  # 빈 값
+
+# 올바른 사용법
+ARG VERSION  # FROM 이후 재선언
+RUN echo $VERSION  # 1.0
 ```
 
 **빌드 명령:**
@@ -542,7 +585,15 @@ ENV PORT=3000
 docker build --build-arg NODE_VERSION=20 -t myapp .
 ```
 
-**주의:** ARG로 민감한 정보(비밀번호 등)를 전달하면 이미지 히스토리에 노출될 수 있습니다.
+**보안 주의사항 (함정 질문):**
+- ARG로 민감한 정보(비밀번호 등)를 전달하면 `docker history`로 노출됨
+- ENV도 마찬가지로 `docker inspect`로 노출됨
+- **해결책**: 빌드 시 secrets가 필요하면 BuildKit의 `--mount=type=secret` 사용
+```dockerfile
+# BuildKit secret mount (권장)
+RUN --mount=type=secret,id=mysecret cat /run/secrets/mysecret
+```
+- 런타임 secrets는 Docker Swarm secrets나 외부 시크릿 관리 도구 사용
 
 **참고자료**
 - [ARG](https://docs.docker.com/reference/dockerfile/#arg)[^17]
@@ -619,7 +670,11 @@ CMD ["node", "app.js"]
 - **취약점 완화**: 권한 상승 공격 어려움
 - **규정 준수**: 많은 보안 정책에서 non-root 실행 요구
 
-**주의:** 일부 작업(포트 1024 이하 바인딩 등)은 root 필요하므로 적절한 capabilities 설정 고려
+**주의 및 실무 고려사항:**
+- 일부 작업(포트 1024 이하 바인딩)은 `CAP_NET_BIND_SERVICE` capability 필요
+- 많은 공식 이미지(nginx, redis 등)는 이미 non-root 사용자 지원
+- 파일 권한 문제: 볼륨 마운트 시 호스트와 컨테이너의 UID/GID 불일치 주의
+- Kubernetes에서는 `runAsNonRoot: true`로 강제 가능
 
 **참고자료**
 - [USER](https://docs.docker.com/reference/dockerfile/#user)[^19]
@@ -1006,31 +1061,34 @@ Docker base 이미지를 선택할 때 고려해야 할 요소들을 설명해 �
 
 | 이미지 | 크기 | 특징 | 사용 사례 |
 |--------|------|------|-----------|
-| **scratch** | 0B | 완전히 비어있음 | 정적 바이너리 (Go) |
-| **alpine** | ~5MB | musl libc, busybox | 경량 컨테이너 |
-| **slim** | ~80MB | Debian 최소 설치 | glibc 필요 시 |
-| **기본** | ~100MB+ | 전체 OS | 디버깅, 호환성 |
+| **scratch** | 0B | 완전히 비어있음, CA 인증서 없음 | 정적 바이너리 (Go, Rust) |
+| **distroless** | ~2-20MB | Google 제공, 쉘 없음, 언어별 런타임만 | 프로덕션 보안 중시 |
+| **alpine** | ~5MB | musl libc, busybox, apk | 경량 컨테이너, 쉘 필요 시 |
+| **slim** | ~80MB | Debian 최소 설치, glibc | glibc 필요한 라이브러리 |
+| **기본** | ~100MB+ | 전체 OS 패키지 | 디버깅, 개발 환경 |
 
-**고려 요소:**
+**트레이드오프 상세 (함정 질문 빈출):**
 
-1. **이미지 크기**: 전송, 저장, 시작 시간 영향
+1. **Alpine의 musl libc 이슈:**
+   - 일부 C 라이브러리(특히 glibc 전용)와 비호환
+   - Python의 일부 패키지, Node.js native addon에서 문제 발생 가능
+   - DNS 해석 동작이 glibc와 다름 (특히 `/etc/hosts` 처리)
 
-2. **보안**: 작은 이미지 = 적은 공격 표면
+2. **scratch의 제약:**
+   - CA 인증서 없음 → HTTPS 호출 실패 (직접 복사 필요)
+   - 쉘 없음 → `docker exec` 디버깅 불가
+   - 사용자/그룹 없음 → USER 명령어 제한적
 
-3. **호환성**:
-   - Alpine의 musl libc는 일부 라이브러리와 비호환
-   - 네이티브 의존성 있으면 glibc 기반 권장
+3. **distroless 권장 이유:**
+   - 공격 표면 최소화 (쉘, 패키지 매니저 없음)
+   - CVE 스캔 시 취약점 적음
+   - 언어별 런타임(Java, Python, Node.js 등) 제공
 
-4. **디버깅 도구**: scratch는 shell 없음
-
-5. **패키지 관리자**:
-   - Alpine: apk
-   - Debian계열: apt
-
-**권장:**
-- Go/Rust 정적 바이너리: scratch 또는 distroless
-- Node.js/Python: alpine 또는 slim
-- 복잡한 의존성: slim
+**실무 권장:**
+- 보안 최우선: distroless 또는 scratch
+- 범용/디버깅 필요: alpine (단, musl 이슈 테스트 필수)
+- 복잡한 네이티브 의존성: slim
+- Node.js에서 native addon 사용 시: slim 권장 (alpine은 추가 빌드 도구 필요)
 
 **참고자료**
 - [Best practices for Dockerfile](https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#from)[^28]
@@ -1135,11 +1193,18 @@ Docker의 기본 네트워크 드라이버 종류(bridge, host, none, overlay)�
 
 | 드라이버 | 특징 | 사용 사례 |
 |----------|------|-----------|
-| **bridge** | 기본값, 가상 브릿지 네트워크 | 단일 호스트, 독립 컨테이너 |
-| **host** | 호스트 네트워크 스택 직접 사용 | 네트워크 성능 중요 시 |
-| **none** | 네트워크 비활성화 | 완전한 네트워크 격리 |
-| **overlay** | 다중 호스트 간 네트워크 | Docker Swarm, 클러스터 |
-| **macvlan** | 컨테이너에 MAC 주소 할당 | 물리 네트워크 직접 연결 |
+| **bridge** | 기본값, 가상 브릿지 네트워크, NAT 사용 | 단일 호스트, 독립 컨테이너 |
+| **host** | 호스트 네트워크 스택 직접 사용, 격리 없음 | 네트워크 성능 중요 시 (Linux만) |
+| **none** | 네트워크 비활성화, loopback만 존재 | 완전한 네트워크 격리 |
+| **overlay** | 다중 호스트 간 네트워크, VXLAN 사용 | Docker Swarm, 클러스터 |
+| **macvlan** | 컨테이너에 고유 MAC 주소 할당 | 레거시 앱, 물리 네트워크 직접 연결 |
+| **ipvlan** | macvlan과 유사, MAC 공유 | macvlan 제약이 있는 환경 |
+
+**네트워크 드라이버 선택 트레이드오프:**
+- **bridge**: 가장 안전하고 범용적이나 NAT 오버헤드 있음
+- **host**: 성능 최적이나 포트 충돌 위험, 보안 경계 약화
+- **overlay**: 멀티호스트에 필수이나 VXLAN 캡슐화로 약간의 성능 저하
+- **macvlan**: 외부 네트워크와 직접 통신 가능하나 호스트와 컨테이너 간 통신 복잡
 
 **예시:**
 ```bash
@@ -1225,15 +1290,16 @@ docker run -d --network host nginx
 ```
 
 **장점:**
-- 네트워크 성능 최적화 (지연 시간 감소)
+- 네트워크 성능 최적화 (NAT 오버헤드 제거, 지연 시간 감소)
 - 포트 매핑 복잡성 제거
 - 많은 포트 사용 시 편리
 
-**주의점:**
-1. **포트 충돌**: 호스트와 같은 포트 사용 불가
-2. **보안 위험**: 네트워크 격리 없음
+**주의점 (중요한 트레이드오프):**
+1. **포트 충돌**: 호스트와 같은 포트 사용 시 충돌 발생
+2. **보안 위험**: 네트워크 격리 없음 - 컨테이너가 호스트의 모든 네트워크 인터페이스 접근 가능
 3. **이식성 감소**: 호스트 네트워크 환경에 종속
-4. **Linux 전용**: macOS/Windows는 VM 내에서만 동작
+4. **Linux 전용**: macOS/Windows의 Docker Desktop은 VM 내에서 동작하므로 host 네트워크가 실제 호스트가 아닌 VM의 네트워크를 의미
+5. **컨테이너 간 통신**: localhost로 다른 컨테이너 접근 가능하여 의도치 않은 노출 위험
 
 **사용 사례:**
 - 네트워크 모니터링 도구
@@ -1503,11 +1569,17 @@ Docker에서 데이터를 영속화하는 세 가지 방법(volumes, bind mounts
 
 | 구분 | Volumes | Bind Mounts | tmpfs |
 |------|---------|-------------|-------|
-| **저장 위치** | Docker 관리 영역 | 호스트 파일 시스템 | 메모리 |
-| **관리** | Docker CLI | 직접 관리 | - |
-| **영속성** | 컨테이너 독립적 | 컨테이너 독립적 | 휘발성 |
-| **성능** | 좋음 | 좋음 | 매우 빠름 |
-| **이식성** | 높음 | 낮음 (경로 의존) | - |
+| **저장 위치** | Docker 관리 영역 (/var/lib/docker/volumes/) | 호스트 파일 시스템 임의 경로 | 메모리 (RAM) |
+| **관리** | Docker CLI로 관리 | 직접 관리 | - |
+| **영속성** | 컨테이너 독립적 | 컨테이너 독립적 | 휘발성 (컨테이너 종료 시 삭제) |
+| **성능 (Linux)** | 좋음 | 좋음 | 매우 빠름 |
+| **성능 (Mac/Win)** | 좋음 (VM 내부) | 느림 (osxfs/grpcfuse 오버헤드) | 좋음 |
+| **이식성** | 높음 | 낮음 (경로 의존) | Linux 전용 |
+| **초기 데이터** | 이미지 데이터 자동 복사 | 호스트 데이터 그대로 사용 | 비어있음 |
+
+**트레이드오프 상세:**
+- **Bind Mounts의 macOS/Windows 성능 문제**: Docker Desktop에서 호스트-VM 간 파일 동기화로 인해 node_modules 같은 많은 파일 접근 시 매우 느림. 해결책: 의존성은 볼륨에, 소스만 bind mount
+- **보안**: Bind mounts는 호스트 파일시스템에 직접 접근하므로 컨테이너가 민감한 파일 수정 가능
 
 **사용 예시:**
 ```bash
@@ -2021,16 +2093,21 @@ services:
 - `service_healthy`: healthcheck 통과
 - `service_completed_successfully`: 성공적으로 종료
 
-**한계점:**
+**한계점 (함정 질문 - 매우 중요):**
 
-1. **시작 순서만 보장**
-   - 애플리케이션이 "준비" 상태인지는 모름
-   - DB 컨테이너 시작 ≠ DB 연결 가능
+1. **시작 순서만 보장, "준비" 상태는 보장 안 함**
+   - `depends_on` 기본값은 컨테이너 "시작"만 기다림
+   - DB 컨테이너 시작 ≠ DB가 연결 받을 준비 완료
+   - 이것이 가장 흔한 Docker Compose 관련 문제
 
-2. **해결 방법:**
-   - healthcheck 사용 (권장)
-   - 애플리케이션에서 재시도 로직 구현
-   - wait-for-it.sh 같은 스크립트 사용
+2. **해결 방법 (우선순위 순):**
+   - `condition: service_healthy` + healthcheck 조합 (가장 권장)
+   - 애플리케이션 레벨에서 연결 재시도 로직 구현 (탄력성 확보)
+   - wait-for-it.sh, dockerize 같은 헬퍼 스크립트 (임시 해결책)
+
+3. **실무 Best Practice:**
+   - 애플리케이션은 항상 의존 서비스 장애에 대비해야 함
+   - depends_on만으로는 충분하지 않음을 인지
 
 ```yaml
 command: ["./wait-for-it.sh", "db:5432", "--", "npm", "start"]
@@ -2466,15 +2543,21 @@ Docker 컨테이너의 보안 위험 요소와 이를 완화하는 방법을 설
 <details>
 <summary>답변</summary>
 
-**주요 보안 위험:**
+**주요 보안 위험 (함정 질문 - 컨테이너 보안의 오해):**
 
 | 위험 | 완화 방법 |
 |------|-----------|
-| root 권한 실행 | non-root 사용자 사용 |
-| 취약한 이미지 | 이미지 스캐닝, 신뢰할 수 있는 베이스 이미지 |
-| 과도한 권한 | capabilities 제한 |
-| 민감 정보 노출 | secrets 관리, 환경 변수 주의 |
-| 컨테이너 탈출 | 커널 업데이트, seccomp/AppArmor |
+| root 권한 실행 | non-root 사용자 사용, User Namespace |
+| 취약한 이미지 | 이미지 스캐닝, 신뢰할 수 있는 베이스 이미지, 정기 업데이트 |
+| 과도한 권한 | capabilities 제한 (--cap-drop ALL 후 필요한 것만 추가) |
+| 민감 정보 노출 | Docker secrets, 외부 시크릿 관리 도구 (환경변수 사용 주의) |
+| 컨테이너 탈출 | 커널 업데이트, seccomp/AppArmor/SELinux, gVisor/Kata Containers |
+| Docker 소켓 노출 | /var/run/docker.sock 마운트 금지 (마운트 시 호스트 root 획득 가능) |
+
+**자주 오해하는 점:**
+- 컨테이너 != 가상 머신: 컨테이너 격리는 VM보다 약함
+- root in container = 잠재적 위험: User Namespace 없이 컨테이너 root는 호스트 root와 동일한 UID
+- `--privileged` 플래그는 모든 보안 장치 해제 - 프로덕션에서 절대 사용 금지
 
 **완화 방법:**
 
@@ -2549,11 +2632,18 @@ export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/docker.sock
 4. **다중 사용자 환경**
    - 각 사용자가 독립된 Docker 인스턴스 운영
 
-**제한사항:**
-- cgroups v2 필요
-- 일부 네트워크 기능 제한
-- 1024 미만 포트 바인딩 제한
-- overlay 스토리지 드라이버 제한 (일부 환경)
+**제한사항 (트레이드오프):**
+- cgroups v2 필요 (cgroups v1 환경에서는 추가 설정 필요)
+- 일부 네트워크 기능 제한 (ping 등 raw socket 사용 기능)
+- 1024 미만 포트 바인딩 제한 (slirp4netns 사용으로 우회 가능)
+- overlay2 스토리지 드라이버 제한 (fuse-overlayfs 사용)
+- AppArmor/SELinux 프로필 적용 방식 다름
+- Docker Swarm 모드 미지원
+
+**언제 사용해야 하나:**
+- 공유 시스템에서 각 사용자가 독립적으로 Docker 사용 시
+- 보안이 최우선인 환경
+- CI/CD 러너에서 Docker-in-Docker 대안으로
 
 **vs 일반 모드:**
 | 구분 | 일반 모드 | Rootless |
@@ -2670,17 +2760,20 @@ secrets:
     file: ./secrets/db_password.txt
 ```
 
-**환경 변수 vs Secrets:**
+**환경 변수 vs Secrets (중요한 보안 트레이드오프):**
 | 구분 | 환경 변수 | Secrets |
 |------|-----------|---------|
-| 저장 | 메모리 | tmpfs 파일 |
-| 암호화 | X | O (전송/저장 시) |
-| 노출 위험 | docker inspect로 노출 | 미노출 |
-| 용도 | 일반 설정 | 민감 정보 |
+| 저장 | 프로세스 환경 (메모리) | tmpfs 파일 (메모리) |
+| 암호화 | X | O (Swarm에서 전송/저장 시 암호화) |
+| 노출 위험 | `docker inspect`, `/proc/PID/environ`로 노출 | 권한 있는 컨테이너만 접근 |
+| 로그 노출 | 애플리케이션 로그에 실수로 출력되기 쉬움 | 파일이라 로그 출력 위험 낮음 |
+| 용도 | 일반 설정 | 비밀번호, API 키, 인증서 |
 
 **Best Practice:**
-- `_FILE` 접미사 패턴 사용
+- `_FILE` 접미사 패턴 사용 (예: `POSTGRES_PASSWORD_FILE`)
 - 환경 변수에 직접 비밀번호 넣지 않기
+- Compose의 secrets는 파일 기반이라 Swarm처럼 암호화되지 않음에 주의
+- 프로덕션에서는 HashiCorp Vault, AWS Secrets Manager 등 외부 시크릿 관리 도구 권장
 
 **참고자료**
 - [Manage sensitive data](https://docs.docker.com/engine/swarm/secrets/)[^58]
@@ -2788,12 +2881,19 @@ docker run --security-opt label=level:s0:c100,c200 myapp
 docker run --security-opt label=disable myapp
 ```
 
-**비교:**
+**비교 및 트레이드오프:**
 | 구분 | seccomp | AppArmor | SELinux |
 |------|---------|----------|---------|
-| 대상 | syscall | 파일/네트워크 | 전체 |
+| 대상 | syscall 필터링 | 파일/네트워크/capability | 전체 시스템 리소스 |
 | 복잡도 | 중간 | 낮음 | 높음 |
-| 배포판 | 전체 | Debian계열 | RHEL계열 |
+| 배포판 | 전체 (커널 3.17+) | Ubuntu/Debian | RHEL/CentOS/Fedora |
+| 디버깅 | 어려움 (syscall 추적 필요) | 로그 기반 | audit 로그 기반 |
+| 성능 영향 | 매우 낮음 | 낮음 | 낮음~중간 |
+
+**실무 권장사항:**
+- Docker 기본 seccomp 프로필은 300개 이상의 위험한 syscall 차단 - 대부분의 경우 기본값 유지
+- 커스텀 프로필 필요 시: 먼저 기본 프로필로 테스트 후 필요한 syscall만 추가
+- `--security-opt seccomp=unconfined`는 디버깅 시에만, 프로덕션에서는 절대 사용 금지
 
 **참고자료**
 - [Seccomp security profiles](https://docs.docker.com/engine/security/seccomp/)[^60]
@@ -2964,9 +3064,16 @@ services:
           cpus: '0.5'
 ```
 
-**--cpus vs --cpu-shares:**
-- `--cpus`: 절대적 제한 (항상 적용)
-- `--cpu-shares`: 상대적 (CPU 경쟁 시에만)
+**--cpus vs --cpu-shares (중요한 개념 차이):**
+- `--cpus`: 절대적 제한 - 1.5면 최대 1.5 CPU만 사용 가능 (CFS quota 기반)
+- `--cpu-shares`: 상대적 가중치 - CPU 경쟁이 있을 때만 적용, 유휴 CPU는 더 사용 가능
+  - 예: 컨테이너 A(shares=1024), B(shares=512)가 경쟁 시 A는 2/3, B는 1/3 할당
+  - 다른 컨테이너가 없으면 B도 100% CPU 사용 가능
+
+**실무 선택 기준:**
+- 예측 가능한 성능이 필요하면 `--cpus` 사용
+- 리소스 효율성을 원하면 `--cpu-shares` 사용
+- 둘 다 조합 가능
 
 **참고자료**
 - [Runtime options with Memory, CPUs](https://docs.docker.com/config/containers/resource_constraints/)[^63]
@@ -3027,9 +3134,16 @@ services:
           memory: 256M
 ```
 
-**OOM 발생 시:**
-- 기본: 컨테이너 프로세스 종료
-- `--oom-kill-disable`: 시스템이 멈출 수 있음 (위험)
+**OOM 발생 시 동작 (함정 질문):**
+- 기본: OOM Killer가 컨테이너 내 프로세스 중 점수가 높은 것 종료
+- 종료 코드 137 (128 + SIGKILL 9)
+- `--oom-kill-disable`: 메모리 부족 시 프로세스가 대기 상태로 빠져 시스템 hang 가능 - **프로덕션에서 절대 권장하지 않음**
+- `--memory` 없이 `--oom-kill-disable` 사용 시 경고 발생
+
+**실무 권장사항:**
+- 메모리 제한은 애플리케이션 실제 사용량의 1.5~2배로 설정
+- JVM 같은 경우 힙 메모리(-Xmx)와 컨테이너 메모리 제한 조율 필요
+- `--memory-reservation`은 소프트 리밋으로, 시스템 메모리 압박 시에만 적용
 
 **참고자료**
 - [Memory constraints](https://docs.docker.com/config/containers/resource_constraints/#memory)[^64]
@@ -3132,10 +3246,13 @@ services:
           rate: '1mb'
 ```
 
-**주의사항:**
-- 블록 디바이스 경로 필요
-- Direct I/O에만 적용 (버퍼링된 I/O는 제외)
-- cgroups v1/v2 지원 차이
+**주의사항 (함정 질문):**
+- 블록 디바이스 경로 필요 (볼륨 경로 아님)
+- **Direct I/O에만 적용** - 버퍼링된 I/O(일반적인 파일 작업)는 제한되지 않음
+  - 대부분의 애플리케이션은 버퍼 I/O 사용하므로 이 옵션이 효과 없을 수 있음
+  - O_DIRECT 플래그로 열린 파일에만 적용
+- cgroups v2에서는 `io.max`로 통합 관리
+- 실제 I/O 제한이 필요하면 cgroups v2 사용 권장
 
 **확인:**
 ```bash
@@ -3382,9 +3499,12 @@ docker-compose logs web db
 /var/lib/docker/containers/<container_id>/<container_id>-json.log
 ```
 
-**주의사항:**
-- 일부 로깅 드라이버(fluentd, awslogs 등)는 `docker logs` 미지원
-- 로그 크기 관리 필요 (로테이션 설정)
+**주의사항 (중요한 트레이드오프):**
+- 일부 로깅 드라이버(fluentd, awslogs, splunk 등)는 `docker logs` 미지원
+  - 이 경우 로그는 외부 시스템에서만 확인 가능
+  - 디버깅 시 불편 → `local` 또는 `json-file` + 외부 로그 수집기 조합 고려
+- 로그 크기 관리 필요 - 기본 json-file은 로테이션 없음 → 디스크 가득 참 문제
+- Docker 19.03+에서 `local` 드라이버 권장 (압축, 로테이션 기본 제공, docker logs 지원)
 
 **참고자료**
 - [docker logs](https://docs.docker.com/reference/cli/docker/container/logs/)[^70]
@@ -4563,12 +4683,15 @@ CMD ["/server"]
 - 빠른 pull/push
 - 빠른 컨테이너 시작
 
-**제한사항:**
-- 디버깅 어려움 (셸 없음)
-- debug 태그 버전으로 busybox 포함 가능
+**제한사항 및 트레이드오프:**
+- 디버깅 어려움 (셸 없음) - 운영 중 문제 분석이 복잡해짐
+- CA 인증서 업데이트를 위한 별도 빌드 필요
+- 특정 런타임만 지원 (범용성 제한)
+- debug 태그 버전으로 busybox 포함 가능 (개발/테스트용)
   ```dockerfile
   FROM gcr.io/distroless/static:debug
   ```
+- **대안**: `kubectl debug`나 ephemeral containers로 런타임 디버깅 가능
 
 **참고자료**
 - [GoogleContainerTools/distroless](https://github.com/GoogleContainerTools/distroless)[^88]
@@ -4783,10 +4906,15 @@ docker build \
   .
 ```
 
-**권장 사항:**
-- 프로덕션: Semantic Version + SHA
-- `latest`는 개발 환경에서만
-- 이미지 다이제스트로 완전한 불변성
+**권장 사항 (함정 질문 - latest 태그의 위험성):**
+- 프로덕션: Semantic Version + SHA 조합
+- **`latest` 태그의 문제점:**
+  - 어떤 버전인지 알 수 없음 (재현성 부족)
+  - 같은 태그가 다른 이미지를 가리킬 수 있음
+  - 롤백 시 어떤 버전으로 돌아가야 하는지 불명확
+  - Kubernetes의 `imagePullPolicy: Always`와 조합 시 예측 불가능한 배포
+- 이미지 다이제스트(`myapp@sha256:abc...`)로 완전한 불변성 보장
+- 프로덕션에서는 명시적 버전 태그 필수
 
 **참고자료**
 - [docker/metadata-action](https://github.com/docker/metadata-action)[^91]

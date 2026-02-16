@@ -1999,12 +1999,249 @@ Kafka Connect 자체는 CDC 기능이 없습니다:
 ### CDC-022
 Debezium 기반 데이터 파이프라인을 모니터링하고 관리하는 방법은 무엇인가요?
 
+<details>
+<summary>답변</summary>
+
+**Debezium 모니터링 전략:**
+
+**1. JMX 메트릭:**
+
+| 메트릭 | 의미 | 임계값 예시 |
+|--------|------|------------|
+| `MilliSecondsBehindSource` | 소스 대비 지연 시간 | > 60000ms 경고 |
+| `NumberOfEventsFiltered` | 필터링된 이벤트 수 | 비정상 증가 모니터링 |
+| `TotalNumberOfEventsSeen` | 처리된 총 이벤트 | 처리량 추적 |
+| `NumberOfDisconnects` | 연결 끊김 횟수 | > 0 조사 필요 |
+| `QueueTotalCapacity` | 큐 용량 | 사용률 모니터링 |
+| `QueueRemainingCapacity` | 남은 큐 용량 | < 20% 경고 |
+
+**2. Prometheus + Grafana 설정:**
+```yaml
+# Kafka Connect JMX Exporter 설정
+lowercaseOutputLabelNames: true
+lowercaseOutputName: true
+rules:
+  - pattern: "debezium.([^:]+)<type=connector-metrics, context=([^,]+), server=([^,]+)><>([^:]+)"
+    name: "debezium_$1_$4"
+    labels:
+      context: "$2"
+      server: "$3"
+```
+
+**3. 알림 규칙 예시:**
+```yaml
+# Prometheus AlertManager
+groups:
+  - name: debezium
+    rules:
+      - alert: DebeziumLag
+        expr: debezium_mysql_MilliSecondsBehindSource > 60000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Debezium lag is high"
+
+      - alert: DebeziumDisconnected
+        expr: debezium_mysql_Connected == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Debezium disconnected from MySQL"
+```
+
+**4. Kafka Connect REST API 모니터링:**
+```bash
+# 커넥터 상태 확인
+curl http://connect:8083/connectors/mysql-connector/status
+
+# 응답 예시
+{
+  "name": "mysql-connector",
+  "connector": { "state": "RUNNING", "worker_id": "connect:8083" },
+  "tasks": [
+    { "id": 0, "state": "RUNNING", "worker_id": "connect:8083" }
+  ]
+}
+```
+
+**5. Consumer Lag 모니터링:**
+```bash
+# Kafka Consumer Lag
+kafka-consumer-groups.sh --bootstrap-server kafka:9092 \
+  --describe --group my-consumer-group
+
+# 결과
+TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG
+dbserver1.mydb  0          1000            1050            50
+```
+
+**6. 로그 모니터링:**
+```
+주요 로그 패턴:
+- ERROR: 즉시 조사 필요
+- "Snapshot completed": 스냅샷 완료 확인
+- "Streaming changes": 스트리밍 모드 전환
+- "Connection refused": 연결 문제
+```
+
+**7. 대시보드 구성:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Debezium Dashboard                                          │
+├────────────────┬────────────────┬────────────────┬──────────┤
+│ Connector      │ Lag (ms)       │ Events/sec     │ Status   │
+│ mysql-conn     │ 150            │ 1,250          │ RUNNING  │
+│ postgres-conn  │ 5,230          │ 890            │ RUNNING  │
+├────────────────┴────────────────┴────────────────┴──────────┤
+│ [Lag Graph over time]                                       │
+├─────────────────────────────────────────────────────────────┤
+│ [Throughput Graph]                                          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**함정 질문 - "MilliSecondsBehindSource가 0이면 문제없나요?":**
+반드시 그렇지 않습니다:
+- 소스에 변경이 없으면 0일 수 있음
+- Heartbeat 설정으로 유휴 상태에서도 업데이트 필요
+- Consumer Lag도 함께 확인해야 함
+
+**운영 체크리스트:**
+- [ ] JMX Exporter 설정
+- [ ] Grafana 대시보드 구성
+- [ ] 알림 규칙 설정 (Lag, 연결 상태)
+- [ ] 로그 수집 (ELK/Loki)
+- [ ] Consumer Lag 모니터링
+
+**참고자료**
+- [Debezium Monitoring](https://debezium.io/documentation/reference/stable/operations/monitoring.html)
+
+</details>
+
 ---
 
 ## 📌 Debezium 연동 도구
 
 ### CDC-023
 Elasticsearch 동기화를 위해 Debezium과 함께 사용할 수 있는 오픈 소스 도구에는 어떤 것들이 있나요?
+
+<details>
+<summary>답변</summary>
+
+**Debezium + Elasticsearch 연동 도구:**
+
+**1. Kafka Connect Elasticsearch Sink (권장):**
+```json
+{
+  "name": "es-sink-connector",
+  "config": {
+    "connector.class": "io.confluent.connect.elasticsearch.ElasticsearchSinkConnector",
+    "topics": "dbserver1.inventory.products",
+    "connection.url": "http://elasticsearch:9200",
+    "type.name": "_doc",
+    "key.ignore": "false",
+    "transforms": "unwrap,extractKey",
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+    "transforms.extractKey.type": "org.apache.kafka.connect.transforms.ExtractField$Key",
+    "transforms.extractKey.field": "id"
+  }
+}
+```
+
+| 장점 | 단점 |
+|------|------|
+| Kafka Connect 생태계 통합 | 복잡한 변환 제한 |
+| 자동 재시도, DLQ | 학습 곡선 |
+| 관리 도구 통합 | Confluent 라이선스 고려 |
+
+**2. Logstash:**
+```ruby
+input {
+  kafka {
+    bootstrap_servers => "kafka:9092"
+    topics => ["dbserver1.inventory.products"]
+    codec => json
+    consumer_threads => 3
+  }
+}
+
+filter {
+  json {
+    source => "message"
+  }
+  mutate {
+    rename => { "[after][id]" => "id" }
+    rename => { "[after][name]" => "name" }
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["elasticsearch:9200"]
+    index => "products"
+    document_id => "%{id}"
+  }
+}
+```
+
+| 장점 | 단점 |
+|------|------|
+| 유연한 필터링 | 추가 인프라 |
+| ELK 스택 통합 | 리소스 사용량 |
+| 풍부한 플러그인 | 복잡한 파이프라인 관리 |
+
+**3. Kafka Streams (커스텀):**
+```java
+StreamsBuilder builder = new StreamsBuilder();
+builder.stream("dbserver1.inventory.products")
+    .mapValues(value -> extractAfterState(value))
+    .foreach((key, value) -> indexToElasticsearch(key, value));
+```
+
+| 장점 | 단점 |
+|------|------|
+| 완전한 제어 | 개발 필요 |
+| 복잡한 변환 가능 | 운영 부담 |
+| 상태 관리 가능 | 직접 구현 |
+
+**4. Debezium Server (Kafka 없이):**
+```json
+{
+  "debezium.source.connector.class": "io.debezium.connector.mysql.MySqlConnector",
+  "debezium.source.database.hostname": "mysql",
+  "debezium.sink.type": "http",
+  "debezium.sink.http.url": "http://elasticsearch:9200/_bulk"
+}
+```
+
+| 장점 | 단점 |
+|------|------|
+| Kafka 불필요 | 내구성 감소 |
+| 단순한 아키텍처 | 확장성 제한 |
+| 빠른 시작 | 복잡한 라우팅 어려움 |
+
+**5. 도구 비교:**
+
+| 도구 | 복잡도 | 유연성 | 운영 부담 | 추천 시나리오 |
+|------|--------|--------|----------|--------------|
+| **ES Sink Connector** | 낮음 | 중간 | 낮음 | 프로덕션 권장 |
+| **Logstash** | 중간 | 높음 | 중간 | 기존 ELK 사용 시 |
+| **Kafka Streams** | 높음 | 매우 높음 | 높음 | 복잡한 변환 필요 |
+| **Debezium Server** | 낮음 | 낮음 | 낮음 | 소규모/테스트 |
+
+**함정 질문 - "어떤 도구가 가장 좋은가요?":**
+상황에 따라 다릅니다:
+- **단순 동기화**: ES Sink Connector
+- **복잡한 데이터 가공**: Kafka Streams
+- **기존 ELK 환경**: Logstash
+- **Kafka 없는 환경**: Debezium Server
+
+**참고자료**
+- [Confluent Elasticsearch Connector](https://docs.confluent.io/kafka-connectors/elasticsearch/current/overview.html)
+- [Debezium Server](https://debezium.io/documentation/reference/stable/operations/debezium-server.html)
+
+</details>
 
 ---
 
@@ -2013,12 +2250,254 @@ Elasticsearch 동기화를 위해 Debezium과 함께 사용할 수 있는 오픈
 ### CDC-024
 Debezium의 snapshot 모드 사용 시 발생할 수 있는 문제와 그 해결 방안은 무엇인가요?
 
+<details>
+<summary>답변</summary>
+
+**Debezium Snapshot 문제와 해결 방안:**
+
+**1. 대용량 테이블 스냅샷 시간:**
+
+| 문제 | 해결 방안 |
+|------|----------|
+| 스냅샷 완료까지 수 시간 소요 | Incremental Snapshot 사용 |
+| Kafka Producer 타임아웃 | `producer.override.*` 조정 |
+| 메모리 부족 | `snapshot.fetch.size` 조정 |
+
+```json
+{
+  "snapshot.mode": "initial",
+  "snapshot.fetch.size": 10240,
+  "signal.data.collection": "mydb.debezium_signal",
+  "incremental.snapshot.chunk.size": 1024
+}
+```
+
+**2. 테이블 락 문제:**
+```
+문제: 스냅샷 중 쓰기 작업 차단
+
+해결:
+- snapshot.locking.mode = minimal (기본값)
+- 또는 none (일관성 trade-off)
+```
+
+| 모드 | 락 범위 | 일관성 |
+|------|--------|--------|
+| **extended** | 전체 스냅샷 동안 | 완벽 |
+| **minimal** | 스키마 읽기 시만 | 대부분 충분 |
+| **none** | 락 없음 | 일관성 보장 안 됨 |
+
+**3. Binlog 만료:**
+```
+문제: 스냅샷 중 binlog 만료 → 일부 변경 유실
+
+해결:
+- expire_logs_days 충분히 설정 (스냅샷 예상 시간 * 2)
+- 또는 snapshot.mode = when_needed
+```
+
+**4. 스냅샷 중단 후 재시작:**
+```
+문제: 스냅샷 50% 진행 후 중단 → 처음부터 다시 시작
+
+해결 (Debezium 1.6+):
+- Incremental Snapshot으로 청크 단위 재개
+- 각 청크 완료 시 오프셋 저장
+```
+
+**5. 스키마 변경 중 스냅샷:**
+```
+문제: 스냅샷 중 ALTER TABLE 실행 → 불일치 가능
+
+해결:
+- 스냅샷 완료 전 DDL 변경 자제
+- 또는 schema_only_recovery 후 재시작
+```
+
+**6. OOM (Out of Memory):**
+```json
+{
+  "snapshot.fetch.size": 2048,      // 기본 10240보다 줄임
+  "snapshot.max.threads": 1,        // 병렬 처리 제한
+  "max.queue.size": 4096            // 큐 크기 제한
+}
+```
+
+**7. Consumer 처리 속도:**
+```
+문제: 스냅샷 데이터 대량 발행 → Consumer 뒤처짐
+
+해결:
+- Consumer 병렬 처리 증가
+- 스냅샷 속도 제한 (snapshot.delay.ms)
+- 배치 처리 최적화
+```
+
+**트레이드오프 - 스냅샷 전략:**
+
+| 전략 | 장점 | 단점 |
+|------|------|------|
+| **전체 스냅샷** | 단순, 일관성 보장 | 시간 소요, 리소스 사용 |
+| **스키마만** | 빠른 시작 | 기존 데이터 없음 |
+| **증분 스냅샷** | 중단 재개 가능 | 설정 복잡 |
+
+**Incremental Snapshot 시그널:**
+```sql
+-- 스냅샷 시작
+INSERT INTO debezium_signal (id, type, data) VALUES
+('ad-hoc-1', 'execute-snapshot',
+ '{"data-collections": ["mydb.large_table"], "type": "incremental"}');
+
+-- 스냅샷 중단
+INSERT INTO debezium_signal (id, type, data) VALUES
+('ad-hoc-2', 'stop-snapshot',
+ '{"data-collections": ["mydb.large_table"], "type": "incremental"}');
+```
+
+**함정 질문 - "스냅샷 없이 시작할 수 있나요?":**
+가능하지만 주의 필요:
+- `snapshot.mode = never`: binlog 위치 직접 지정 필요
+- `snapshot.mode = schema_only`: 스키마만 캡처, 기존 데이터 없음
+- 기존 데이터가 필요하면 스냅샷 필수
+
+**참고자료**
+- [Debezium Incremental Snapshots](https://debezium.io/documentation/reference/stable/configuration/signalling.html)
+
+</details>
+
 ---
 
 ## 📌 MySQL 스키마 변경 대응
 
 ### CDC-025
 MySQL 데이터베이스 스키마 변경 시 Debezium은 어떻게 감지하고 대응하나요?
+
+<details>
+<summary>답변</summary>
+
+**Debezium MySQL 스키마 변경 처리:**
+
+**1. 스키마 변경 감지 원리:**
+```
+MySQL Binlog에서 DDL 이벤트 캡처:
+  - CREATE TABLE
+  - ALTER TABLE
+  - DROP TABLE
+  - RENAME TABLE
+
+→ 스키마 히스토리 토픽에 저장
+→ 인메모리 스키마 모델 업데이트
+```
+
+**2. 스키마 히스토리 토픽:**
+```json
+// 스키마 변경 이벤트
+{
+  "source": {
+    "server": "dbserver1"
+  },
+  "position": {
+    "file": "mysql-bin.000003",
+    "pos": 12345,
+    "gtid": "xxx:100"
+  },
+  "databaseName": "inventory",
+  "ddl": "ALTER TABLE products ADD COLUMN weight DECIMAL(10,2) DEFAULT 0",
+  "tableChanges": [
+    {
+      "type": "ALTER",
+      "id": "inventory.products",
+      "table": {
+        "columns": [...]
+      }
+    }
+  ]
+}
+```
+
+**3. 변경 유형별 대응:**
+
+| 변경 유형 | Debezium 동작 | 주의사항 |
+|----------|--------------|---------|
+| **컬럼 추가** | 자동 반영 | 새 컬럼 포함된 이벤트 발행 |
+| **컬럼 삭제** | 자동 반영 | 이전 이벤트와 구조 다름 |
+| **컬럼 타입 변경** | 자동 반영 | Consumer 영향 가능 |
+| **테이블 삭제** | 이벤트 중단 | 관련 토픽 처리 필요 |
+| **테이블 이름 변경** | 새 토픽 생성 | 라우팅 설정 필요 |
+
+**4. 스키마 레지스트리와 호환성:**
+```json
+{
+  "key.converter": "io.confluent.connect.avro.AvroConverter",
+  "value.converter": "io.confluent.connect.avro.AvroConverter",
+  "value.converter.schema.registry.url": "http://schema-registry:8081"
+}
+```
+
+**호환성 규칙:**
+| 호환성 모드 | 허용 변경 |
+|------------|----------|
+| BACKWARD | 컬럼 삭제, 기본값 있는 추가 |
+| FORWARD | 컬럼 추가 |
+| FULL | 기본값 있는 추가만 |
+| NONE | 모든 변경 허용 (주의) |
+
+**5. 문제 시나리오와 해결:**
+
+**시나리오 1: 비호환 스키마 변경**
+```
+문제: ALTER TABLE products MODIFY price VARCHAR(50);  -- INT → VARCHAR
+해결: Schema Registry 호환성 우회 또는 새 토픽 사용
+```
+
+**시나리오 2: 스키마 히스토리 손상**
+```json
+{
+  "snapshot.mode": "schema_only_recovery"
+}
+// 현재 스키마로 히스토리 재구축
+```
+
+**시나리오 3: 과거 스키마 필요**
+```
+커넥터 재시작 시 과거 binlog 재생 필요
+→ 스키마 히스토리에서 해당 시점 스키마 조회
+→ 올바른 스키마로 이벤트 파싱
+```
+
+**6. DDL 이벤트 발행 (선택):**
+```json
+{
+  "include.schema.changes": "true"
+}
+// 별도 토픽으로 DDL 이벤트 발행
+// 토픽: dbserver1 (서버 이름)
+```
+
+**트레이드오프 - 스키마 관리 전략:**
+
+| 전략 | 장점 | 단점 |
+|------|------|------|
+| **자동 진화** | 간편 | 비호환 변경 시 문제 |
+| **버전 관리** | 명시적 제어 | 운영 복잡 |
+| **토픽 분리** | 격리 | 마이그레이션 필요 |
+
+**함정 질문 - "DDL 변경이 바로 반영되나요?":**
+binlog에 기록된 후 반영됩니다:
+- DDL 문 실행 → binlog 기록 → Debezium 캡처
+- 약간의 지연 존재
+- DDL 직후 DML은 올바른 스키마로 처리됨
+
+**운영 권장사항:**
+- [ ] DDL 변경 전 Consumer 영향 분석
+- [ ] Schema Registry 호환성 모드 설정
+- [ ] 스키마 히스토리 토픽 백업
+- [ ] DDL 변경 알림 설정
+
+**참고자료**
+- [Debezium Schema History](https://debezium.io/documentation/reference/stable/connectors/mysql.html#mysql-schema-history-topic)
+
+</details>
 
 ---
 
@@ -2027,12 +2506,258 @@ MySQL 데이터베이스 스키마 변경 시 Debezium은 어떻게 감지하고
 ### CDC-026
 Debezium CDC 도입 프로젝트에서 발생할 수 있는 장애와 이를 예방하기 위한 모범 사례는 무엇인가요?
 
+<details>
+<summary>답변</summary>
+
+**Debezium CDC 장애 유형과 예방:**
+
+**1. 연결 관련 장애:**
+
+| 장애 | 원인 | 예방 방법 |
+|------|------|----------|
+| MySQL 연결 끊김 | 네트워크, 서버 재시작 | 자동 재연결, 타임아웃 설정 |
+| 인증 실패 | 비밀번호 변경, 권한 변경 | 모니터링, 알림 |
+| Kafka 연결 실패 | 브로커 장애 | 클러스터 구성, 재시도 |
+
+```json
+{
+  "database.connectionTimeZone": "UTC",
+  "database.connection.timeout.ms": 30000,
+  "connect.keep.alive": "true",
+  "connect.keep.alive.interval.ms": 60000
+}
+```
+
+**2. Binlog 관련 장애:**
+
+| 장애 | 원인 | 예방 방법 |
+|------|------|----------|
+| Binlog 만료 | 보관 기간 초과 | 충분한 expire_logs_days |
+| Binlog 누락 | GTID 미사용 | GTID 활성화 |
+| 위치 추적 실패 | 오프셋 손상 | 정기 백업 |
+
+```ini
+# MySQL 설정
+expire_logs_days = 7
+gtid_mode = ON
+enforce_gtid_consistency = ON
+```
+
+**3. 스냅샷 장애:**
+
+| 장애 | 원인 | 예방 방법 |
+|------|------|----------|
+| OOM | 대용량 테이블 | fetch.size 조정 |
+| 타임아웃 | 긴 스냅샷 시간 | Incremental Snapshot |
+| 락 충돌 | 프로덕션 쓰기 차단 | minimal locking |
+
+**4. 스키마 변경 장애:**
+
+| 장애 | 원인 | 예방 방법 |
+|------|------|----------|
+| Consumer 오류 | 비호환 변경 | Schema Registry |
+| 파싱 실패 | 스키마 히스토리 손상 | 백업, recovery 모드 |
+
+**5. 장애 대응 체크리스트:**
+```
+□ 연결 상태 모니터링 (JMX: Connected)
+□ 지연 모니터링 (MilliSecondsBehindSource)
+□ 오프셋 정기 백업
+□ 스키마 히스토리 백업
+□ Consumer Lag 모니터링
+□ Dead Letter Queue 설정
+□ 알림 규칙 설정
+```
+
+**6. 고가용성 구성:**
+```
+┌────────────────────────────────────────────────────────────┐
+│                   프로덕션 아키텍처                         │
+│                                                            │
+│  ┌──────────┐    ┌──────────────┐    ┌──────────────┐     │
+│  │  MySQL   │    │  Kafka       │    │  Kafka       │     │
+│  │  Primary │    │  Connect     │    │  Cluster     │     │
+│  │          │    │  (분산 모드)  │    │  (3+ 브로커) │     │
+│  └──────────┘    └──────────────┘    └──────────────┘     │
+│       │                │                    │              │
+│  ┌──────────┐    ┌──────────────┐                         │
+│  │  MySQL   │    │  Kafka       │    (자동 페일오버)       │
+│  │  Replica │    │  Connect     │                         │
+│  │  (대기)  │    │  Worker 2    │                         │
+│  └──────────┘    └──────────────┘                         │
+└────────────────────────────────────────────────────────────┘
+```
+
+**7. 모범 사례:**
+
+```
+설계 단계:
+□ 충분한 binlog 보관 기간 설정
+□ GTID 활성화
+□ 분산 모드 Kafka Connect 사용
+□ 멱등성 Consumer 설계
+
+운영 단계:
+□ 자동화된 모니터링/알림
+□ 정기 백업 (오프셋, 스키마 히스토리)
+□ 장애 복구 절차 문서화
+□ 정기 DR 훈련
+```
+
+**함정 질문 - "Debezium만 모니터링하면 되나요?":**
+아닙니다. 전체 파이프라인 모니터링 필요:
+- MySQL (복제 지연, binlog)
+- Debezium (연결, 지연)
+- Kafka (브로커 상태, 토픽)
+- Consumer (Lag, 처리율)
+- Target (ES 등 - 인덱싱 상태)
+
+**참고자료**
+- [Debezium Operations Guide](https://debezium.io/documentation/reference/stable/operations/index.html)
+
+</details>
+
 ---
 
 ## 📌 Debezium 최소 요구 사항
 
 ### CDC-027
 Debezium 커넥터를 구성하기 위한 최소 요구 사항과 권장 설정은 무엇인가요?
+
+<details>
+<summary>답변</summary>
+
+**Debezium MySQL 커넥터 요구 사항:**
+
+**1. MySQL 서버 요구 사항:**
+
+| 항목 | 최소 | 권장 |
+|------|------|------|
+| MySQL 버전 | 5.6+ | 8.0+ |
+| Binlog 형식 | ROW | ROW |
+| Binlog Row Image | FULL | FULL |
+| GTID | 선택 | ON (권장) |
+
+```ini
+# my.cnf 필수 설정
+[mysqld]
+server-id = 1
+log_bin = mysql-bin
+binlog_format = ROW
+binlog_row_image = FULL
+
+# 권장 설정
+gtid_mode = ON
+enforce_gtid_consistency = ON
+expire_logs_days = 3
+```
+
+**2. 사용자 권한:**
+```sql
+-- 최소 권한
+CREATE USER 'debezium'@'%' IDENTIFIED BY 'password';
+GRANT SELECT, RELOAD, SHOW DATABASES, REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'debezium'@'%';
+
+-- 스냅샷 락 사용 시 추가
+GRANT LOCK TABLES ON mydb.* TO 'debezium'@'%';
+
+-- 스키마 변경 DDL 캡처 시
+GRANT SUPER ON *.* TO 'debezium'@'%';  -- MySQL 5.x
+-- 또는
+GRANT FLUSH_TABLES ON *.* TO 'debezium'@'%';  -- MySQL 8.0+
+```
+
+**3. Kafka Connect 요구 사항:**
+
+| 항목 | 최소 | 권장 |
+|------|------|------|
+| Java | 11+ | 17+ |
+| Kafka | 2.0+ | 3.0+ |
+| 메모리 | 1GB | 4GB+ |
+| CPU | 1 코어 | 2+ 코어 |
+
+**4. 최소 커넥터 설정:**
+```json
+{
+  "name": "mysql-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+    "tasks.max": "1",
+    "database.hostname": "mysql-host",
+    "database.port": "3306",
+    "database.user": "debezium",
+    "database.password": "password",
+    "database.server.id": "1",
+    "topic.prefix": "dbserver1",
+    "database.include.list": "mydb",
+    "schema.history.internal.kafka.bootstrap.servers": "kafka:9092",
+    "schema.history.internal.kafka.topic": "schema-history.dbserver1"
+  }
+}
+```
+
+**5. 권장 추가 설정:**
+```json
+{
+  // 스냅샷 설정
+  "snapshot.mode": "initial",
+  "snapshot.locking.mode": "minimal",
+
+  // 성능 설정
+  "max.batch.size": 2048,
+  "max.queue.size": 8192,
+
+  // 안정성 설정
+  "heartbeat.interval.ms": 10000,
+  "database.history.kafka.recovery.attempts": 4,
+
+  // 모니터링
+  "provide.transaction.metadata": "true",
+
+  // 컨버터
+  "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+  "value.converter": "org.apache.kafka.connect.json.JsonConverter"
+}
+```
+
+**6. 네트워크 요구 사항:**
+
+| 연결 | 포트 | 용도 |
+|------|------|------|
+| MySQL | 3306 | 데이터베이스 연결 |
+| Kafka | 9092 | 메시지 발행 |
+| Schema Registry | 8081 | 스키마 관리 (선택) |
+
+**7. 토픽 설정:**
+```bash
+# 사전 생성 권장
+kafka-topics.sh --create --topic dbserver1.mydb.users \
+  --partitions 6 --replication-factor 3
+
+kafka-topics.sh --create --topic schema-history.dbserver1 \
+  --partitions 1 --replication-factor 3 \
+  --config cleanup.policy=delete \
+  --config retention.ms=-1
+```
+
+**트레이드오프 - 리소스 할당:**
+
+| 워크로드 | 메모리 | 코어 | 비고 |
+|----------|--------|------|------|
+| 소규모 (< 100 TPS) | 2GB | 1 | 개발/테스트 |
+| 중규모 (< 1000 TPS) | 4GB | 2 | 소규모 프로덕션 |
+| 대규모 (> 1000 TPS) | 8GB+ | 4+ | 대규모 프로덕션 |
+
+**함정 질문 - "ROW 형식 대신 MIXED 써도 되나요?":**
+**안 됩니다.** Debezium은 ROW 형식만 지원:
+- STATEMENT: SQL 문만 기록 → 실제 데이터 없음
+- MIXED: 일부 STATEMENT → 일부 이벤트 캡처 불가
+- ROW: 모든 변경 데이터 포함 → 필수
+
+**참고자료**
+- [Debezium MySQL Prerequisites](https://debezium.io/documentation/reference/stable/connectors/mysql.html#setting-up-mysql)
+
+</details>
 
 ---
 
@@ -2041,6 +2766,117 @@ Debezium 커넥터를 구성하기 위한 최소 요구 사항과 권장 설정�
 ### CDC-028
 Debezium의 메시지 처리 방식과 실패 시 offset 기반 재처리 메커니즘에 대해 설명해주세요.
 
+<details>
+<summary>답변</summary>
+
+**Debezium 재처리 메커니즘:**
+
+**1. 오프셋 기반 재처리:**
+```
+정상 처리 흐름:
+  Binlog 읽기 → 이벤트 생성 → Kafka 발행 → 오프셋 커밋
+
+장애 발생 시:
+  Binlog 읽기 → 이벤트 생성 → (장애) → 오프셋 커밋 X
+
+재시작:
+  마지막 커밋된 오프셋부터 재개 → 중복 발생 가능
+```
+
+**2. 재처리 시나리오:**
+
+| 시나리오 | 재처리 범위 | 영향 |
+|---------|------------|------|
+| 커넥터 재시작 | 마지막 오프셋 이후 | 최소 중복 |
+| Binlog 만료 | 전체 스냅샷 | 대량 재처리 |
+| 스키마 히스토리 손상 | 스키마 복구 후 | 설정에 따라 다름 |
+
+**3. 수동 오프셋 조정:**
+```bash
+# 현재 오프셋 확인
+kafka-console-consumer.sh --bootstrap-server kafka:9092 \
+  --topic connect-offsets --from-beginning \
+  --property print.key=true
+
+# 오프셋 수동 설정 (주의 필요!)
+echo '["mysql-connector",{"server":"dbserver1"}]|{"file":"mysql-bin.000005","pos":1000}' | \
+  kafka-console-producer.sh --bootstrap-server kafka:9092 \
+  --topic connect-offsets \
+  --property "parse.key=true" \
+  --property "key.separator=|"
+```
+
+**4. Ad-hoc 스냅샷 (재처리):**
+```sql
+-- 특정 테이블 재스냅샷 (Debezium 1.6+)
+INSERT INTO debezium_signal (id, type, data) VALUES
+('resync-1', 'execute-snapshot',
+ '{"data-collections": ["mydb.users"], "type": "incremental"}');
+```
+
+**5. 전체 재동기화:**
+```bash
+# 1. 커넥터 삭제
+curl -X DELETE http://connect:8083/connectors/mysql-connector
+
+# 2. 오프셋 삭제 (토픽에서 해당 커넥터 오프셋 tombstone 발행)
+# 또는 새 connector name 사용
+
+# 3. 커넥터 재생성 (initial 스냅샷)
+curl -X POST http://connect:8083/connectors \
+  -H "Content-Type: application/json" \
+  -d @connector-config.json
+```
+
+**6. Consumer 측 재처리:**
+```bash
+# Consumer Group 오프셋 리셋
+kafka-consumer-groups.sh --bootstrap-server kafka:9092 \
+  --group my-consumer --reset-offsets \
+  --topic dbserver1.mydb.users --to-earliest --execute
+```
+
+**7. 재처리 전략:**
+
+| 전략 | 방법 | 사용 시나리오 |
+|------|------|--------------|
+| **부분 재처리** | 오프셋 조정 | 특정 시점 이후 |
+| **테이블 재동기화** | Incremental Snapshot | 특정 테이블만 |
+| **전체 재동기화** | 커넥터 재생성 | 심각한 불일치 |
+
+**트레이드오프 - 재처리 방식:**
+
+| 방식 | 장점 | 단점 |
+|------|------|------|
+| **오프셋 조정** | 빠름, 부분적 | 정확한 위치 찾기 어려움 |
+| **Incremental Snapshot** | 유연, 안전 | 설정 필요 |
+| **전체 재시작** | 확실함 | 시간 소요 |
+
+**8. 재처리 시 주의사항:**
+```
+□ Consumer 멱등성 확인 (중복 처리 대비)
+□ 대상 시스템 부하 고려
+□ 처리 순서 의존성 확인
+□ 재처리 범위 최소화
+```
+
+**함정 질문 - "오프셋만 조정하면 재처리 가능한가요?":**
+스키마 히스토리도 고려해야 합니다:
+- 과거 오프셋으로 돌아가면 해당 시점의 스키마 필요
+- 스키마 히스토리에 해당 시점 정보가 있어야 함
+- 없으면 스키마 불일치로 파싱 실패
+
+**운영 권장사항:**
+- [ ] 정기적 오프셋 백업
+- [ ] 스키마 히스토리 백업
+- [ ] Incremental Snapshot 설정
+- [ ] 재처리 절차 문서화
+
+**참고자료**
+- [Debezium Incremental Snapshots](https://debezium.io/documentation/reference/stable/configuration/signalling.html)
+
+</details>
+
 ---
 
 ## 📌 Elasticsearch 인덱싱 최적화
@@ -2048,9 +2884,276 @@ Debezium의 메시지 처리 방식과 실패 시 offset 기반 재처리 메커
 ### CDC-029
 Debezium을 통해 Elasticsearch에 데이터를 동기화할 때 인덱싱 성능을 최적화하는 방법은 무엇인가요?
 
+<details>
+<summary>답변</summary>
+
+**Debezium → Elasticsearch 인덱싱 최적화:**
+
+**1. Kafka Connect ES Sink 설정:**
+```json
+{
+  "name": "es-sink-connector",
+  "config": {
+    "connector.class": "io.confluent.connect.elasticsearch.ElasticsearchSinkConnector",
+    "topics": "dbserver1.mydb.users",
+    "connection.url": "http://elasticsearch:9200",
+
+    // 배치 설정
+    "batch.size": 2000,
+    "linger.ms": 100,
+    "max.buffered.records": 20000,
+    "flush.timeout.ms": 180000,
+
+    // 병렬 처리
+    "max.in.flight.requests": 5,
+    "tasks.max": 4,
+
+    // 재시도 설정
+    "max.retries": 5,
+    "retry.backoff.ms": 100
+  }
+}
+```
+
+**2. Elasticsearch 인덱스 설정:**
+```json
+PUT /products
+{
+  "settings": {
+    "index": {
+      "refresh_interval": "5s",      // 기본 1s → 늘림
+      "number_of_replicas": 0,       // 초기 로드 시 0
+      "translog.durability": "async",
+      "translog.sync_interval": "5s"
+    }
+  }
+}
+```
+
+**3. 최적화 영역별 설정:**
+
+| 영역 | 설정 | 효과 |
+|------|------|------|
+| **배치 크기** | batch.size 증가 | Bulk API 효율 |
+| **지연 시간** | linger.ms 증가 | 배치 채움 |
+| **Refresh** | refresh_interval 증가 | 세그먼트 생성 감소 |
+| **Replica** | 초기 로드 시 0 | 복제 오버헤드 제거 |
+| **Translog** | async 모드 | fsync 감소 |
+
+**4. 인덱싱 성능 비교:**
+```
+설정 전: ~500 docs/sec
+  ↓
+배치 최적화: ~2,000 docs/sec
+  ↓
+Refresh 조정: ~5,000 docs/sec
+  ↓
+Replica 0: ~10,000 docs/sec
+```
+
+**5. 스냅샷 시 최적화:**
+```bash
+# 1. 스냅샷 전 인덱스 설정
+PUT /products/_settings
+{
+  "index": {
+    "refresh_interval": "-1",
+    "number_of_replicas": 0
+  }
+}
+
+# 2. 스냅샷 데이터 인덱싱
+# (Debezium → Kafka → ES Sink)
+
+# 3. 스냅샷 후 설정 복원
+PUT /products/_settings
+{
+  "index": {
+    "refresh_interval": "1s",
+    "number_of_replicas": 1
+  }
+}
+
+# 4. Force merge (선택)
+POST /products/_forcemerge?max_num_segments=1
+```
+
+**6. 트레이드오프:**
+
+| 최적화 | 이점 | 비용 |
+|--------|------|------|
+| **Refresh 증가** | 처리량 증가 | 검색 지연 |
+| **Replica 0** | 쓰기 2배 빠름 | 내구성 감소 |
+| **Translog async** | 쓰기 빠름 | 데이터 유실 위험 |
+| **Batch 증가** | 효율성 | 메모리 사용 |
+
+**7. 모니터링 메트릭:**
+```
+# Elasticsearch
+indexing_rate: 인덱싱 속도
+refresh_time: Refresh 시간
+merge_time: Segment merge 시간
+gc_time: GC 시간
+
+# Kafka Consumer
+consumer_lag: 처리 지연
+records_consumed_rate: 소비 속도
+```
+
+**8. 문서 구조 최적화:**
+```json
+// Debezium → ES 변환 (SMT)
+{
+  "transforms": "unwrap,flatten",
+  "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+  "transforms.flatten.type": "org.apache.kafka.connect.transforms.Flatten$Value",
+  "transforms.flatten.delimiter": "_"
+}
+```
+
+**함정 질문 - "배치 크기를 무한정 늘리면 좋은가요?":**
+아닙니다:
+- 너무 큰 배치: 메모리 부족, 타임아웃
+- ES Bulk API 권장: 5-15MB
+- 문서 크기에 따라 batch.size 조정
+
+**운영 권장사항:**
+- [ ] 초기 로드 vs 스트리밍 설정 분리
+- [ ] Refresh interval 워크로드에 맞게 조정
+- [ ] 인덱싱 속도 모니터링
+- [ ] Bulk 실패 시 DLQ 설정
+
+**참고자료**
+- [Elasticsearch Indexing Speed](https://www.elastic.co/guide/en/elasticsearch/reference/current/tune-for-indexing-speed.html)
+- [Confluent ES Connector Config](https://docs.confluent.io/kafka-connectors/elasticsearch/current/configuration_options.html)
+
+</details>
+
 ---
 
 ## 📌 Debezium 프로젝트 경험
 
 ### CDC-030
 Debezium을 활용한 MySQL-Elasticsearch 연동 프로젝트에서 겪은 경험과 주요 교훈에 대해 공유해주세요.
+
+<details>
+<summary>답변</summary>
+
+**Debezium MySQL-ES 프로젝트 경험과 교훈:**
+
+**1. 프로젝트 개요 (예시 시나리오):**
+```
+요구사항: 상품 데이터 실시간 검색
+- MySQL: 원본 데이터 (products, categories, inventory)
+- Elasticsearch: 검색 인덱스
+- 목표: Near Real-time 동기화 (< 3초)
+```
+
+**2. 주요 문제와 해결:**
+
+**문제 1: 초기 스냅샷 너무 오래 걸림**
+```
+상황: 1억 건 테이블 스냅샷 → 12시간 소요
+원인: 전체 테이블 락, 단일 스레드
+
+해결:
+- Incremental Snapshot 도입 (Debezium 1.6+)
+- snapshot.fetch.size 조정 (10240 → 5000)
+- 비즈니스 시간 외 수행
+```
+
+**문제 2: Binlog 만료로 커넥터 실패**
+```
+상황: 주말 후 커넥터 재시작 → binlog 없음
+원인: expire_logs_days = 1
+
+해결:
+- expire_logs_days = 7 (스냅샷 시간 * 2)
+- snapshot.mode = when_needed
+- 모니터링 알림 추가
+```
+
+**문제 3: 스키마 변경 후 Consumer 오류**
+```
+상황: ALTER TABLE ADD COLUMN → ES Sink 실패
+원인: 새 필드가 매핑에 없음
+
+해결:
+- Schema Registry 도입
+- ES 매핑 사전 정의 + dynamic: true (신규 필드)
+- DDL 변경 프로세스 수립
+```
+
+**문제 4: 데이터 불일치**
+```
+상황: MySQL 100만 건, ES 99.8만 건
+원인: 중복 처리 시 일부 누락, DELETE 처리 오류
+
+해결:
+- 정기 카운트 비교 스크립트
+- Consumer 멱등성 강화
+- DELETE 이벤트 처리 로직 수정
+```
+
+**3. 아키텍처 발전:**
+```
+v1 (초기):
+  MySQL → Debezium → Kafka → ES Sink → ES
+  문제: 단순하지만 변환 제한
+
+v2 (개선):
+  MySQL → Debezium → Kafka → Kafka Streams → Kafka → ES Sink → ES
+  장점: 복잡한 변환 가능, 조인 처리
+
+v3 (현재):
+  MySQL → Debezium → Kafka → [SMT 변환] → ES Sink → ES
+                         → [별도 Consumer] → 알림 서비스
+  장점: SMT로 대부분 처리, 필요시 별도 Consumer
+```
+
+**4. 교훈 정리:**
+
+| 영역 | 교훈 |
+|------|------|
+| **설계** | 처음부터 멱등성 고려, 스키마 관리 계획 |
+| **운영** | 모니터링 필수, 백업 자동화 |
+| **스냅샷** | 대용량 테이블은 Incremental 필수 |
+| **스키마** | 변경 전 영향도 분석, Registry 사용 |
+| **테스트** | 장애 시나리오 테스트 중요 |
+
+**5. 성능 결과:**
+```
+Before (쿼리 기반 동기화):
+- 동기화 지연: 5-15분
+- DB 부하: 높음 (주기적 SELECT)
+- 누락: DELETE 감지 불가
+
+After (Debezium CDC):
+- 동기화 지연: 1-3초
+- DB 부하: 낮음 (binlog만 읽음)
+- 누락: 없음 (DELETE 포함)
+```
+
+**6. 체크리스트 (프로젝트 시작 시):**
+```
+□ MySQL binlog 설정 확인 (ROW, FULL)
+□ GTID 활성화 여부
+□ 테이블 크기 및 스냅샷 전략
+□ 스키마 변경 빈도 및 관리 방안
+□ 목표 지연 시간 정의
+□ 장애 복구 절차 수립
+□ 모니터링/알림 설계
+```
+
+**함정 질문 - "CDC가 모든 동기화 문제를 해결하나요?":**
+아닙니다. 여전히 고려할 점이 있습니다:
+- 참조 무결성 (FK 관계)
+- 집계/조인 데이터
+- 최종 일관성 수용
+- Consumer 장애 처리
+
+**참고자료**
+- [Debezium Best Practices](https://debezium.io/documentation/reference/stable/operations/index.html)
+- [Debezium FAQ](https://debezium.io/documentation/faq/)
+
+</details>

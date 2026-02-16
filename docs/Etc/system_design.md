@@ -175,10 +175,19 @@ EDA에서 서비스 간의 데이터 흐름을 관리하는 두 가지 방식인
 <details>
 <summary>답변</summary>
 
-1. **클러스터링**: 다중 브로커 노드 구성 (Kafka 클러스터)
-2. **레플리케이션**: 파티션 복제 (replication factor)
-3. **다중 데이터센터**: 지역 간 복제
-4. **Circuit Breaker**: 장애 시 폴백 처리
+**인프라 측면**:
+1. **클러스터링**: 다중 브로커 노드 구성
+2. **레플리케이션**: 파티션 복제 (replication factor >= 3 권장)
+3. **다중 데이터센터**: 지역 간 복제 (MirrorMaker 2)
+
+**클라이언트 측면**:
+4. **Circuit Breaker**: 브로커 장애 시 폴백
+5. **재시도 로직**: exponential backoff
+6. **로컬 버퍼링**: 일시적 장애 시 메시지 임시 저장
+
+**트레이드오프**:
+- 복제 수 증가 → 내구성 향상, 쓰기 지연 증가
+- 다중 DC → 가용성 향상, 운영 복잡도 및 비용 증가
 
 **참고자료**
 - [Kafka Replication](https://kafka.apache.org/documentation/#replication)[^8]
@@ -259,13 +268,25 @@ Kafka의 "Exactly-once"는 **Kafka 내부 처리**에만 해당. 외부 시스�
 <details>
 <summary>답변</summary>
 
-**중요성**: 프로듀서/컨슈머 간 계약. 스키마 불일치 시 파싱 오류.
+**중요성**:
+- 프로듀서/컨슈머 간 계약 역할
+- 스키마 불일치 시 파싱 오류 및 서비스 장애
+- 독립적 배포를 위한 필수 요소
 
-**하위 호환성 보장**:
-1. 새 필드는 optional/default 값 지정
-2. 기존 필드 삭제 금지
-3. Schema Registry 사용 (Avro, Protobuf)
-4. 버전 관리
+**호환성 유형**:
+- **Backward**: 새 스키마로 이전 데이터 읽기 가능
+- **Forward**: 이전 스키마로 새 데이터 읽기 가능
+- **Full**: 양방향 호환
+
+**하위 호환성 보장 규칙**:
+1. 새 필드는 optional 또는 default 값 필수
+2. 기존 필수 필드 삭제 금지
+3. 필드 타입 변경 금지
+
+**실무 권장**:
+- Schema Registry 사용 (Confluent, AWS Glue)
+- 직렬화: Avro, Protobuf (JSON은 검증 약함)
+- CI/CD에 스키마 호환성 검사 통합
 
 **참고자료**
 - [Confluent Schema Registry](https://docs.confluent.io/platform/current/schema-registry/)[^11]
@@ -630,12 +651,20 @@ SAGA 패턴을 구현하는 두 가지 방식인 'Choreography(이벤트 기반 
 <details>
 <summary>답변</summary>
 
-**기준**:
-1. **이벤트 수 기반**: N개 이벤트마다 (예: 100개)
-2. **시간 기반**: 주기적 (예: 매일)
-3. **성능 기반**: 재생 시간이 임계치 초과 시
+**결정 기준**:
+1. **이벤트 수 기반**: N개 이벤트마다 (예: 100-1000개)
+2. **시간 기반**: 주기적 (예: 매시간, 매일)
+3. **성능 기반**: 재생 시간이 SLA 임계치 초과 시
 
-**트레이드오프**: 저장 공간 vs 읽기 성능
+**트레이드오프**:
+| 스냅샷 빈도 | 저장 공간 | 읽기 성능 | 쓰기 부하 |
+|------------|-----------|-----------|-----------|
+| 높음 | 많음 | 빠름 | 높음 |
+| 낮음 | 적음 | 느림 | 낮음 |
+
+**실무 권장**:
+- SLA 기준 역산: 목표 응답시간 내 재생 가능한 이벤트 수 계산
+- 백그라운드에서 비동기로 스냅샷 생성
 
 **참고자료**
 - [Axon Framework - Snapshotting](https://docs.axoniq.io/reference-guide/axon-framework/tuning/event-snapshots)[^27]
@@ -792,10 +821,21 @@ CQRS의 Command-Query 모델 동기화 과정에서 발생하는 '지연(lag)'�
 <details>
 <summary>답변</summary>
 
-1. **UI 낙관적 업데이트**: 쓰기 후 UI에서 바로 반영
-2. **Read-your-writes**: 쓴 사용자는 자신의 변경 즉시 조회
-3. **Polling/WebSocket**: 동기화 완료 시 알림
-4. **버전 체크**: 데이터 버전으로 최신 여부 확인
+**전략 1: UI/UX 패턴**
+- **낙관적 업데이트**: 쓰기 후 UI 즉시 반영 (실패 시 롤백)
+- **로딩 상태**: "저장 중...", "동기화 중..." 표시
+
+**전략 2: Read-your-writes 일관성**
+- 쓴 사용자는 자신의 변경을 즉시 조회
+- 구현: 쓰기 후 일정 시간 Command 모델에서 직접 읽기
+
+**전략 3: 실시간 알림**
+- WebSocket/SSE로 동기화 완료 시 클라이언트에 알림
+
+**전략 4: 버전/타임스탬프**
+- 응답에 버전 포함, 기대 버전과 비교
+
+**트레이드오프**: 구현 복잡도 vs 사용자 경험
 
 **참고자료**
 - [Eventual Consistency](https://www.allthingsdistributed.com/2008/12/eventually_consistent.html)[^35]
@@ -1161,13 +1201,20 @@ Cassandra의 Consistent Hashing에서 '가상 노드(Virtual Nodes)'가 왜 필�
 <details>
 <summary>답변</summary>
 
-**문제**: 물리 노드만 사용 시 불균등한 데이터 분포
+**문제**: 물리 노드만 사용 시 발생하는 이슈
+- 노드가 적으면 해시 링에서 불균등 분포
+- 노드 추가/제거 시 인접 노드에만 부하 집중
 
-**Vnode 해결책**:
-- 각 물리 노드가 여러 가상 노드 담당
+**Vnode (Virtual Nodes) 해결책**:
+- 각 물리 노드가 **여러 토큰 범위** 담당
 - 기본 256개 vnode per 물리 노드
+
+**장점**:
 - 균등한 데이터 분포 보장
-- 노드 추가/제거 시 부하 분산
+- 노드 추가/제거 시 여러 노드가 부하 분담
+- 이기종 하드웨어 지원 (강력한 서버에 더 많은 vnode)
+
+**트레이드오프**: 메타데이터 증가, 복구 시 스트리밍 연결 수 증가
 
 **참고자료**
 - [Cassandra Virtual Nodes](https://cassandra.apache.org/doc/latest/cassandra/architecture/dynamo.html#virtual-nodes)[^52]
@@ -1203,15 +1250,21 @@ Vitess나 Citus와 같이 RDBMS를 샤딩해주는 미들웨어는 어떤 원리
 <details>
 <summary>답변</summary>
 
-**처리 방법**:
-- Scatter-Gather: 모든 샤드에 쿼리 후 결과 병합
+**처리 방법**: Scatter-Gather - 모든 관련 샤드에 쿼리 후 결과 병합
 
 **성능 문제**:
-1. 네트워크 지연 증가
-2. 가장 느린 샤드에 종속
-3. 메모리 사용량 증가 (결과 병합)
+1. 네트워크 지연 증가 (다중 샤드 통신)
+2. Tail Latency: 가장 느린 샤드가 전체 응답 결정
+3. 메모리 증가 (결과 병합/정렬)
+4. 페이지네이션 복잡
 
-**최적화**: 샤드 키 포함 쿼리 유도
+**최적화 전략**:
+1. **샤드 키 포함 쿼리 유도**: 쿼리에 샤드 키 조건 추가
+2. **병렬 실행**: 샤드 쿼리 동시 실행
+3. **캐싱**: 자주 사용되는 크로스 샤드 결과 캐싱
+4. **비정규화**: 자주 조회 데이터 복제
+
+**트레이드오프**: 비정규화 → 조회 성능 향상, 쓰기 복잡도 증가
 
 **참고자료**
 - [Vitess Query Serving](https://vitess.io/docs/concepts/query-serving/)[^54]
@@ -2082,17 +2135,32 @@ RDBMS와 NoSQL(Key-Value, Document, Graph) 각각의 특징을 설명하고, 언
 <details>
 <summary>답변</summary>
 
-**RDBMS**: 정형 데이터, ACID, 복잡한 쿼리/조인, 강한 일관성
-→ 트랜잭션 중요, 관계형 데이터
+**RDBMS (PostgreSQL, MySQL)**:
+- 특징: 정형 데이터, ACID, 복잡한 조인, 강한 일관성
+- 적합: 금융, ERP, 관계형 데이터
+- 제한: 수평 확장 어려움
 
-**Key-Value (Redis)**: 단순 조회, 높은 성능
-→ 캐싱, 세션
+**Key-Value (Redis, DynamoDB)**:
+- 특징: 단순 조회, 매우 높은 성능
+- 적합: 캐싱, 세션, 실시간 카운터
+- 제한: 복잡한 쿼리 불가
 
-**Document (MongoDB)**: 유연한 스키마, 중첩 구조
-→ 콘텐츠 관리, 카탈로그
+**Document (MongoDB, Couchbase)**:
+- 특징: 유연한 스키마, JSON 중첩
+- 적합: 콘텐츠 관리, 카탈로그
+- 제한: 조인 비효율
 
-**Graph (Neo4j)**: 관계 탐색 최적화
-→ 소셜 네트워크, 추천
+**Wide-Column (Cassandra, HBase)**:
+- 특징: 대용량 쓰기, 시계열
+- 적합: IoT, 로그, 시계열 분석
+- 제한: 복잡한 쿼리 불가
+
+**Graph (Neo4j)**:
+- 특징: 관계 탐색 최적화
+- 적합: 소셜 네트워크, 추천
+- 제한: 집계 쿼리 비효율
+
+**선택 기준**: ACID 필수 → RDBMS, 높은 쓰기 → Wide-Column, 유연한 스키마 → Document, 관계 분석 → Graph
 
 **참고자료**
 - [DB-Engines Ranking](https://db-engines.com/en/ranking)[^92]
@@ -2148,9 +2216,19 @@ API 게이트웨이는 MSA에서 어떤 역할을 하며, 왜 필요한가요?
 **역할**:
 1. **단일 진입점**: 클라이언트에게 하나의 엔드포인트 제공
 2. **라우팅**: 요청을 적절한 서비스로 전달
-3. **인증/인가**: 중앙화된 보안
-4. **Rate Limiting**: 트래픽 제어
-5. **응답 집계**: 여러 서비스 응답 병합
+3. **인증/인가**: 중앙화된 보안 (JWT 검증, OAuth)
+4. **Rate Limiting**: 트래픽 제어, DDoS 방어
+5. **응답 집계**: 여러 서비스 응답 병합 (BFF 패턴)
+6. **프로토콜 변환**: REST ↔ gRPC
+7. **캐싱**: 응답 캐싱으로 백엔드 부하 감소
+
+**트레이드오프**:
+- 장점: 횡단 관심사 중앙화, 서비스 변경 시 클라이언트 영향 최소화
+- 단점: SPOF 위험, 추가 네트워크 홉, 병목 가능
+
+**대규모 시스템 고려**:
+- Gateway 고가용성 (클러스터링, 다중 리전)
+- 분산 트레이싱 통합
 
 **참고자료**
 - [Kong Gateway](https://docs.konghq.com/)[^94]
@@ -2165,16 +2243,25 @@ API 게이트웨이는 MSA에서 어떤 역할을 하며, 왜 필요한가요?
 <details>
 <summary>답변</summary>
 
-**Service Mesh**: 서비스 간 통신을 담당하는 인프라 계층 (Sidecar Proxy)
+**Service Mesh 정의**: 서비스 간 통신을 담당하는 **전용 인프라 계층**, Sidecar Proxy 배치
 
 **차이점**:
 | 비교 | API Gateway | Library | Service Mesh |
 |------|-------------|---------|--------------|
-| 위치 | Edge | 애플리케이션 내 | Sidecar |
+| 위치 | Edge (외부 경계) | 애플리케이션 내 | Sidecar (각 Pod) |
 | 범위 | North-South | 애플리케이션 | East-West |
-| 언어 | 무관 | 언어별 | 무관 |
+| 언어 의존 | 무관 | 언어별 | 무관 |
+| 업데이트 | Gateway만 | 앱 재배포 | Proxy만 |
 
-**예시**: Istio, Linkerd
+**Service Mesh 기능**: mTLS, 트래픽 관리, 관찰성, 회복력
+
+**트레이드오프**:
+- 장점: 언어 독립적, 일관된 정책, 앱 코드 간소화
+- 단점: 운영 복잡도 증가, 추가 리소스, 디버깅 어려움
+
+**도입 시점**: 다양한 언어 혼용, 엄격한 보안 요구, 대규모 MSA (10개 이상)
+
+**예시**: Istio, Linkerd, Consul Connect
 
 **참고자료**
 - [Istio Documentation](https://istio.io/latest/docs/)[^95]

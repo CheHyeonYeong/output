@@ -58,7 +58,8 @@ Elasticsearch에서 데이터 분산 저장을 위한 Primary Shard와 고가용
 
 **Primary Shard(프라이머리 샤드)**:
 - 인덱스의 데이터를 수평 분할한 단위입니다
-- 인덱스 생성 시 샤드 수가 결정되며, 이후 변경이 어렵습니다
+- 인덱스 생성 시 샤드 수가 결정됩니다
+- 변경이 필요한 경우 Split API(샤드 증가) 또는 Shrink API(샤드 감소)를 사용하거나 Reindex가 필요합니다
 - 각 도큐먼트는 하나의 프라이머리 샤드에만 저장됩니다
 
 **Replica Shard(레플리카 샤드)**:
@@ -71,7 +72,7 @@ Elasticsearch에서 데이터 분산 저장을 위한 Primary Shard와 고가용
 | 구분 | Primary Shard | Replica Shard |
 |------|---------------|---------------|
 | 역할 | 데이터 저장/쓰기 | 복제/읽기 분산 |
-| 변경 | 인덱스 생성 시 고정 | 동적 변경 가능 |
+| 변경 | Split/Shrink API 또는 Reindex 필요 | 동적 변경 가능 |
 | 필수 여부 | 필수 | 선택 |
 
 **참고자료**
@@ -182,6 +183,13 @@ Query DSL에서 전문 검색용 Match 쿼리와 정확한 값 매칭용 Term �
 
 **핵심 차이**: Match는 분석기 적용 O, Term은 분석기 적용 X
 
+**주의사항 (함정)**:
+- `text` 필드에 Term Query 사용 시 예상과 다른 결과가 나올 수 있습니다
+- 예: "Quick Brown Fox"가 text 필드에 저장되면 "quick", "brown", "fox"로 인덱싱됨
+- `term: { "content": "Quick" }`는 매칭 실패 (대소문자 불일치)
+- `term: { "content": "quick" }`는 매칭 성공
+- **권장**: text 필드는 Match Query, keyword 필드는 Term Query 사용
+
 **참고자료**
 - [Match query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-match-query.html)[^6]
 - [Term query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-term-query.html)[^7]
@@ -255,6 +263,11 @@ Query DSL에서 여러 쿼리를 논리적으로 조합하는 Bool 쿼리의 구
 ```
 
 **성능 팁**: 점수 계산이 필요 없는 조건은 `filter`를 사용하여 캐싱 이점을 활용하세요.
+
+**주의사항 (함정)**:
+- `should` 절만 있고 `must`나 `filter`가 없으면 `minimum_should_match: 1`이 자동 적용
+- `must`나 `filter`가 있으면 `should`는 선택적 (점수에만 영향)
+- `must_not`은 점수에 영향 없음 - 필터링만 수행
 
 **참고자료**
 - [Boolean query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-bool-query.html)[^9]
@@ -333,10 +346,12 @@ Analyzers, Tokenizers, Filters의 역할과 설정 방법에 대해 설명해주
 **처리 순서**: Character Filters → Tokenizer → Token Filters
 
 **내장 Analyzer**:
-- `standard`: 기본 분석기, 유니코드 텍스트 분할
-- `simple`: 문자가 아닌 곳에서 분할, 소문자 변환
-- `whitespace`: 공백 기준 분할
-- `keyword`: 전체 텍스트를 하나의 토큰으로
+- `standard`: 기본 분석기, 유니코드 텍스트 분할, 소문자 변환
+- `simple`: 비문자에서 분할, 소문자 변환 (숫자 제거됨 - 주의)
+- `whitespace`: 공백 기준 분할만 (대소문자 유지)
+- `keyword`: 전체 텍스트를 하나의 토큰으로 (분석 없음)
+- `pattern`: 정규식 기반 분할 (기본: 비단어 문자)
+- `language analyzers`: english, korean 등 언어별 최적화
 
 **커스텀 Analyzer 설정**:
 ```json
@@ -403,6 +418,21 @@ Mapping의 개념과 동적 매핑(Dynamic Mapping) 및 명시적 매핑(Explici
 | 타입 정확성 | 추론 기반 | 명시적 |
 | 유연성 | 높음 | 낮음 |
 | 권장 환경 | 개발 | 프로덕션 |
+
+**주의사항 (함정)**:
+- Dynamic Mapping으로 생성된 필드 타입은 **이후 변경 불가** - Reindex 필요
+- 문자열 `"123"`은 text+keyword로, 숫자 `123`은 long으로 매핑됨 - 일관성 유지 중요
+- `"2024-01-01"` 형식은 자동으로 date 타입 추론 - 다른 형식은 text로 저장될 수 있음
+- **권장**: `dynamic: strict` 설정으로 예상치 못한 필드 추가 방지
+
+```json
+{
+  "mappings": {
+    "dynamic": "strict",
+    "properties": { ... }
+  }
+}
+```
 
 **참고자료**
 - [Mapping](https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html)[^12]
@@ -591,6 +621,10 @@ Nested 타입과 Object 타입의 차이점 및 사용 시 주의사항에 대�
 **주의사항**:
 - Nested 객체 수 제한: 기본 10,000개 (`index.mapping.nested_objects.limit`)
 - 많은 Nested 객체는 힙 메모리와 검색 성능에 영향
+- **성능 트레이드오프**:
+  - Object: 빠르지만 배열 내 객체 관계 손실 (크로스 매칭 문제)
+  - Nested: 관계 유지되지만 각 객체가 별도 Lucene 문서로 저장되어 인덱스 크기 증가
+- **선택 기준**: 객체 간 관계가 중요하면 Nested, 단순 검색이면 Object 또는 Flattened 타입 고려
 
 **참고자료**
 - [Nested field type](https://www.elastic.co/guide/en/elasticsearch/reference/current/nested.html)[^16]
@@ -685,7 +719,9 @@ Elasticsearch의 인덱스 설정(Index Settings)과 매핑 설정(Mapping Setti
 - 과도한 샤드 분산 방지
 
 **4. 하드웨어/설정**:
-- 충분한 힙 메모리 (최대 32GB, 전체 메모리의 50%)
+- 충분한 힙 메모리 (전체 메모리의 50%, 최대 약 31GB 권장)
+  - 32GB 이하: JVM Compressed OOPs 활성화로 메모리 효율성 향상
+  - 32GB 초과 시 Compressed OOPs 비활성화되어 오히려 성능 저하 가능
 - SSD 사용 권장
 - `refresh_interval` 조정 (인덱싱 성능 vs 검색 최신성)
 
@@ -991,9 +1027,12 @@ discovery.seed_hosts: ["node1", "node2"]
 ```
 
 **2. 샤드 전략**:
-- 초기 샤드 수 적절히 설정 (이후 변경 어려움)
-- 샤드 크기 권장: 10-50GB
+- 초기 샤드 수 적절히 설정 (변경 시 Split/Shrink API 또는 Reindex 필요)
+- 샤드 크기 권장: 10-50GB (공식 문서 권장, 워크로드에 따라 다름)
 - 노드당 샤드 수: 힙 1GB당 20개 이하
+- **트레이드오프**:
+  - 샤드가 너무 많으면: 마스터 노드 부하, 메모리 오버헤드
+  - 샤드가 너무 적으면: 병렬 처리 제한, 스케일 아웃 어려움
 
 **3. 인덱스 분할 전략**:
 - **시간 기반 인덱스**: `logs-2024.01`, `logs-2024.02`
@@ -1276,6 +1315,12 @@ POST /_search/scroll
 
 **Point in Time (PIT)** + Search After: 일관된 스냅샷 + 효율적 페이징
 
+**선택 가이드 (트레이드오프)**:
+- 실시간 UI 페이징: Search After (변경되는 데이터 반영)
+- 대량 데이터 추출/내보내기: Scroll (일관된 스냅샷)
+- 일관성 + 효율성 모두 필요: PIT + Search After
+- **주의**: Scroll은 deprecation 논의 중, 새 프로젝트는 PIT + Search After 권장
+
 **참고자료**
 - [Paginate search results](https://www.elastic.co/guide/en/elasticsearch/reference/current/paginate-search-results.html)[^28]
 
@@ -1512,8 +1557,14 @@ PUT /index/_doc/1?if_seq_no=10&if_primary_term=1
 
 **RDBMS 트랜잭션이 필요한 경우**:
 - 애플리케이션 레벨에서 보상 트랜잭션 구현
-- RDBMS를 Source of Truth로, ES는 검색용으로 분리
-- 2PC(Two-Phase Commit) 패턴 직접 구현
+- RDBMS를 Source of Truth로, ES는 검색용으로 분리 (권장 패턴)
+- Outbox 패턴 + CDC로 데이터 동기화
+- 2PC(Two-Phase Commit)는 분산 환경에서 성능과 복잡성 문제로 비권장
+
+**함정 주의**:
+- ES를 primary database로 사용하지 마세요
+- Bulk API의 부분 실패는 롤백되지 않습니다
+- 동시성 제어는 `if_seq_no` + `if_primary_term`으로 Optimistic Lock만 가능
 
 **참고자료**
 - [Reading and writing documents](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-replication.html)[^32]
@@ -1569,9 +1620,16 @@ PUT _cluster/settings
 5. 다음 노드 반복
 
 **주의사항**:
-- 인덱스 호환성 (N-1 버전까지만 지원)
-- 매핑/설정 변경사항 확인
+- 인덱스 호환성: Elasticsearch N 버전은 N-1 버전에서 생성된 인덱스만 읽기 가능
+- 예: ES 8.x는 ES 7.x 인덱스 지원, ES 6.x 인덱스는 Reindex 필요
+- 매핑/설정 변경사항 확인 - Breaking Changes 문서 필수 검토
 - 충분한 테스트 환경에서 사전 검증
+- **Upgrade Assistant 활용**: Kibana에서 업그레이드 전 문제 진단 가능
+
+**트레이드오프**:
+- Rolling Upgrade: 무중단, 시간 오래 걸림, 버전 호환성 제약
+- Full Cluster Restart: 빠름, 다운타임 발생
+- Reindex from Remote: 가장 유연, 리소스/시간 많이 소요
 
 **참고자료**
 - [Upgrade Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/setup-upgrade.html)[^33]
@@ -1647,6 +1705,13 @@ PUT /logs-000001
   }
 }
 ```
+
+**주의사항 및 트레이드오프**:
+- ILM 폴링 주기 기본값: 10분 (`indices.lifecycle.poll_interval`)
+- `min_age`는 인덱스 생성 또는 롤오버 시점 기준
+- **Shrink 주의**: 모든 샤드가 단일 노드에 있어야 함 - 대용량에서 실패 가능
+- **Forcemerge 주의**: 쓰기 작업 중인 인덱스에서는 성능 저하 유발
+- Hot-Warm-Cold 적용 시 노드 간 데이터 이동에 시간/리소스 소요
 
 **참고자료**
 - [ILM: Manage the index lifecycle](https://www.elastic.co/guide/en/elasticsearch/reference/current/index-lifecycle-management.html)[^34]
@@ -1949,12 +2014,16 @@ POST /my_index/_analyze
       "korean_analyzer": {
         "type": "custom",
         "tokenizer": "nori_tokenizer",
-        "filter": ["nori_part_of_speech"]
+        "filter": ["nori_part_of_speech", "nori_readingform"]
       }
     }
   }
 }
 ```
+- Nori 플러그인 설치 필요: `bin/elasticsearch-plugin install analysis-nori`
+- `nori_tokenizer`: 한글 형태소 분석
+- `nori_part_of_speech`: 불필요한 품사 제거 (조사, 어미 등)
+- `nori_readingform`: 한자를 한글 독음으로 변환
 
 **참고자료**
 - [Create a custom analyzer](https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-custom-analyzer.html)[^39]
@@ -2061,9 +2130,11 @@ POST _bulk
 **성능 최적화**:
 
 1. **적절한 배치 크기**:
-   - 권장: 5-15MB per request
-   - 문서 수보다 바이트 크기 기준
-   - 테스트로 최적값 찾기
+   - 권장: 5-15MB per request (Elastic 공식 권장)
+   - 문서 수보다 바이트 크기 기준 - 문서 크기에 따라 조절
+   - 테스트로 최적값 찾기 (클러스터/워크로드에 따라 다름)
+   - 너무 큰 배치: 메모리 압박, 타임아웃 위험
+   - 너무 작은 배치: 오버헤드 증가
 
 2. **병렬 처리**:
    - 여러 스레드에서 동시 Bulk 요청
@@ -2371,6 +2442,16 @@ GET _tasks/task_id
 - `refresh: false` - 완료 후 수동 refresh
 - `requests_per_second` - 스로틀링
 
+**주의사항 및 트레이드오프**:
+- Reindex는 새 인덱스에 데이터를 복사하므로 디스크 공간이 2배 필요
+- 대용량 인덱스는 시간이 오래 걸림 - 서비스 중단 없이 진행하려면 Alias 전환 방식 사용
+- 원격 Reindex 시 `reindex.remote.whitelist` 설정 필요
+- **권장 절차**:
+  1. 새 인덱스 생성 (새 매핑 적용)
+  2. Reindex 실행 (비동기)
+  3. 완료 후 Alias를 새 인덱스로 전환
+  4. 기존 인덱스 삭제
+
 **참고자료**
 - [Reindex API](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-reindex.html)[^44]
 
@@ -2531,6 +2612,14 @@ GET /logs/_doc/1
 - 다중 문서 트랜잭션 미지원
 - 분산 환경에서 가용성과 성능 우선
 
+**트레이드오프 (CAP 정리 관점)**:
+- Elasticsearch는 AP(Availability, Partition tolerance) 시스템에 가까움
+- Strong Consistency보다 Availability와 성능을 우선시
+- **실무 팁**:
+  - 검색용으로 ES 사용, Source of Truth는 RDBMS 유지
+  - `refresh=true`는 성능 저하를 유발하므로 꼭 필요한 경우에만 사용
+  - `refresh=wait_for`는 다음 주기적 refresh까지 대기 (절충안)
+
 **참고자료**
 - [Near real-time search](https://www.elastic.co/guide/en/elasticsearch/reference/current/near-real-time.html)[^46]
 
@@ -2569,10 +2658,12 @@ GET /logs/_doc/1
 ```
 
 **2. doc_values 비활성화** (정렬/집계 불필요 시):
+- 주의: `text` 필드는 기본적으로 doc_values가 비활성화되어 있음
+- `keyword`, 숫자, 날짜 등 정렬/집계에 사용하지 않는 필드에 적용
 ```json
 {
   "properties": {
-    "description": { "type": "text", "doc_values": false }
+    "code": { "type": "keyword", "doc_values": false }
   }
 }
 ```
@@ -2968,8 +3059,10 @@ POST _snapshot/my_backup/snapshot_1/_restore
 ```
 
 **5. Split-Brain**:
-- **예방**: `discovery.zen.minimum_master_nodes` (7.x 이전)
-- 7.x 이후 자동 quorum 관리
+- **7.x 이전**: `discovery.zen.minimum_master_nodes` 설정 필요 (N/2 + 1)
+- **7.x 이후**: 자동 quorum 관리로 설정 불필요
+  - `cluster.initial_master_nodes`로 초기 마스터 노드 지정
+  - 이후 클러스터가 자동으로 투표 설정 관리
 
 **모니터링 및 예방**:
 ```json
@@ -3046,8 +3139,18 @@ FROM logs | WHERE status == 500 | STATS count = COUNT(*) BY host
 - TSDS (Time Series Data Streams)
 - 시계열 데이터 최적화 저장
 
+**9. Logsdb 인덱싱 모드** (8.15+):
+- 로그 데이터에 최적화된 인덱싱
+- synthetic _source로 저장 공간 최대 50% 절감
+
+**10. Semantic Text 필드** (8.15+):
+- 시맨틱 검색을 위한 새로운 필드 타입
+- 자동 벡터 임베딩 및 검색
+
 **참고자료**
 - [What's new in Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/release-highlights.html)[^52]
+
+**면접 팁**: 최신 기능은 계속 업데이트되므로 공식 Release Highlights 확인 권장
 
 </details>
 

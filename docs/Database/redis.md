@@ -18,7 +18,7 @@ Redis(Remote Dictionary Server)는 오픈소스 인메모리 데이터 구조 �
 **주요 특징:**
 - **인메모리 저장**: 모든 데이터를 메모리에 저장하여 매우 빠른 읽기/쓰기 성능 제공
 - **다양한 데이터 구조**: String, List, Set, Sorted Set, Hash, Stream 등 지원
-- **싱글 스레드**: 단일 스레드로 명령을 처리하여 원자성 보장
+- **싱글 스레드 명령 처리**: 명령어 실행은 단일 스레드로 처리하여 원자성 보장 (Redis 6.0+에서는 I/O 처리를 위한 멀티스레드 도입, 단 명령 실행 자체는 여전히 싱글 스레드)
 - **Persistence**: RDB 스냅샷과 AOF 로그를 통한 데이터 영속성 지원
 - **복제 및 클러스터링**: Master-Replica 복제와 Redis Cluster를 통한 고가용성 및 확장성
 - **Pub/Sub**: 실시간 메시징 기능 제공
@@ -146,9 +146,9 @@ Redis에서 Persistence를 위해 지원하는 RDB와 AOF 방식의 차이점과
 
 | 장점 | 단점 |
 |-----|-----|
-| 컴팩트한 단일 파일로 백업 용이 | 스냅샷 간 데이터 손실 가능 |
-| 복구 속도 빠름 | 대용량 데이터 시 fork() 부하 |
-| AOF보다 빠른 재시작 | |
+| 컴팩트한 단일 파일로 백업/재해복구 용이 | 스냅샷 간 데이터 손실 가능 (수분 단위) |
+| 복구 속도 빠름 (AOF 대비) | 대용량 데이터 시 fork() 부하로 일시 지연 발생 가능 |
+| Replica 부분 재동기화 지원 | |
 
 **AOF (Append Only File)**
 - 모든 쓰기 명령을 로그로 기록
@@ -156,13 +156,22 @@ Redis에서 Persistence를 위해 지원하는 RDB와 AOF 방식의 차이점과
 
 | 장점 | 단점 |
 |-----|-----|
-| 데이터 손실 최소화 (최대 1초) | 파일 크기가 RDB보다 큼 |
-| 사람이 읽을 수 있는 로그 | 복구 시간이 더 길 수 있음 |
-| Rewrite로 파일 크기 최적화 | 쓰기 성능 약간 저하 |
+| 데이터 손실 최소화 (everysec 시 최대 1초) | 파일 크기가 RDB보다 큼 |
+| 손상 시 부분 복구 가능 | 복구 시간이 더 길 수 있음 |
+| Rewrite로 파일 크기 최적화 | Redis < 7.0에서 rewrite 중 메모리 사용 증가 |
+
+**appendfsync 옵션 비교:**
+
+| 설정 | 동작 | 특징 |
+|-----|-----|-----|
+| `always` | 매 쓰기마다 fsync | 가장 안전, 가장 느림 |
+| `everysec` | 1초마다 fsync | **권장** - 안전성과 성능 균형 |
+| `no` | OS에 위임 | 가장 빠름, ~30초 데이터 손실 위험 |
 
 **권장 설정:**
-- 둘 다 활성화하여 상호 보완
+- PostgreSQL 수준의 데이터 안전성이 필요하면 **RDB + AOF 둘 다 활성화**
 - AOF로 내구성 확보, RDB로 빠른 복구 및 백업
+- 캐시 전용이면 persistence 비활성화도 고려
 
 **참고자료**
 - [Redis Persistence](https://redis.io/docs/management/persistence/)[^5]
@@ -214,8 +223,20 @@ PUBLISH cache:invalidate "user:profile:123"
 - 이벤트 기반 아키텍처 구현
 
 **주의사항:**
-- 메시지 영속성 필요 시 Redis Streams 권장
-- 대규모 시스템에서는 Kafka 등 전용 메시지 브로커 고려
+- **메시지 손실 가능**: 구독자 없으면 메시지 유실, 연결 끊긴 동안 메시지 놓침
+- **재전송 없음**: 구독자가 메시지 수신 실패해도 재시도 없음
+- **백프레셔 없음**: 느린 구독자가 있어도 발행자 차단 안 됨
+- 메시지 영속성/순서 보장 필요 시 **Redis Streams** 권장
+- 대규모 시스템에서는 Kafka, RabbitMQ 등 전용 메시지 브로커 고려
+
+**Pub/Sub vs Streams 선택 기준:**
+
+| 요구사항 | Pub/Sub | Streams |
+|---------|---------|---------|
+| 메시지 저장 | 불필요 | 필요 |
+| Consumer Group | 불필요 | 필요 |
+| 단순성 | 우선 | 복잡해도 OK |
+| 사용 사례 | 실시간 알림 | 작업 큐, 이벤트 소싱 |
 
 **참고자료**
 - [Redis Pub/Sub](https://redis.io/docs/interact/pubsub/)[^6]
@@ -261,6 +282,12 @@ Node C: 슬롯 10923-16383
 - 자동 페일오버로 고가용성 확보
 - 데이터 자동 재분배
 
+**주의사항 (트레이드오프):**
+- **강한 일관성 미보장**: 비동기 복제로 인해 페일오버 시 확인된 쓰기 손실 가능
+- **멀티키 연산 제한**: 같은 해시 슬롯에 있는 키만 멀티키 연산 가능 (Hash Tag 필요)
+- **최소 3개 마스터 필요**: 프로덕션 환경에서는 6노드(3마스터+3레플리카) 권장
+- **Docker/NAT 환경 제한**: `--net=host` 모드 필요
+
 **참고자료**
 - [Redis Cluster Specification](https://redis.io/docs/reference/cluster-spec/)[^7]
 
@@ -301,10 +328,25 @@ Redis Sentinel의 역할은 무엇이며, Redis Cluster와 달리 어떻게 고�
 5. 리더가 최적의 Replica를 Master로 승격
 ```
 
+**Quorum vs Majority 차이:**
+- **Quorum**: 장애 감지(ODOWN)에 필요한 Sentinel 수
+- **Majority**: 실제 페일오버 승인에 필요한 Sentinel 수 (과반수)
+- 예: 5개 Sentinel, quorum=2 → 2개가 장애 동의, 3개가 페일오버 승인 필요
+
 **권장 구성:**
 - 최소 3개의 Sentinel 인스턴스 (홀수 권장)
 - 서로 다른 물리 서버/가용 영역에 배치
 - quorum 설정으로 페일오버 결정 기준 지정
+
+**Sentinel vs Cluster 선택 기준:**
+
+| 항목 | Sentinel | Cluster |
+|-----|----------|---------|
+| 용도 | 단일 마스터 HA | 데이터 샤딩 + HA |
+| 데이터 분산 | 없음 | 자동 샤딩 (16,384 슬롯) |
+| 복잡도 | 상대적 단순 | 더 복잡 |
+| 확장성 | 수직 확장 위주 | 수평 확장 |
+| 선택 기준 | 단일 인스턴스로 충분한 용량 | 대용량/고처리량 필요 시 |
 
 **참고자료**
 - [Redis Sentinel](https://redis.io/docs/management/sentinel/)[^8]
@@ -491,11 +533,17 @@ Redis에서 MULTI/EXEC 트랜잭션의 한계를 보완하기 위해 Lua 스크�
 <details>
 <summary>답변</summary>
 
+**MULTI/EXEC의 한계:**
+- 큐잉 단계에서 값을 읽고 그 값에 따라 다른 명령 실행 불가
+- 조건부 로직 구현 불가 (예: IF-THEN-ELSE)
+- 롤백 없음
+
 **Lua 스크립트 사용 이유:**
 
-1. **원자성 보장**
+1. **완전한 원자성 보장**
    - 스크립트 전체가 단일 명령처럼 원자적 실행
    - 중간에 다른 명령 끼어들지 않음
+   - 에러 발생 시 부분 실행 없음 (MULTI/EXEC와 차이)
 
 2. **네트워크 왕복 감소**
    - 여러 명령을 한 번의 호출로 실행
@@ -503,7 +551,7 @@ Redis에서 MULTI/EXEC 트랜잭션의 한계를 보완하기 위해 Lua 스크�
 
 3. **복잡한 로직 구현**
    - 조건문, 반복문 등 프로그래밍 로직 사용 가능
-   - MULTI/EXEC로 불가능한 연산 구현
+   - 중간 값을 읽고 그에 따라 다른 명령 실행 가능 (MULTI/EXEC 불가)
 
 **사용 예시 - Rate Limiter:**
 
@@ -534,10 +582,16 @@ EVALSHA <sha1> 1 mykey
 **이점 정리:**
 | 장점 | 설명 |
 |-----|-----|
-| 원자성 | 경쟁 상태 방지 |
+| 원자성 | 완전한 원자성으로 경쟁 상태 방지 |
 | 성능 | 네트워크 RTT 최소화 |
-| 재사용성 | EVALSHA로 캐싱된 스크립트 재사용 |
+| 재사용성 | EVALSHA로 캐싱된 스크립트 재사용 (SHA1 해시) |
 | 유연성 | 복잡한 비즈니스 로직 서버사이드 실행 |
+
+**주의사항:**
+- 스크립트 실행 중 전체 Redis 블로킹 (긴 스크립트 주의)
+- 기본 5초 타임아웃 (`lua-time-limit` 설정)
+- 외부 네트워크 호출, 파일 I/O 불가
+- Cluster 환경에서 모든 키는 같은 슬롯에 있어야 함
 
 **참고자료**
 - [Redis Scripting](https://redis.io/docs/interact/programmability/eval-intro/)[^12]
@@ -778,10 +832,13 @@ Redis 복제 환경에서 데이터 정합성을 보장하기 위한 방법(WAIT
 
 **데이터 정합성 보장 방법:**
 
-**1. 동기 복제 설정**
+**1. WAIT 명령 (동기 복제)**
 ```bash
+SET key value
 WAIT 1 5000  # 최소 1개 Replica에 복제 완료까지 5초 대기
 ```
+- **중요**: WAIT는 복제본 존재만 확인하며, **강한 일관성을 보장하지 않음**
+- 페일오버 시 WAIT로 확인된 쓰기도 손실 가능 (persistence 설정에 따라)
 - **한계**: 지연시간 증가, Replica 장애 시 쓰기 차단 가능
 
 **2. 최소 Replica 요구사항**
@@ -789,7 +846,9 @@ WAIT 1 5000  # 최소 1개 Replica에 복제 완료까지 5초 대기
 min-replicas-to-write 1
 min-replicas-max-lag 10
 ```
-- **한계**: Replica 부족 시 쓰기 불가
+- Master가 N개 이상의 Replica와 M초 이내 연결 시에만 쓰기 허용
+- 데이터 손실 시간 윈도우를 제한 (best-effort)
+- **한계**: Replica 부족 시 쓰기 불가, 강한 일관성 아닌 시간 제한된 손실 범위
 
 **3. Lua 스크립트 활용**
 - 복잡한 연산을 원자적으로 실행
@@ -799,13 +858,18 @@ min-replicas-max-lag 10
 - Optimistic Locking으로 동시성 제어
 - **한계**: 충돌 시 재시도 필요
 
-**Redis의 근본적 한계:**
+**Redis의 근본적 한계 (함정 질문 포인트):**
 
 | 한계 | 설명 |
 |-----|-----|
 | 비동기 복제 | 기본적으로 Master 쓰기 후 응답, Replica 복제는 비동기 |
+| WAIT != 강한 일관성 | WAIT는 복제 확인만, 페일오버 시 데이터 손실 가능 |
 | 최종 일관성 | 강한 일관성 보장 불가 (CAP에서 AP 성향) |
 | 페일오버 데이터 손실 | Master 장애 시 미복제 데이터 손실 가능 |
+
+**실무 권장:**
+- 강한 일관성이 필수인 경우 Redis보다 RDBMS 또는 Raft 기반 시스템 고려
+- Redis는 "best-effort" 데이터 안전성 제공
 
 **참고자료**
 - [Redis Consistency](https://redis.io/docs/management/replication/)[^17]
@@ -984,16 +1048,29 @@ Redis 장시간 운영 시 발생할 수 있는 메모리 단편화(mem_fragment
 <summary>답변</summary>
 
 **메모리 단편화란?**
-- 할당된 메모리와 실제 사용 메모리 간 차이
-- `mem_fragmentation_ratio`로 확인 (1.0-1.5 정상, 1.5 이상 주의)
+- OS가 할당한 물리 메모리(RSS)와 Redis가 실제 사용하는 메모리(used_memory) 간 차이
+- `mem_fragmentation_ratio = RSS / used_memory`로 확인
+
+**정상 범위 및 해석:**
+
+| 비율 | 상태 | 설명 |
+|-----|-----|-----|
+| 1.0 ~ 1.5 | 정상 | 약간의 단편화는 정상 |
+| 1.5 이상 | 주의 | 메모리 낭비 발생, 단편화 해소 필요 |
+| 1.0 미만 | 위험 | 스왑 사용 중 가능성 (심각한 성능 저하) |
+
+**중요**: 피크 메모리 사용 후 데이터 삭제 시 RSS가 바로 감소하지 않아 단편화율이 높게 보일 수 있음 (정상 동작)
 
 **발생 원인:**
 - 다양한 크기의 키/값 반복 생성/삭제
 - 긴 시간 운영으로 메모리 공간 분산
+- 피크 사용 후 데이터 삭제 (RSS 미반환)
 
 **확인 방법:**
 ```bash
 INFO memory
+# used_memory: Redis가 할당한 메모리
+# used_memory_rss: OS가 할당한 실제 물리 메모리
 # mem_fragmentation_ratio: RSS / used_memory
 ```
 
@@ -1016,7 +1093,7 @@ active-defrag-cycle-max 25
 
 **4. 데이터 구조 최적화**
 - 비슷한 크기의 키/값 사용
-- Hash의 ziplist 인코딩 활용
+- Hash의 listpack 인코딩 활용 (Redis 7.0+에서 ziplist를 대체)
 
 **참고자료**
 - [Redis Memory Optimization](https://redis.io/docs/management/optimization/memory-optimization/)[^21]
@@ -1042,15 +1119,24 @@ Redis는 **Lazy Expiration + Active Expiration** 두 가지 방식 조합 사용
 **1. Lazy Expiration (수동적)**
 - 클라이언트가 키에 접근할 때 만료 여부 확인
 - 만료되었으면 삭제 후 nil 반환
+- 접근하지 않는 키는 메모리에 남아있을 수 있음
 
 **2. Active Expiration (능동적)**
-- 백그라운드에서 주기적으로 실행 (초당 10회)
+- 백그라운드에서 주기적으로 실행 (기본 hz=10, 초당 10회 실행)
 - 만료 설정된 키 중 무작위 20개 샘플링
-- 만료된 키 삭제, 25% 이상이면 반복
+- 만료된 키 삭제, 샘플 중 25% 이상 만료 시 반복 (최대 25ms)
+
+**동작 예시:**
+```
+1. 20개 키 샘플링
+2. 만료된 키 삭제
+3. 25% 이상 만료 → 1단계 반복
+4. 25% 미만 또는 25ms 경과 → 종료
+```
 
 **효율적인 만료 처리 전략:**
 
-**1. 만료 시간 분산**
+**1. 만료 시간 분산 (Cache Stampede 방지)**
 ```python
 base_ttl = 3600
 jitter = random.randint(0, 300)
@@ -1062,10 +1148,13 @@ redis.setex(key, base_ttl + jitter, value)
 CONFIG SET notify-keyspace-events Ex
 SUBSCRIBE __keyevent@0__:expired
 ```
+- **주의**: 만료 이벤트는 best-effort, 보장되지 않음
 
 **주의사항:**
 - 만료 키가 많으면 Active Expiration에 CPU 사용
-- Replica에서는 Master의 DEL 명령 수신 시 삭제
+- Replica에서는 자체적으로 키 만료하지 않음, Master의 DEL 명령 대기
+- 비양수 TTL 설정 시 즉시 삭제 (expired 이벤트가 아닌 del 이벤트 발생)
+- RENAME 시 TTL은 새 키로 이전됨
 
 **참고자료**
 - [Redis EXPIRE](https://redis.io/commands/expire/)[^22]
@@ -1101,15 +1190,21 @@ WAIT 1 5000  # 1개 Replica 복제 완료까지 최대 5초 대기
 |-----|-----------|-----------------|
 | 응답 시점 | 즉시 | Replica 확인 후 |
 | 지연시간 | 낮음 | 높음 |
-| 데이터 손실 위험 | 있음 | 감소 |
+| 데이터 손실 위험 | 있음 | 감소 (완전 제거 아님) |
+
+**WAIT의 한계 (중요):**
+- WAIT는 복제본 존재만 확인, **강한 일관성 보장 아님**
+- 페일오버 시 WAIT로 확인된 쓰기도 손실 가능
+- Replica의 persistence 설정에 따라 디스크 기록 여부 달라짐
+- Replica가 Master로 승격되어야 쓰기가 "안전"해짐
 
 **선택 기준:**
 
 | 상황 | 권장 방식 |
 |-----|----------|
 | 캐시 용도, 성능 중시 | 비동기 (기본) |
-| 데이터 손실 허용 불가 | WAIT 사용 |
-| 금융/결제 시스템 | WAIT + 최소 1~2 Replica |
+| 데이터 손실 최소화 | WAIT + min-replicas 조합 |
+| 강한 일관성 필수 | Redis 외 다른 솔루션 고려 |
 
 **참고자료**
 - [Redis Replication](https://redis.io/docs/management/replication/)[^23]
@@ -1241,34 +1336,51 @@ Redis의 MULTI/EXEC 트랜잭션이 ACID 특성(원자성, 일관성, 격리성,
 **ACID 특성별 분석:**
 
 **1. Atomicity (원자성) - 부분적 보장**
-- 트랜잭션 내 명령들은 연속적으로 실행됨
-- **주의**: 개별 명령 실패해도 나머지 명령 계속 실행 (롤백 없음)
+- 트랜잭션 내 명령들은 연속적으로 중단 없이 실행됨
+- **핵심 차이**: 개별 명령 실행 에러 시에도 나머지 명령 계속 실행 (롤백 없음)
+- 큐잉 단계 에러(문법 오류)는 전체 트랜잭션 중단
+
+```bash
+MULTI
+SET key1 "value"
+INCR key1           # 에러: 문자열에 INCR 불가
+SET key2 "value"    # 여전히 실행됨
+EXEC                # key1 에러, key2 성공
+```
 
 **2. Consistency (일관성) - 부분적 보장**
 - 단일 명령은 항상 일관성 유지
-- 트랜잭션 중 에러 발생 시 부분 적용 가능
+- 트랜잭션 중 에러 발생 시 부분 적용 가능 (불일치 상태 발생 가능)
 
 **3. Isolation (격리성) - 보장**
 - 싱글 스레드로 명령 처리
-- MULTI/EXEC 블록은 완전히 격리
+- MULTI/EXEC 블록은 완전히 격리 (다른 클라이언트 끼어들기 불가)
 
 **4. Durability (지속성) - 설정에 따라**
+
 | 설정 | 지속성 |
 |-----|-------|
-| AOF always | 모든 명령 기록 |
+| AOF always | 모든 명령 즉시 기록 |
 | AOF everysec | 최대 1초 손실 |
+| RDB만 | 스냅샷 간격만큼 손실 |
 
 **RDBMS 트랜잭션과 비교:**
 
 | 특성 | Redis | RDBMS |
 |-----|-------|-------|
-| 원자성 | 부분적 (롤백 없음) | 완전 |
-| 격리성 | 완전 | 레벨 선택 가능 |
-| 롤백 | 불가 | 가능 |
+| 원자성 | 중단 없는 실행 (롤백 없음) | 완전 (에러 시 롤백) |
+| 격리성 | 완전 (싱글 스레드) | 레벨 선택 가능 |
+| 롤백 | **불가** | 가능 |
+| 중첩 트랜잭션 | 불가 | 가능 |
+
+**왜 Redis는 롤백을 지원하지 않는가?**
+- Redis 명령은 잘못된 인자로만 실패 (프로그래밍 에러)
+- 프로덕션에서는 발생하지 않아야 하는 에러
+- 롤백 미지원으로 성능 이점 확보
 
 **결론:**
 - Redis 트랜잭션은 전통적 ACID 완전 보장하지 않음
-- 강한 트랜잭션 필요 시 Lua 스크립트 또는 RDBMS 고려
+- 강한 트랜잭션 필요 시 Lua 스크립트(원자성 완전 보장) 또는 RDBMS 고려
 
 **참고자료**
 - [Redis Transactions](https://redis.io/docs/interact/transactions/)[^26]
@@ -1289,21 +1401,32 @@ Redis Sorted Set(ZSet)의 내부 구현 방식(Skip List, Hash Table)과 리더�
 
 **내부 구현 방식:**
 
-**1. 작은 데이터: Listpack**
-- 조건: 원소 128개 이하 & 각 원소 64바이트 이하
+Redis Sorted Set은 **dual-ported 데이터 구조**로 Skip List와 Hash Table을 동시에 사용
+
+**1. 작은 데이터: Listpack (Redis 7.0+) / Ziplist (이전 버전)**
+- 기본 조건: `zset-max-listpack-entries 128`, `zset-max-listpack-value 64`
 - 연속된 메모리 블록에 저장
+- 메모리 효율적이지만 O(N) 접근
 
 **2. 큰 데이터: Skip List + Hash Table**
 - **Skip List**: 점수 기반 정렬 및 범위 검색 O(log N)
-- **Hash Table**: 멤버-점수 O(1) 조회
+- **Hash Table**: 멤버 존재 여부 및 점수 O(1) 조회
+- 두 구조를 동시에 유지하여 다양한 연산 최적화
+
+**Skip List 선택 이유:**
+- 균형 트리 대비 구현 단순
+- 범위 쿼리 효율적
+- 동시성 제어 용이 (Redis는 싱글스레드지만)
 
 **시간 복잡도:**
 
-| 연산 | 복잡도 |
-|-----|-------|
-| ZADD | O(log N) |
-| ZSCORE | O(1) |
-| ZRANGE | O(log N + M) |
+| 연산 | 복잡도 | 설명 |
+|-----|-------|-----|
+| ZADD | O(log N) | Skip List 삽입 |
+| ZSCORE | O(1) | Hash Table 조회 |
+| ZRANK | O(log N) | Skip List 탐색 |
+| ZRANGE | O(log N + M) | 시작점 탐색 + M개 순회 |
+| ZRANGEBYSCORE | O(log N + M) | 점수 범위 탐색 |
 
 **대표 활용 사례:**
 
@@ -1343,38 +1466,49 @@ Redis의 Hash 자료구조를 활용하여 메모리 사용량을 최적화하�
 
 **Hash의 메모리 최적화 원리:**
 
-작은 Hash는 **listpack** 인코딩 사용
+작은 Hash는 **listpack** 인코딩 사용 (Redis 7.0+, 이전 버전은 ziplist)
 - 연속된 메모리 블록에 필드-값 저장
-- 개별 키-값 대비 메모리 오버헤드 감소
+- 개별 키-값 대비 메모리 오버헤드 대폭 감소
+
+**Redis 7.0+ listpack 설정:**
+```bash
+hash-max-listpack-entries 512
+hash-max-listpack-value 64
+```
 
 **최적화 전략:**
 
 **1. 객체 저장 시 Hash 사용**
 ```bash
-# 비효율적
+# 비효율적 - 키마다 오버헤드 발생
 SET user:1:name "Alice"
 SET user:1:email "alice@example.com"
 
-# 효율적
+# 효율적 - 하나의 Hash로 그룹화
 HSET user:1 name "Alice" email "alice@example.com"
 ```
 
-**2. 작은 객체 버킷팅**
+**2. 작은 객체 버킷팅 (극한 최적화)**
 ```bash
+# 키 ID를 분할하여 Hash로 그룹화
+# object:1234 → HSET object:12 34 "value"
 HSET users:123 456:name "Alice"
 ```
+- 100,000개 객체 기준: 11MB → 1.7MB (6.5배 절약)
 
 **주의사항:**
 
 | 항목 | 고려사항 |
 |-----|---------|
 | listpack 한계 초과 | hashtable로 변환되어 메모리 증가 |
-| 필드 독립적 TTL | Hash 필드별 만료 불가 |
+| 필드 독립적 TTL | Hash 필드별 만료 불가 (전체 Hash에만 TTL 설정) |
+| 부분 조회 | 필요한 필드만 HGET으로 조회 가능 |
 
 **메모리 분석:**
 ```bash
-MEMORY USAGE user:1
-OBJECT ENCODING user:1
+MEMORY USAGE user:1        # 키의 메모리 사용량 (바이트)
+OBJECT ENCODING user:1     # listpack 또는 hashtable 확인
+DEBUG OBJECT user:1        # 상세 정보 (프로덕션 주의)
 ```
 
 **참고자료**

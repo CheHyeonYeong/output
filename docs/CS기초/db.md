@@ -404,7 +404,7 @@ MySQL InnoDB는 기본적으로 각 SELECT를 자체 트랜잭션으로 실행�
 |-----------|------------|---------------------|--------------|
 | READ UNCOMMITTED | O | O | O |
 | READ COMMITTED | X | O | O |
-| REPEATABLE READ | X | X | O (InnoDB는 X) |
+| REPEATABLE READ | X | X | O (InnoDB는 조건부 방지) |
 | SERIALIZABLE | X | X | X |
 
 - **Dirty Read:** 커밋되지 않은 데이터 읽기
@@ -412,6 +412,11 @@ MySQL InnoDB는 기본적으로 각 SELECT를 자체 트랜잭션으로 실행�
 - **Phantom Read:** 조건에 맞는 행이 추가/삭제됨
 
 MySQL InnoDB 기본값은 REPEATABLE READ입니다.
+
+**InnoDB REPEATABLE READ의 Phantom Read 방지 메커니즘:**
+- **Consistent Read (일반 SELECT):** 트랜잭션 시작 시점의 스냅샷을 읽어 같은 결과 보장
+- **Locking Read (SELECT FOR UPDATE/SHARE, UPDATE, DELETE):** Gap Lock과 Next-Key Lock으로 범위 내 삽입 차단
+- **주의:** Consistent Read와 Locking Read를 혼용하면 예상치 못한 결과 발생 가능. 완전한 직렬화가 필요하면 SERIALIZABLE 사용 권장
 
 **참고자료**
 - [MySQL Transaction Isolation Levels](https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html)[^17]
@@ -428,14 +433,15 @@ MySQL InnoDB 기본값은 REPEATABLE READ입니다.
 
 **아니요, DBMS마다 다릅니다.**
 
-- **PostgreSQL:** READ UNCOMMITTED를 READ COMMITTED처럼 동작
-- **Oracle:** READ UNCOMMITTED, REPEATABLE READ 미지원
-- **SQL Server:** 4개 모두 지원 + SNAPSHOT 추가
+- **PostgreSQL:** READ UNCOMMITTED 요청 시 READ COMMITTED로 동작 (MVCC 아키텍처상 Dirty Read 불가능하므로 별도 구현 불필요)
+- **Oracle:** READ COMMITTED와 SERIALIZABLE만 지원 (READ UNCOMMITTED, REPEATABLE READ 미지원)
+- **SQL Server:** 4개 모두 지원 + SNAPSHOT Isolation 추가
+- **MySQL InnoDB:** 4개 모두 지원
 
 **이유:**
-- DBMS별 아키텍처와 MVCC 구현 방식 차이
-- 특정 격리 수준의 실용적 가치 부족
-- 성능과 구현 복잡도 고려
+- DBMS별 MVCC 구현 방식 차이로 특정 격리 수준 구현이 불필요하거나 불가능
+- PostgreSQL의 경우 MVCC로 인해 항상 커밋된 데이터만 읽으므로 READ UNCOMMITTED의 Dirty Read가 구조적으로 발생하지 않음
+- 성능과 구현 복잡도 트레이드오프 고려
 
 **참고자료**
 - [PostgreSQL Transaction Isolation](https://www.postgresql.org/docs/current/transaction-iso.html)[^18]
@@ -478,10 +484,19 @@ MVCC(Multi-Version Concurrency Control)가 무엇이며, InnoDB 스토리지 엔
 **MVCC:** 동시성 제어 기법으로, 데이터의 여러 버전을 유지하여 읽기와 쓰기가 서로 블로킹하지 않게 합니다.
 
 **InnoDB 구현:**
-1. 각 행에 트랜잭션 ID와 롤백 포인터 저장
-2. UPDATE 시 새 버전 생성, 이전 버전은 Undo 로그에 보관
-3. SELECT 시 자신의 트랜잭션 시작 시점 기준 적절한 버전 읽기
+
+InnoDB는 각 행에 3개의 숨겨진 필드를 추가합니다:
+- **DB_TRX_ID (6바이트):** 마지막으로 행을 수정한 트랜잭션 ID
+- **DB_ROLL_PTR (7바이트):** Undo 로그의 이전 버전을 가리키는 롤백 포인터
+- **DB_ROW_ID (6바이트):** 자동 증가 Row ID (명시적 PK가 없을 때 사용)
+
+**동작 과정:**
+1. UPDATE 시 새 버전 생성, 이전 버전은 Undo 로그에 보관
+2. DB_ROLL_PTR이 이전 버전들을 연결 리스트로 연결
+3. SELECT 시 트랜잭션의 스냅샷 시점 기준으로 적절한 버전 선택
 4. 트랜잭션 완료 후 불필요한 Undo 로그는 Purge 스레드가 정리
+
+**주의:** 장시간 트랜잭션은 Undo 로그 정리를 방해하여 롤백 세그먼트 비대화 유발
 
 **참고자료**
 - [InnoDB Multi-Versioning](https://dev.mysql.com/doc/refman/8.0/en/innodb-multi-versioning.html)[^20]
@@ -530,15 +545,27 @@ MySQL에서 스토리지 엔진이 정확히 무엇을 하는 건가요?
 
 **인덱스:** 테이블의 검색 속도를 향상시키기 위한 자료구조입니다. 책의 색인처럼 원하는 데이터의 위치를 빠르게 찾을 수 있게 합니다.
 
-**사용 시점:**
-- WHERE 절에 자주 사용되는 컬럼
-- JOIN 조건에 사용되는 컬럼
-- ORDER BY, GROUP BY에 사용되는 컬럼
-- 카디널리티(고유값 수)가 높은 컬럼
+**장점 (읽기 성능):**
+- WHERE 조건 검색 속도 향상 (O(N) -> O(log N))
+- JOIN 성능 향상
+- ORDER BY/GROUP BY 정렬 비용 제거
+- 커버링 인덱스로 테이블 접근 없이 쿼리 완료 가능
 
-**사용하지 않는 경우:**
-- 데이터가 적은 테이블
-- INSERT/UPDATE/DELETE가 빈번한 컬럼
+**단점 (쓰기 비용):**
+- INSERT: 데이터 + 인덱스 추가, B-Tree 분할 가능
+- UPDATE: 인덱스 키 변경 시 삭제 + 추가 발생
+- DELETE: 인덱스 엔트리 삭제 (실제로는 delete-mark)
+- 추가 저장 공간 필요
+
+**인덱스 사용이 효과적인 경우:**
+- 카디널리티(고유값 수)가 높은 컬럼
+- 선택도(Selectivity)가 낮은 조건 (소수의 행만 반환)
+- 읽기가 쓰기보다 빈번한 테이블
+
+**인덱스가 비효율적인 경우:**
+- 데이터가 매우 적은 테이블 (Full Scan이 더 빠름)
+- INSERT/UPDATE/DELETE가 매우 빈번한 테이블
+- 카디널리티가 낮은 컬럼 (성별 등)
 
 **참고자료**
 - [MySQL Index Optimization](https://dev.mysql.com/doc/refman/8.0/en/optimization-indexes.html)[^22]
@@ -574,14 +601,21 @@ MySQL에서 스토리지 엔진이 정확히 무엇을 하는 건가요?
 <details>
 <summary>답변</summary>
 
-**아니요, 인덱스가 없는 컬럼은 인덱스 유지 비용이 없습니다.**
+**부분적으로 맞습니다. 해당 컬럼에 대한 인덱스 유지 비용은 없지만, 다른 비용이 발생할 수 있습니다.**
 
-인덱스가 없는 컬럼의 변경은:
-- 테이블 데이터만 수정
-- B-Tree 재조정 불필요
-- 추가적인 인덱스 I/O 없음
+**인덱스가 없는 컬럼 수정 시:**
+- 해당 컬럼에 대한 B-Tree 재조정 불필요
+- 해당 컬럼에 대한 인덱스 I/O 없음
 
-다만, 해당 컬럼으로 검색 시 Full Table Scan이 발생합니다. 인덱스 설계 시 읽기/쓰기 패턴을 분석하여 적절한 균형을 찾아야 합니다.
+**그러나 발생할 수 있는 비용:**
+- **INSERT:** 다른 인덱스들(PK, FK 등)의 유지 비용은 여전히 발생
+- **UPDATE:** 행 자체를 찾기 위해 다른 인덱스나 Full Scan 필요
+- **Clustered Index(InnoDB PK):** 데이터가 PK 순서로 저장되므로 행 위치 변경 시 이동 비용 발생 가능
+
+**핵심 포인트:**
+- "인덱스가 없는 컬럼"의 수정은 그 컬럼에 대한 인덱스 비용만 없음
+- 테이블의 다른 인덱스 유지 비용은 INSERT/DELETE 시 여전히 발생
+- 인덱스 설계 시 읽기/쓰기 패턴을 분석하여 적절한 균형 필요
 
 **참고자료**
 - [MySQL Query Optimization](https://dev.mysql.com/doc/refman/8.0/en/query-optimization.html)[^24]
@@ -647,14 +681,19 @@ InnoDB에서 기본키는 Clustered Index로, 데이터가 기본키 순서로 �
 <details>
 <summary>답변</summary>
 
-**외래키에는 자동으로 인덱스가 생성됩니다.** (InnoDB 기준)
+**네, InnoDB는 외래키 컬럼에 인덱스가 없으면 자동으로 생성합니다.**
 
-**이유:**
+MySQL 공식 문서에 따르면: "MySQL requires indexes on foreign keys and referenced keys so that foreign key checks can be fast and not require a table scan."
+
+**자동 생성 조건:**
+- 외래키 컬럼이 인덱스의 **첫 번째 컬럼**으로 포함되어야 함
+- 이미 적합한 인덱스가 있으면 새로 생성하지 않음
+- 나중에 더 적합한 인덱스가 생성되면 자동 생성된 인덱스는 삭제될 수 있음
+
+**인덱스가 필요한 이유:**
 - 참조 무결성 검사 시 부모 테이블 조회 필요
-- JOIN 연산 시 성능 향상
 - ON DELETE/UPDATE CASCADE 처리 시 빠른 검색
-
-외래키 인덱스가 없으면 자식 테이블에서 부모 테이블 참조 검사 시 Full Scan이 발생하여 성능이 크게 저하됩니다.
+- 인덱스 없이는 Full Table Scan 발생
 
 **참고자료**
 - [MySQL Foreign Key Constraints](https://dev.mysql.com/doc/refman/8.0/en/create-table-foreign-keys.html)[^27]
@@ -725,16 +764,24 @@ NoSQL(ex. Redis, MongoDB 등)도 인덱스를 갖고 있나요? 만약 있다면
 <details>
 <summary>답변</summary>
 
-**일반적으로 인덱스를 타지 않습니다.**
+**일반적으로 효율적인 인덱스 사용이 불가능합니다.**
 
 복합 인덱스는 첫 번째 컬럼부터 순차적으로 정렬됩니다. (A, B) 인덱스는 A로 먼저 정렬되고, 같은 A 값 내에서 B로 정렬됩니다.
 
 WHERE B=... 만 사용하면:
 - B 값이 여러 A 값에 분산되어 있음
-- 인덱스 전체를 스캔해야 함 (Index Full Scan)
-- 옵티마이저가 Full Table Scan을 선택할 가능성 높음
+- 인덱스 Range Scan 불가능
+- 옵티마이저 선택:
+  - **Index Full Scan:** 인덱스 전체를 순회 (테이블보다 작으면 유리)
+  - **Full Table Scan:** 인덱스 무시
 
-**해결책:** B 컬럼만을 위한 별도 인덱스 생성
+**함정 주의:**
+"인덱스를 탄다/안 탄다"는 이분법적 표현보다 "어떻게 사용되는지"가 중요합니다.
+- Index Full Scan도 기술적으로는 "인덱스를 사용"하지만 Range Scan만큼 효율적이지 않음
+
+**해결책:**
+1. B 컬럼만을 위한 별도 인덱스 생성
+2. 쿼리 패턴에 맞게 (B, A) 순서의 복합 인덱스 추가
 
 **참고자료**
 - [MySQL Multiple-Column Indexes](https://dev.mysql.com/doc/refman/8.0/en/multiple-column-indexes.html)[^30]
@@ -856,16 +903,22 @@ DB 인덱스에서 Red-Black Tree를 사용하지 않고, B-Tree/B+Tree를 사�
 <details>
 <summary>답변</summary>
 
-**역방향 스캔으로 처리 가능하여 성능 저하가 크지 않습니다.**
+**역방향 스캔(Backward Index Scan)으로 처리되어 filesort 없이 가능합니다.**
 
-B+Tree의 리프 노드는 양방향 연결 리스트로 구성됩니다. 따라서:
+InnoDB의 B+Tree 리프 노드는 양방향 연결 리스트로 구성되어 있어:
 - 오름차순: 왼쪽 → 오른쪽 순회
 - 내림차순: 오른쪽 → 왼쪽 순회 (Backward Index Scan)
 
-**주의사항:**
-- 복합 인덱스에서 일부만 DESC인 경우 문제 발생
-- `(A ASC, B ASC)` 인덱스에서 `ORDER BY A DESC, B ASC`는 인덱스 활용 불가
-- MySQL 8.0부터 Descending Index 지원
+**EXPLAIN에서 확인:** Extra 컬럼에 `Backward index scan` 표시
+
+**성능 고려사항:**
+- 역방향 스캔은 정방향보다 약간 느릴 수 있음 (CPU 캐시 프리페칭 효율 저하)
+- 대부분의 경우 성능 차이는 미미함
+
+**복합 인덱스 주의사항:**
+- `(A ASC, B ASC)` 인덱스에서 `ORDER BY A DESC, B DESC`는 역방향 스캔으로 가능
+- `ORDER BY A DESC, B ASC`는 방향이 혼합되어 인덱스 활용 불가
+- **MySQL 8.0 해결책:** Descending Index 지원으로 `(A DESC, B ASC)` 형태로 인덱스 정의 가능
 
 **참고자료**
 - [MySQL Descending Indexes](https://dev.mysql.com/doc/refman/8.0/en/descending-indexes.html)[^35]
@@ -975,10 +1028,15 @@ JOIN은 시간이 오래 걸릴 수 있어 내부적으로 다양한 물리적 �
 - 이미 정렬된 대용량 데이터에 효율적
 
 **Hash Join:**
-- 작은 테이블로 해시 테이블 생성
-- 큰 테이블을 스캔하며 해시 테이블 조회
+- 작은 테이블로 해시 테이블 생성 (Build Phase)
+- 큰 테이블을 스캔하며 해시 테이블 조회 (Probe Phase)
 - 인덱스 없는 대용량 동등 조인에 효율적
-- MySQL 8.0.18부터 지원
+- **MySQL 8.0.18**부터 지원, **8.0.20**부터 Block Nested Loop 대체
+- 메모리 초과 시 디스크로 스필(spill)
+
+**MySQL 8.0.20 이후:**
+- Equi-join뿐 아니라 non-equi-join, outer join, semijoin, antijoin에도 Hash Join 적용
+- EXPLAIN에서 `Using join buffer (hash join)` 확인
 
 **참고자료**
 - [MySQL Hash Join](https://dev.mysql.com/doc/refman/8.0/en/hash-joins.html)[^39]
@@ -1097,9 +1155,15 @@ DB Locking에 대해 설명해 주세요.
 - **배타 락(X):** 읽기/쓰기 모두 차단
 
 **InnoDB 특수 락:**
-- Record Lock: 인덱스 레코드 잠금
-- Gap Lock: 인덱스 레코드 사이 간격 잠금
-- Next-Key Lock: Record + Gap Lock
+- **Record Lock:** 특정 인덱스 레코드만 잠금
+- **Gap Lock:** 인덱스 레코드 사이의 "간격"만 잠금 (삽입 방지용, 순수하게 억제적)
+- **Next-Key Lock:** Record Lock + Gap Lock 조합 (레코드 + 그 앞의 간격)
+
+**Next-Key Lock 동작 예시:**
+인덱스에 10, 11, 13, 20 값이 있을 때 Next-Key Lock 범위:
+`(-inf, 10], (10, 11], (11, 13], (13, 20], (20, +inf)`
+
+REPEATABLE READ에서 기본적으로 Next-Key Lock을 사용하여 Phantom Read 방지
 
 **참고자료**
 - [InnoDB Locking](https://dev.mysql.com/doc/refman/8.0/en/innodb-locking.html)[^43]
@@ -1144,22 +1208,33 @@ Optimistic Lock(낙관적 락)과 Pessimistic Lock(비관적 락)에 대해 설�
 <summary>답변</summary>
 
 **비관적 락(Pessimistic Lock):**
-- 충돌이 발생할 것이라 가정
+- 충돌이 발생할 것이라 **가정**
 - 데이터 접근 시 즉시 락 획득
 - `SELECT FOR UPDATE` 사용
 - 충돌이 잦은 환경에 적합
 
 **낙관적 락(Optimistic Lock):**
-- 충돌이 드물다고 가정
+- 충돌이 드물다고 **가정**
 - 락 없이 작업 후 커밋 시 충돌 검사
 - version 컬럼이나 timestamp로 구현
 - 충돌 시 재시도 필요
+
+**트레이드오프:**
+
+| 관점 | 비관적 락 | 낙관적 락 |
+|------|-----------|-----------|
+| 동시성 | 낮음 (블로킹) | 높음 (논블로킹) |
+| 충돌 처리 | 미리 방지 | 사후 감지 |
+| 적합 상황 | 충돌 빈번 | 충돌 드묾 |
+| 데드락 | 가능성 있음 | 없음 |
+| 구현 | DB 수준 | 애플리케이션 수준 |
 
 ```sql
 -- 낙관적 락 예시
 UPDATE items
 SET quantity = 10, version = version + 1
 WHERE id = 1 AND version = 5;
+-- 영향받은 행이 0이면 충돌 발생 -> 재시도 필요
 ```
 
 **참고자료**
@@ -1358,24 +1433,28 @@ COUNT(개수를 세는 쿼리)는 어떻게 동작하나요? COUNT(1), COUNT(*),
 
 **COUNT(\*):**
 - 모든 행의 개수를 셈 (NULL 포함)
-- 옵티마이저가 가장 작은 인덱스 선택
+- 옵티마이저가 가장 작은 인덱스 선택하여 효율화
 - InnoDB는 실제 행을 카운트 (MyISAM과 다름)
 
 **COUNT(1):**
-- COUNT(*)와 동일하게 동작
-- 옵티마이저가 동일하게 최적화
+- COUNT(*)와 **완전히 동일하게** 동작
+- MySQL 공식 문서: "InnoDB handles SELECT COUNT(\*) and SELECT COUNT(1) operations in the same way. There is no performance difference."
 
 **COUNT(column):**
 - 해당 컬럼이 NULL이 아닌 행만 카운트
-- NULL 체크 로직 추가
-- 해당 컬럼 인덱스가 있으면 활용
+- NULL 체크 로직이 추가되어 COUNT(\*)보다 느릴 수 있음
+- 해당 컬럼에 인덱스가 있으면 활용
 
-**성능:** COUNT(*) = COUNT(1) > COUNT(column)
+**성능 비교:** COUNT(\*) = COUNT(1) >= COUNT(column)
 
 ```sql
 SELECT COUNT(*) FROM users;  -- 전체 행 수
 SELECT COUNT(email) FROM users;  -- email이 NOT NULL인 행 수
 ```
+
+**MyISAM vs InnoDB:**
+- MyISAM: 테이블의 행 수를 메타데이터로 저장하여 WHERE 없는 COUNT(\*)가 O(1)
+- InnoDB: MVCC로 인해 트랜잭션별로 보이는 행이 다르므로 실제 스캔 필요
 
 **참고자료**
 - [MySQL COUNT Function](https://dev.mysql.com/doc/refman/8.0/en/aggregate-functions.html#function_count)[^52]
@@ -1427,17 +1506,32 @@ RDBMS, NoSQL에서의 클러스터링/레플리케이션 방식에 대해 설명
 **2PC (Two-Phase Commit):**
 - **Prepare 단계:** 코디네이터가 모든 참여자에게 커밋 준비 요청
 - **Commit 단계:** 모든 참여자가 준비되면 커밋, 하나라도 실패하면 롤백
-- 강한 일관성, 하지만 블로킹 문제
+- 강한 일관성 보장
+
+**2PC 단점:**
+- **블로킹 문제:** Prepare 후 코디네이터 장애 시 참여자들이 무한 대기
+- 성능 저하 (동기식 처리)
+- 단일 장애점(코디네이터)
 
 **Saga Pattern:**
 - 로컬 트랜잭션들의 연속
 - 실패 시 보상 트랜잭션(Compensating Transaction) 실행
-- **Choreography:** 이벤트 기반, 각 서비스가 독립적
-- **Orchestration:** 중앙 조정자가 흐름 제어
+- **Choreography:** 이벤트 기반, 각 서비스가 독립적으로 반응
+- **Orchestration:** 중앙 조정자(Orchestrator)가 흐름 제어
+
+**Saga 단점:**
+- 보상 트랜잭션 설계 복잡
+- 최종적 일관성(Eventual Consistency)만 보장
+- 롤백이 비즈니스 로직 수준 (완벽한 원복 어려울 수 있음)
 
 **선택 기준:**
-- 강한 일관성 필요 → 2PC
-- 유연성/성능 필요 → Saga
+
+| 요구사항 | 권장 방식 |
+|----------|-----------|
+| 강한 일관성 필수 | 2PC |
+| 높은 가용성/성능 | Saga |
+| 마이크로서비스 | Saga (선호) |
+| 단일 DB 연결 | 로컬 트랜잭션 |
 
 **참고자료**
 - [MySQL XA Transactions](https://dev.mysql.com/doc/refman/8.0/en/xa.html)[^54]
@@ -1601,6 +1695,16 @@ DB를 분산해서 관리해야 한다면, 레플리케이션 방식과 샤딩 �
 <details>
 <summary>답변</summary>
 
+**정규화 vs 비정규화 트레이드오프:**
+
+| 관점 | 정규화 | 비정규화 |
+|------|--------|----------|
+| 데이터 중복 | 최소화 | 의도적 허용 |
+| 쓰기 성능 | 좋음 (한 곳만 수정) | 나쁨 (여러 곳 수정) |
+| 읽기 성능 | JOIN 필요 | JOIN 감소 |
+| 일관성 | 보장 | 애플리케이션에서 관리 필요 |
+| 저장 공간 | 효율적 | 비효율적 |
+
 **정규화의 단점:**
 - JOIN 증가로 조회 성능 저하
 - 쿼리 복잡도 증가
@@ -1608,14 +1712,18 @@ DB를 분산해서 관리해야 한다면, 레플리케이션 방식과 샤딩 �
 
 **역정규화(Denormalization)가 필요한 경우:**
 
-1. **읽기 성능이 중요한 경우:** 리포트, 대시보드
+1. **읽기 성능이 중요한 경우:** 리포트, 대시보드, 분석 쿼리
 2. **빈번한 JOIN 제거:** 조회가 많고 변경이 적은 데이터
-3. **계산 값 저장:** 집계 결과를 미리 저장
-4. **히스토리 데이터:** 변경 시점의 스냅샷 저장
+3. **계산 값 저장:** 집계 결과를 미리 저장 (댓글 수, 좋아요 수)
+4. **히스토리 데이터:** 변경 시점의 스냅샷 저장 (주문 시점 상품 정보)
+5. **분산 시스템:** JOIN이 어려운 NoSQL이나 마이크로서비스 환경
 
 **예시:**
 - 주문 테이블에 상품명 중복 저장 (상품명 변경과 무관하게 주문 시점 정보 유지)
-- 게시글에 댓글 수 저장
+- 게시글에 댓글 수 저장 (매번 COUNT 쿼리 회피)
+
+**실무 전략:**
+먼저 3NF까지 정규화 후, 성능 이슈 발생 시 선택적으로 비정규화
 
 **참고자료**
 - [Denormalization](https://en.wikipedia.org/wiki/Denormalization)[^60]
@@ -1662,9 +1770,9 @@ SELECT id, name, email FROM users WHERE status = 'active';
 <details>
 <summary>답변</summary>
 
-**조건을 만족하면 View를 통해 실제 테이블 수정이 가능합니다.**
+**아니요, 조건을 만족하면 View를 통해 실제 테이블이 수정됩니다!** 이것은 흔한 오해입니다.
 
-**Updatable View 조건:**
+**Updatable View 조건 (수정 가능):**
 - 단일 테이블 기반
 - 집계 함수 미사용 (SUM, COUNT 등)
 - GROUP BY, HAVING, DISTINCT 미사용
@@ -1674,12 +1782,22 @@ SELECT id, name, email FROM users WHERE status = 'active';
 **수정 불가능한 View:**
 - 여러 테이블 JOIN
 - 집계 결과를 보여주는 View
-- 읽기 전용으로 설계된 View
+- 계산된 컬럼 (표현식)
+- WITH CHECK OPTION으로 제한된 경우
 
 ```sql
--- Updatable View
+-- Updatable View 예시
+CREATE VIEW active_users AS
+SELECT id, name, email FROM users WHERE status = 'active';
+
 UPDATE active_users SET name = 'John' WHERE id = 1;
--- 실제 users 테이블에 반영됨
+-- 주의: 실제 users 테이블에 반영됨!
+
+-- WITH CHECK OPTION으로 범위 제한
+CREATE VIEW active_users AS
+SELECT * FROM users WHERE status = 'active'
+WITH CHECK OPTION;
+-- status를 'inactive'로 변경하려 하면 오류 발생
 ```
 
 **참고자료**

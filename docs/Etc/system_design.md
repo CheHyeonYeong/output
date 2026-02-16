@@ -51,9 +51,21 @@
 <details>
 <summary>답변</summary>
 
-**메시지 큐 (RabbitMQ, SQS)**: 작업 분배, Point-to-Point, 한 번만 처리
+**메시지 큐 (RabbitMQ, SQS)**:
+- 작업 분배, Point-to-Point, 소비 후 삭제
+- 적합: 작업 큐, 비동기 태스크 처리
 
-**이벤트 브로커 (Kafka)**: 다중 구독자, 이벤트 재처리(replay), 순서 보장, 로그 보존
+**이벤트 스트림 (Kafka)**:
+- 다중 구독자, 이벤트 재처리(replay), 순서 보장, 로그 보존
+- 적합: 이벤트 소싱, 실시간 스트리밍, 감사 로그
+
+**트레이드오프**:
+| 기준 | 메시지 큐 | 이벤트 스트림 |
+|------|-----------|---------------|
+| 재처리 | 어려움 | 용이 (오프셋 리셋) |
+| 운영 복잡도 | 낮음 | 높음 |
+| 확장성 | 수직 위주 | 수평 확장 용이 |
+| 순서 보장 | 제한적 | 파티션 내 보장 |
 
 **참고자료**
 - [Kafka Documentation](https://kafka.apache.org/documentation/)[^3]
@@ -68,9 +80,21 @@
 <details>
 <summary>답변</summary>
 
-**이점**: 느슨한 결합, 독립적 배포, 확장성 향상, 새 구독자 추가 용이
+**이점**:
+- 느슨한 결합: 서비스 독립적 배포 가능
+- 확장성 향상: 구독자 추가/제거가 발신자에 영향 없음
+- 유연성: 새로운 기능을 기존 코드 수정 없이 추가
 
-**단점**: 디버깅 어려움, 이벤트 흐름 추적 복잡, 최종 일관성 관리 필요
+**단점**:
+- 디버깅 어려움: 분산 트레이싱 필요 (Jaeger, Zipkin)
+- 이벤트 흐름 추적 복잡: 이벤트 카탈로그/문서화 필요
+- 최종 일관성: 강한 일관성 필요 시 부적합
+- 이벤트 순서 보장 어려움
+
+**대규모 시스템 고려사항**:
+- Dead Letter Queue로 이벤트 유실 방지
+- 멱등성 보장으로 중복 처리 대응
+- 모니터링 및 알람 체계 구축
 
 **참고자료**
 - [Microsoft EDA Guide](https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/event-driven)[^4]
@@ -151,10 +175,19 @@ EDA에서 서비스 간의 데이터 흐름을 관리하는 두 가지 방식인
 <details>
 <summary>답변</summary>
 
-1. **클러스터링**: 다중 브로커 노드 구성 (Kafka 클러스터)
-2. **레플리케이션**: 파티션 복제 (replication factor)
-3. **다중 데이터센터**: 지역 간 복제
-4. **Circuit Breaker**: 장애 시 폴백 처리
+**인프라 측면**:
+1. **클러스터링**: 다중 브로커 노드 구성
+2. **레플리케이션**: 파티션 복제 (replication factor >= 3 권장)
+3. **다중 데이터센터**: 지역 간 복제 (MirrorMaker 2)
+
+**클라이언트 측면**:
+4. **Circuit Breaker**: 브로커 장애 시 폴백
+5. **재시도 로직**: exponential backoff
+6. **로컬 버퍼링**: 일시적 장애 시 메시지 임시 저장
+
+**트레이드오프**:
+- 복제 수 증가 → 내구성 향상, 쓰기 지연 증가
+- 다중 DC → 가용성 향상, 운영 복잡도 및 비용 증가
 
 **참고자료**
 - [Kafka Replication](https://kafka.apache.org/documentation/#replication)[^8]
@@ -170,11 +203,27 @@ EDA에서 서비스 간의 데이터 흐름을 관리하는 두 가지 방식인
 <details>
 <summary>답변</summary>
 
-**At-most-once**: 최대 한 번 전송. 유실 가능. 중복 없음.
+**At-most-once**:
+- 최대 한 번 전송. 유실 가능, 중복 없음
+- 구현: ACK 없이 전송 (fire-and-forget)
+- 적합: 메트릭, 로그 등 유실 허용 가능한 경우
 
-**At-least-once**: 최소 한 번 전송. 유실 없음. 중복 가능.
+**At-least-once** (가장 일반적):
+- 최소 한 번 전송. 유실 없음, 중복 가능
+- 구현: 전송 후 ACK 대기, 실패 시 재전송
+- 적합: 멱등한 처리가 가능한 대부분의 경우
 
-**Exactly-once**: 정확히 한 번. 유실/중복 없음. 구현 어려움.
+**Exactly-once**:
+- 정확히 한 번. 유실/중복 없음
+- 주의: **진정한 Exactly-once는 분산 시스템에서 이론적으로 불가능**
+- 실제 구현: At-least-once + 멱등성 = "Effectively Once"
+
+**트레이드오프**:
+| 보장 수준 | 성능 | 복잡도 | 데이터 정확성 |
+|-----------|------|--------|---------------|
+| At-most-once | 높음 | 낮음 | 낮음 |
+| At-least-once | 중간 | 중간 | 높음 (멱등성 필요) |
+| Exactly-once | 낮음 | 높음 | 최고 |
 
 **참고자료**
 - [Kafka Semantics](https://kafka.apache.org/documentation/#semantics)[^9]
@@ -189,12 +238,21 @@ EDA에서 At-least-once와 달리 'Exactly-once'를 구현하기 어려운 이�
 <details>
 <summary>답변</summary>
 
-**어려운 이유**: 네트워크 장애, 프로세스 크래시 시 ACK 유실로 재전송 발생
+**어려운 이유** (Two Generals' Problem):
+- 네트워크 장애로 ACK 유실 시 송신자는 수신 여부 알 수 없음
+- 프로세스 크래시 시 처리 완료 여부 불명확
+- 분산 환경에서 "정확히 한 번" 자체의 정의가 모호
+
+**핵심 통찰**:
+진정한 Exactly-once는 불가능. 실제로는 **At-least-once + 멱등성 = "Effectively Once"**로 구현
 
 **해결 기술**:
-1. **Idempotency**: 동일 요청 여러 번 처리해도 같은 결과
-2. **Idempotent Key**: 메시지 ID로 중복 체크
-3. **Transactional Outbox**: DB 트랜잭션과 이벤트 발행 원자화
+1. **Idempotency**: 동일 요청을 여러 번 처리해도 같은 결과
+2. **Deduplication**: 메시지 ID로 중복 체크 (TTL 고려 필요)
+3. **Transactional Outbox**: DB와 이벤트 발행을 원자적으로 처리
+
+**함정 주의**:
+Kafka의 "Exactly-once"는 **Kafka 내부 처리**에만 해당. 외부 시스템(DB, API 등)과 연동 시 여전히 멱등성 필수
 
 **참고자료**
 - [Kafka Exactly-Once](https://www.confluent.io/blog/exactly-once-semantics-are-possible-heres-how-apache-kafka-does-it/)[^10]
@@ -210,13 +268,25 @@ EDA에서 At-least-once와 달리 'Exactly-once'를 구현하기 어려운 이�
 <details>
 <summary>답변</summary>
 
-**중요성**: 프로듀서/컨슈머 간 계약. 스키마 불일치 시 파싱 오류.
+**중요성**:
+- 프로듀서/컨슈머 간 계약 역할
+- 스키마 불일치 시 파싱 오류 및 서비스 장애
+- 독립적 배포를 위한 필수 요소
 
-**하위 호환성 보장**:
-1. 새 필드는 optional/default 값 지정
-2. 기존 필드 삭제 금지
-3. Schema Registry 사용 (Avro, Protobuf)
-4. 버전 관리
+**호환성 유형**:
+- **Backward**: 새 스키마로 이전 데이터 읽기 가능
+- **Forward**: 이전 스키마로 새 데이터 읽기 가능
+- **Full**: 양방향 호환
+
+**하위 호환성 보장 규칙**:
+1. 새 필드는 optional 또는 default 값 필수
+2. 기존 필수 필드 삭제 금지
+3. 필드 타입 변경 금지
+
+**실무 권장**:
+- Schema Registry 사용 (Confluent, AWS Glue)
+- 직렬화: Avro, Protobuf (JSON은 검증 약함)
+- CI/CD에 스키마 호환성 검사 통합
 
 **참고자료**
 - [Confluent Schema Registry](https://docs.confluent.io/platform/current/schema-registry/)[^11]
@@ -308,10 +378,21 @@ EDA에서 At-least-once와 달리 'Exactly-once'를 구현하기 어려운 이�
 <summary>답변</summary>
 
 **단점**:
-1. **블로킹**: 참여자가 코디네이터 응답 대기 중 락 유지
-2. **SPOF**: 코디네이터 장애 시 전체 트랜잭션 중단
-3. **성능**: 동기식 통신으로 지연 발생
+1. **블로킹**: Prepare 후 Commit 전까지 참여자가 락 유지 (자원 점유)
+2. **SPOF**: 코디네이터 장애 시 참여자가 무한 대기 (In-doubt 상태)
+3. **성능**: 동기식 통신 + 여러 번의 네트워크 왕복으로 지연
 4. **확장성 제한**: 참여자 증가 시 성능 저하
+
+**실제 환경에서 잘 사용되지 않는 이유**:
+- MSA 환경에서 서비스 간 강한 결합 유발
+- 클라우드 네이티브 환경의 일시적 장애에 취약
+- 네트워크 파티션 발생 시 복구 어려움
+
+**사용되는 경우**:
+- 동일 DB 내 XA 트랜잭션 (MySQL, PostgreSQL)
+- 단일 데이터센터의 신뢰할 수 있는 내부 시스템
+
+**대안**: SAGA, TCC (Try-Confirm-Cancel), Outbox 패턴
 
 **참고자료**
 - [Designing Data-Intensive Applications](https://dataintensive.net/)[^16]
@@ -348,12 +429,21 @@ SAGA 패턴의 핵심 구성요소인 '보상 트랜잭션(Compensating Transact
 <details>
 <summary>답변</summary>
 
-**정의**: 이전 트랜잭션의 효과를 취소하는 트랜잭션
+**정의**: 이전 트랜잭션의 효과를 **의미적으로** 취소하는 트랜잭션
+
+**핵심 이해**: 보상 트랜잭션은 물리적 롤백이 아님
+- 결제 취소 = 환불 처리 (새로운 트랜잭션)
+- 재고 차감 취소 = 재고 복구 (새로운 트랜잭션)
 
 **설계 고려사항**:
-1. **멱등성**: 여러 번 실행해도 같은 결과
-2. **가역성**: 모든 작업이 취소 가능해야 함
-3. **순서**: 역순으로 실행
+1. **멱등성 필수**: 보상 트랜잭션도 재시도될 수 있음
+2. **의미적 가역성**: 취소 불가능한 작업은 별도 설계 (예: 이메일 발송 → 취소 이메일 발송)
+3. **역순 실행**: 마지막 성공 단계부터 역순으로
+4. **타임아웃**: 보상 트랜잭션에도 타임아웃 설정
+
+**함정 주의**:
+- 외부 시스템(결제 게이트웨이, SMS 등)의 보상은 별도 설계 필요
+- 보상 실패 시 수동 개입 프로세스 필수
 
 **참고자료**
 - [AWS SAGA Pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-data-persistence/saga-pattern.html)[^18]
@@ -368,10 +458,27 @@ SAGA 패턴에서 보상 트랜잭션(Compensating Transaction) 자체가 실패
 <details>
 <summary>답변</summary>
 
-1. **재시도**: 지수 백오프로 재시도
-2. **Dead Letter Queue**: 실패한 보상 작업 저장
-3. **수동 개입**: 운영자 알림 및 수동 처리
-4. **Forward Recovery**: 이전 상태로 되돌리는 대신 앞으로 진행
+**단계적 접근** (권장 순서):
+
+1. **재시도 (Retry)**:
+   - 지수 백오프(exponential backoff) + 지터(jitter)
+   - 최대 재시도 횟수 제한 (예: 5회)
+
+2. **Dead Letter Queue (DLQ)**:
+   - 재시도 실패한 보상 작업 저장
+   - 분석을 위한 충분한 컨텍스트 포함
+
+3. **수동 개입 (Human Intervention)**:
+   - 운영자 알림 (PagerDuty, Slack 등)
+   - 관리자 대시보드를 통한 수동 처리
+
+4. **Forward Recovery** (고급):
+   - 롤백 대신 앞으로 진행하여 일관성 복구
+   - 예: 재고 복구 실패 → 다음 입고 시 자동 조정
+
+**대규모 시스템 고려사항**:
+- SAGA 상태 영구 저장 (장애 복구용)
+- 보상 실패율 모니터링 및 알람
 
 **참고자료**
 - [Microservices Patterns - Chris Richardson](https://microservices.io/book)[^19]
@@ -428,15 +535,26 @@ SAGA 패턴을 구현하는 두 가지 방식인 'Choreography(이벤트 기반 
 <details>
 <summary>답변</summary>
 
-**Choreography**: 각 서비스가 이벤트 발행/구독으로 자율 협력
+**Choreography** (분산 이벤트 기반):
+- 각 서비스가 이벤트를 발행하고 다른 서비스의 이벤트에 반응
+- 중앙 조율자 없음, 자율적 협력
 
-**Orchestration**: 중앙 오케스트레이터가 순서 제어
+**Orchestration** (중앙 조율자 기반):
+- 중앙 오케스트레이터가 SAGA 전체 흐름 제어
+- 순차적/병렬 호출, 결과에 따라 다음 단계 결정
 
 | 비교 | Choreography | Orchestration |
 |------|--------------|---------------|
-| 장점 | 느슨한 결합 | 명확한 흐름 |
-| 단점 | 흐름 파악 어려움 | 오케스트레이터 SPOF |
-| 적합 | 단순 흐름 | 복잡한 워크플로우 |
+| **장점** | 느슨한 결합, 단순한 서비스 | 명확한 흐름, 디버깅 용이 |
+| **단점** | 흐름 파악 어려움, 순환 의존성 위험 | 오케스트레이터 복잡도 증가 |
+| **확장** | 새 서비스 추가 용이 | 오케스트레이터 수정 필요 |
+| **테스트** | 통합 테스트 어려움 | 단위 테스트 용이 |
+| **적합** | 2-4단계 단순 흐름 | 5단계 이상, 조건부 분기 |
+
+**실무 권장**:
+- 시작은 Choreography로 단순하게
+- 복잡해지면 Orchestration으로 전환 고려
+- 도메인별로 하이브리드 적용 가능
 
 **참고자료**
 - [Microservices.io - SAGA](https://microservices.io/patterns/data/saga.html)[^22]
@@ -533,12 +651,20 @@ SAGA 패턴을 구현하는 두 가지 방식인 'Choreography(이벤트 기반 
 <details>
 <summary>답변</summary>
 
-**기준**:
-1. **이벤트 수 기반**: N개 이벤트마다 (예: 100개)
-2. **시간 기반**: 주기적 (예: 매일)
-3. **성능 기반**: 재생 시간이 임계치 초과 시
+**결정 기준**:
+1. **이벤트 수 기반**: N개 이벤트마다 (예: 100-1000개)
+2. **시간 기반**: 주기적 (예: 매시간, 매일)
+3. **성능 기반**: 재생 시간이 SLA 임계치 초과 시
 
-**트레이드오프**: 저장 공간 vs 읽기 성능
+**트레이드오프**:
+| 스냅샷 빈도 | 저장 공간 | 읽기 성능 | 쓰기 부하 |
+|------------|-----------|-----------|-----------|
+| 높음 | 많음 | 빠름 | 높음 |
+| 낮음 | 적음 | 느림 | 낮음 |
+
+**실무 권장**:
+- SLA 기준 역산: 목표 응답시간 내 재생 가능한 이벤트 수 계산
+- 백그라운드에서 비동기로 스냅샷 생성
 
 **참고자료**
 - [Axon Framework - Snapshotting](https://docs.axoniq.io/reference-guide/axon-framework/tuning/event-snapshots)[^27]
@@ -695,10 +821,21 @@ CQRS의 Command-Query 모델 동기화 과정에서 발생하는 '지연(lag)'�
 <details>
 <summary>답변</summary>
 
-1. **UI 낙관적 업데이트**: 쓰기 후 UI에서 바로 반영
-2. **Read-your-writes**: 쓴 사용자는 자신의 변경 즉시 조회
-3. **Polling/WebSocket**: 동기화 완료 시 알림
-4. **버전 체크**: 데이터 버전으로 최신 여부 확인
+**전략 1: UI/UX 패턴**
+- **낙관적 업데이트**: 쓰기 후 UI 즉시 반영 (실패 시 롤백)
+- **로딩 상태**: "저장 중...", "동기화 중..." 표시
+
+**전략 2: Read-your-writes 일관성**
+- 쓴 사용자는 자신의 변경을 즉시 조회
+- 구현: 쓰기 후 일정 시간 Command 모델에서 직접 읽기
+
+**전략 3: 실시간 알림**
+- WebSocket/SSE로 동기화 완료 시 클라이언트에 알림
+
+**전략 4: 버전/타임스탬프**
+- 응답에 버전 포함, 기대 버전과 비교
+
+**트레이드오프**: 구현 복잡도 vs 사용자 경험
 
 **참고자료**
 - [Eventual Consistency](https://www.allthingsdistributed.com/2008/12/eventually_consistent.html)[^35]
@@ -947,17 +1084,25 @@ CQRS에서 'Query 모델(Read Model)'은 어떤 기술을 사용해 구현하는
 <details>
 <summary>답변</summary>
 
-**Range Sharding**: 키 범위로 분할
-- 장점: 범위 쿼리 효율적
-- 단점: Hotspot 발생 가능
+**Range Sharding** (범위 기반):
+- 키 범위로 분할 (예: A-M → 샤드1, N-Z → 샤드2)
+- 장점: 범위 쿼리 효율적, 정렬된 스캔 용이
+- 단점: Hotspot 발생 가능 (최근 데이터에 쓰기 집중)
+- 적합: 시계열 데이터, 범위 검색이 많은 경우
 
-**Hash Sharding**: 해시 값으로 분할
-- 장점: 균등 분산
-- 단점: 범위 쿼리 비효율
+**Hash Sharding** (해시 기반):
+- 키의 해시 값으로 분할
+- 장점: 균등 분산, Hotspot 방지
+- 단점: 범위 쿼리 시 모든 샤드 스캔 필요
+- 적합: Point 쿼리 위주, 균등 분산 중요
 
-**Directory-based**: 룩업 테이블로 매핑
-- 장점: 유연한 분배
-- 단점: 룩업 테이블이 SPOF
+**Directory-based** (디렉토리 기반):
+- 룩업 테이블/서비스로 샤드 매핑
+- 장점: 가장 유연, 동적 리밸런싱 용이
+- 단점: 룩업 서비스가 SPOF/병목
+- 적합: 복잡한 샤딩 규칙, 자주 변경되는 경우
+
+**하이브리드**: 여러 전략 조합 가능 (예: 지역별 Range + 사용자별 Hash)
 
 **참고자료**
 - [Sharding Strategies](https://www.mongodb.com/docs/manual/sharding/)[^47]
@@ -1056,13 +1201,20 @@ Cassandra의 Consistent Hashing에서 '가상 노드(Virtual Nodes)'가 왜 필�
 <details>
 <summary>답변</summary>
 
-**문제**: 물리 노드만 사용 시 불균등한 데이터 분포
+**문제**: 물리 노드만 사용 시 발생하는 이슈
+- 노드가 적으면 해시 링에서 불균등 분포
+- 노드 추가/제거 시 인접 노드에만 부하 집중
 
-**Vnode 해결책**:
-- 각 물리 노드가 여러 가상 노드 담당
+**Vnode (Virtual Nodes) 해결책**:
+- 각 물리 노드가 **여러 토큰 범위** 담당
 - 기본 256개 vnode per 물리 노드
+
+**장점**:
 - 균등한 데이터 분포 보장
-- 노드 추가/제거 시 부하 분산
+- 노드 추가/제거 시 여러 노드가 부하 분담
+- 이기종 하드웨어 지원 (강력한 서버에 더 많은 vnode)
+
+**트레이드오프**: 메타데이터 증가, 복구 시 스트리밍 연결 수 증가
 
 **참고자료**
 - [Cassandra Virtual Nodes](https://cassandra.apache.org/doc/latest/cassandra/architecture/dynamo.html#virtual-nodes)[^52]
@@ -1098,15 +1250,21 @@ Vitess나 Citus와 같이 RDBMS를 샤딩해주는 미들웨어는 어떤 원리
 <details>
 <summary>답변</summary>
 
-**처리 방법**:
-- Scatter-Gather: 모든 샤드에 쿼리 후 결과 병합
+**처리 방법**: Scatter-Gather - 모든 관련 샤드에 쿼리 후 결과 병합
 
 **성능 문제**:
-1. 네트워크 지연 증가
-2. 가장 느린 샤드에 종속
-3. 메모리 사용량 증가 (결과 병합)
+1. 네트워크 지연 증가 (다중 샤드 통신)
+2. Tail Latency: 가장 느린 샤드가 전체 응답 결정
+3. 메모리 증가 (결과 병합/정렬)
+4. 페이지네이션 복잡
 
-**최적화**: 샤드 키 포함 쿼리 유도
+**최적화 전략**:
+1. **샤드 키 포함 쿼리 유도**: 쿼리에 샤드 키 조건 추가
+2. **병렬 실행**: 샤드 쿼리 동시 실행
+3. **캐싱**: 자주 사용되는 크로스 샤드 결과 캐싱
+4. **비정규화**: 자주 조회 데이터 복제
+
+**트레이드오프**: 비정규화 → 조회 성능 향상, 쓰기 복잡도 증가
 
 **참고자료**
 - [Vitess Query Serving](https://vitess.io/docs/concepts/query-serving/)[^54]
@@ -1207,13 +1365,19 @@ CAP 이론(Theorem)에 대해 설명해 주세요. (Consistency, Availability, P
 <details>
 <summary>답변</summary>
 
-**C (Consistency)**: 모든 노드가 동일한 데이터를 반환
+**C (Consistency)**: 모든 노드가 **동일한 최신 데이터**를 반환 (Linearizability)
 
-**A (Availability)**: 모든 요청이 응답을 받음
+**A (Availability)**: 장애가 없는 모든 노드가 **합리적인 시간 내에** 응답
 
-**P (Partition Tolerance)**: 네트워크 분할에도 시스템 동작
+**P (Partition Tolerance)**: 네트워크 분할(메시지 유실/지연)에도 시스템 동작
 
-**정리**: 분산 시스템은 세 가지 중 두 가지만 보장 가능
+**정리**: 네트워크 파티션 발생 시, 일관성(C)과 가용성(A) 중 하나를 선택
+
+**중요한 오해 바로잡기**:
+- "3개 중 2개 선택"은 오해를 유발하는 표현
+- P는 선택이 아닌 **현실** (네트워크는 반드시 실패함)
+- 실제 선택: 파티션 발생 시 C 또는 A 중 무엇을 희생할 것인가
+- 파티션이 없을 때는 C와 A 모두 가능
 
 **참고자료**
 - [CAP Theorem - Brewer](https://www.infoq.com/articles/cap-twelve-years-later-how-the-rules-have-changed/)[^59]
@@ -1249,12 +1413,19 @@ CAP 이론에서 P가 필수일 때 시스템은 CP(일관성 우선) 또는 AP(
 <summary>답변</summary>
 
 **CP (Consistency + Partition Tolerance)**:
-- 파티션 시 가용성 포기
-- 예: ZooKeeper, etcd, HBase, MongoDB (기본)
+- 파티션 발생 시 일관성 유지를 위해 일부 요청 거부
+- 예: ZooKeeper, etcd, HBase, Spanner
+- 적합: 금융 거래, 재고 관리 등 정확성이 핵심
 
 **AP (Availability + Partition Tolerance)**:
-- 파티션 시 일관성 포기 (최종 일관성)
-- 예: Cassandra, DynamoDB, CouchDB
+- 파티션 발생 시에도 모든 노드가 요청 처리 (최종 일관성)
+- 예: Cassandra, DynamoDB, CouchDB, Riak
+- 적합: 소셜 미디어 피드, 장바구니 등 가용성이 핵심
+
+**함정 주의**:
+- MongoDB는 구성에 따라 CP 또는 AP가 될 수 있음 (writeConcern, readConcern)
+- 대부분의 시스템은 **Tunable Consistency** 지원
+- 동일 시스템 내에서 작업별로 다른 일관성 수준 선택 가능
 
 **참고자료**
 - [CAP FAQ](https://www.the-paper-trail.org/page/cap-faq/)[^61]
@@ -1310,11 +1481,19 @@ AP(Availability-Partition Tolerance) 시스템은 네트워크 파티션 발생 
 <summary>답변</summary>
 
 **비판 근거**:
-1. **파티션은 드묾**: 정상 상황에서는 CA 모두 가능
-2. **연속적 스펙트럼**: 이분법이 아닌 조율 가능
-3. **Latency 미고려**: 실제로는 응답 시간도 중요
+1. **파티션은 드묾**: 정상 상황(대부분의 시간)에서는 C와 A 모두 가능
+2. **이분법적 표현의 한계**: 실제로는 연속적 스펙트럼에서 트레이드오프
+3. **Latency 미고려**: 실제 시스템에서는 응답 시간이 가용성만큼 중요
+4. **일관성 정의 모호**: CAP의 C는 Linearizability인데, 실무에서는 다양한 수준 존재
 
-**대안**: PACELC (Partition 시 AC, Else Latency-Consistency 트레이드오프)
+**대안 - PACELC 이론**:
+- **P**artition 발생 시: **A**vailability vs **C**onsistency
+- **E**lse (정상 상황): **L**atency vs **C**onsistency
+
+예시:
+- DynamoDB: PA/EL (파티션 시 가용성, 평소엔 지연 우선)
+- Spanner: PC/EC (항상 일관성 우선)
+- Cassandra: PA/EL (튜닝 가능)
 
 **참고자료**
 - [PACELC](https://en.wikipedia.org/wiki/PACELC_theorem)[^64]
@@ -1454,14 +1633,24 @@ BFT를 구현하기 위한 알고리즘(예: PBFT)과 CFT(Crash Fault Tolerant) 
 <summary>답변</summary>
 
 **CFT (Crash Fault Tolerance) - Raft, Paxos**:
-- 노드가 크래시만 가정 (정직한 실패)
-- f개 장애 허용에 2f+1 노드 필요
-- 성능 우수
+- 노드가 크래시만 가정 (정직한 실패: 응답 없음 또는 정상 응답)
+- f개 장애 허용에 **2f+1** 노드 필요
+- 메시지 복잡도: O(n) per operation
+- 성능 우수, 대부분의 내부 시스템에 적합
 
-**BFT - PBFT**:
-- 악의적 노드 가정
-- f개 장애 허용에 3f+1 노드 필요
-- 메시지 복잡도 O(n^2)
+**BFT (Byzantine Fault Tolerance) - PBFT, HotStuff**:
+- 악의적 노드 가정 (거짓 응답, 선택적 무응답 등)
+- f개 장애 허용에 **3f+1** 노드 필요
+- 메시지 복잡도: O(n^2) per operation
+- 성능 저하, 신뢰할 수 없는 참여자 환경에 필요
+
+**트레이드오프**:
+| 기준 | CFT | BFT |
+|------|-----|-----|
+| 장애 유형 | 크래시만 | 악의적 포함 |
+| 노드 수 | 2f+1 | 3f+1 |
+| 성능 | 높음 | 낮음 |
+| 사용처 | 내부 시스템 | 블록체인, 고신뢰 시스템 |
 
 **참고자료**
 - [Raft vs PBFT](https://decentralizedthoughts.github.io/2019-06-07-modeling-consensus/)[^71]
@@ -1544,13 +1733,25 @@ Raft 알고리즘에서 리더 선출 후 '로그 복제(Log Replication)'는 �
 <details>
 <summary>답변</summary>
 
-**동기식**:
-- 장점: 데이터 유실 없음, 강한 일관성
-- 단점: 높은 지연, 복제본 장애 시 전체 중단
+**동기식 (Synchronous)**:
+- 모든 복제본 확인 후 클라이언트에 응답
+- 장점: 데이터 유실 없음 (RPO=0), 강한 일관성
+- 단점: 가장 느린 복제본에 종속, 복제본 장애 시 전체 중단
+- 적합: 금융 거래 등 데이터 손실 불가한 경우
 
-**비동기식**:
+**비동기식 (Asynchronous)**:
+- 로컬 쓰기 후 즉시 응답, 복제는 백그라운드
 - 장점: 낮은 지연, 높은 가용성
-- 단점: 데이터 유실 가능, 복제 지연
+- 단점: 데이터 유실 가능 (RPO>0), 복제 지연(Replication Lag)
+- 적합: 대부분의 읽기 중심 워크로드
+
+**트레이드오프**:
+| 방식 | RPO | 지연 | 처리량 | 가용성 |
+|------|-----|------|--------|--------|
+| 동기식 | 0 | 높음 | 낮음 | 낮음 |
+| 비동기식 | >0 | 낮음 | 높음 | 높음 |
+
+**실무 고려**: 지리적 분산 복제는 네트워크 지연으로 비동기 권장
 
 **참고자료**
 - [PostgreSQL Replication](https://www.postgresql.org/docs/current/warm-standby.html)[^75]
@@ -1669,14 +1870,25 @@ Raft 알고리즘에서 리더 선출 후 '로그 복제(Log Replication)'는 �
 <details>
 <summary>답변</summary>
 
-**Split-Brain**: 네트워크 파티션으로 두 개의 리더가 동시에 존재
+**Split-Brain 정의**: 네트워크 파티션으로 각 파티션이 자신이 리더라고 판단, **두 개 이상의 리더가 동시 존재**
 
-**문제**: 데이터 불일치, 충돌
+**문제**:
+- 양쪽 리더가 동시에 쓰기 처리 → 데이터 불일치
+- 파티션 복구 후 충돌 해결 어려움
+- 데이터 손실 또는 corruption 가능
 
 **방지 방법**:
-1. **Quorum**: 과반수 연결 확인 필수
-2. **Fencing**: 이전 리더 강제 중단 (STONITH)
-3. **Lease**: 리더 임기 만료 시 재선출
+1. **Quorum (과반수 투표)**: 과반수 노드와 통신 가능해야 리더 유지
+   - 예: 5노드 중 3개 이상 연결된 쪽만 리더
+
+2. **Fencing (차단)**: 이전 리더를 강제로 격리
+   - STONITH (Shoot The Other Node In The Head)
+   - Fencing Token: 새 리더만 유효한 토큰 사용
+
+3. **Lease (임대)**: 리더 권한에 TTL 설정
+   - 갱신 실패 시 자동으로 리더십 상실
+
+**핵심 통찰**: 파티션 시 "누가 죽었는지" 판단 불가 → **스스로 포기하는 메커니즘** 필수
 
 **참고자료**
 - [Fencing in Distributed Systems](https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html)[^81]
@@ -1792,15 +2004,32 @@ Raft 알고리즘에서 리더 선출 후 '로그 복제(Log Replication)'는 �
 <details>
 <summary>답변</summary>
 
-**감지**:
-- 버전 벡터 / 타임스탬프 비교
-- 복제 시 충돌 발견
+**감지 방법**:
+- 버전 벡터 (Vector Clock): 각 노드별 버전 추적, 동시성 감지
+- 타임스탬프 비교: 물리적/논리적 시계 사용
+- 복제 시점에 충돌 발견
 
-**해결 전략**:
-1. **LWW (Last Write Wins)**: 타임스탬프 최신 승
-2. **병합**: 두 값 합치기
-3. **사용자 해결**: 충돌 표시, 사용자가 선택
-4. **CRDT**: 자동 병합 가능한 데이터 구조
+**해결 전략** (트레이드오프 포함):
+1. **LWW (Last Write Wins)**:
+   - 타임스탬프 최신 값 승리
+   - 장점: 단순, 결정론적
+   - 단점: 데이터 유실, 시계 동기화 의존
+
+2. **병합 (Merge)**:
+   - 두 값 합치기 (예: 집합의 합집합)
+   - 장점: 데이터 유실 없음
+   - 단점: 모든 데이터 타입에 적용 불가
+
+3. **사용자 해결**:
+   - 충돌 표시 후 사용자/애플리케이션이 선택
+   - 장점: 비즈니스 로직 반영
+   - 단점: UX 저하, 구현 복잡
+
+4. **CRDT (Conflict-free Replicated Data Types)**:
+   - 수학적으로 자동 병합 가능한 데이터 구조
+   - 예: G-Counter, LWW-Register, OR-Set
+   - 장점: 자동 해결
+   - 단점: 지원 타입 제한, 메모리 오버헤드
 
 **참고자료**
 - [CRDTs](https://crdt.tech/)[^87]
@@ -1906,17 +2135,32 @@ RDBMS와 NoSQL(Key-Value, Document, Graph) 각각의 특징을 설명하고, 언
 <details>
 <summary>답변</summary>
 
-**RDBMS**: 정형 데이터, ACID, 복잡한 쿼리/조인, 강한 일관성
-→ 트랜잭션 중요, 관계형 데이터
+**RDBMS (PostgreSQL, MySQL)**:
+- 특징: 정형 데이터, ACID, 복잡한 조인, 강한 일관성
+- 적합: 금융, ERP, 관계형 데이터
+- 제한: 수평 확장 어려움
 
-**Key-Value (Redis)**: 단순 조회, 높은 성능
-→ 캐싱, 세션
+**Key-Value (Redis, DynamoDB)**:
+- 특징: 단순 조회, 매우 높은 성능
+- 적합: 캐싱, 세션, 실시간 카운터
+- 제한: 복잡한 쿼리 불가
 
-**Document (MongoDB)**: 유연한 스키마, 중첩 구조
-→ 콘텐츠 관리, 카탈로그
+**Document (MongoDB, Couchbase)**:
+- 특징: 유연한 스키마, JSON 중첩
+- 적합: 콘텐츠 관리, 카탈로그
+- 제한: 조인 비효율
 
-**Graph (Neo4j)**: 관계 탐색 최적화
-→ 소셜 네트워크, 추천
+**Wide-Column (Cassandra, HBase)**:
+- 특징: 대용량 쓰기, 시계열
+- 적합: IoT, 로그, 시계열 분석
+- 제한: 복잡한 쿼리 불가
+
+**Graph (Neo4j)**:
+- 특징: 관계 탐색 최적화
+- 적합: 소셜 네트워크, 추천
+- 제한: 집계 쿼리 비효율
+
+**선택 기준**: ACID 필수 → RDBMS, 높은 쓰기 → Wide-Column, 유연한 스키마 → Document, 관계 분석 → Graph
 
 **참고자료**
 - [DB-Engines Ranking](https://db-engines.com/en/ranking)[^92]
@@ -1932,15 +2176,28 @@ RDBMS와 NoSQL(Key-Value, Document, Graph) 각각의 특징을 설명하고, 언
 <details>
 <summary>답변</summary>
 
-**동기식 (REST, gRPC)**:
-- 즉각적 응답 필요
-- 단순한 요청-응답
+**동기식 (REST, gRPC) 선택**:
+- 즉각적 응답 필요 (사용자 대기)
+- 단순한 요청-응답 패턴
 - 강한 일관성 필요
+- 예: 인증, 결제 검증, 실시간 조회
 
-**비동기식 (이벤트)**:
+**비동기식 (이벤트, 메시지) 선택**:
 - 응답 대기 불필요
-- 느슨한 결합 원함
+- 느슨한 결합이 중요
 - 확장성/탄력성 중요
+- 작업이 오래 걸리는 경우
+- 예: 알림, 로그 처리, 주문 후처리
+
+**트레이드오프**:
+| 기준 | 동기식 | 비동기식 |
+|------|--------|----------|
+| 결합도 | 높음 | 낮음 |
+| 복잡도 | 낮음 | 높음 (브로커 운영) |
+| 장애 전파 | 연쇄 장애 위험 | 격리 가능 |
+| 디버깅 | 용이 | 어려움 |
+
+**실무 권장**: 하이브리드 - Query는 동기식, Event는 비동기식
 
 **참고자료**
 - [Microservices Communication](https://microservices.io/patterns/communication-style/)[^93]
@@ -1959,9 +2216,19 @@ API 게이트웨이는 MSA에서 어떤 역할을 하며, 왜 필요한가요?
 **역할**:
 1. **단일 진입점**: 클라이언트에게 하나의 엔드포인트 제공
 2. **라우팅**: 요청을 적절한 서비스로 전달
-3. **인증/인가**: 중앙화된 보안
-4. **Rate Limiting**: 트래픽 제어
-5. **응답 집계**: 여러 서비스 응답 병합
+3. **인증/인가**: 중앙화된 보안 (JWT 검증, OAuth)
+4. **Rate Limiting**: 트래픽 제어, DDoS 방어
+5. **응답 집계**: 여러 서비스 응답 병합 (BFF 패턴)
+6. **프로토콜 변환**: REST ↔ gRPC
+7. **캐싱**: 응답 캐싱으로 백엔드 부하 감소
+
+**트레이드오프**:
+- 장점: 횡단 관심사 중앙화, 서비스 변경 시 클라이언트 영향 최소화
+- 단점: SPOF 위험, 추가 네트워크 홉, 병목 가능
+
+**대규모 시스템 고려**:
+- Gateway 고가용성 (클러스터링, 다중 리전)
+- 분산 트레이싱 통합
 
 **참고자료**
 - [Kong Gateway](https://docs.konghq.com/)[^94]
@@ -1976,16 +2243,25 @@ API 게이트웨이는 MSA에서 어떤 역할을 하며, 왜 필요한가요?
 <details>
 <summary>답변</summary>
 
-**Service Mesh**: 서비스 간 통신을 담당하는 인프라 계층 (Sidecar Proxy)
+**Service Mesh 정의**: 서비스 간 통신을 담당하는 **전용 인프라 계층**, Sidecar Proxy 배치
 
 **차이점**:
 | 비교 | API Gateway | Library | Service Mesh |
 |------|-------------|---------|--------------|
-| 위치 | Edge | 애플리케이션 내 | Sidecar |
+| 위치 | Edge (외부 경계) | 애플리케이션 내 | Sidecar (각 Pod) |
 | 범위 | North-South | 애플리케이션 | East-West |
-| 언어 | 무관 | 언어별 | 무관 |
+| 언어 의존 | 무관 | 언어별 | 무관 |
+| 업데이트 | Gateway만 | 앱 재배포 | Proxy만 |
 
-**예시**: Istio, Linkerd
+**Service Mesh 기능**: mTLS, 트래픽 관리, 관찰성, 회복력
+
+**트레이드오프**:
+- 장점: 언어 독립적, 일관된 정책, 앱 코드 간소화
+- 단점: 운영 복잡도 증가, 추가 리소스, 디버깅 어려움
+
+**도입 시점**: 다양한 언어 혼용, 엄격한 보안 요구, 대규모 MSA (10개 이상)
+
+**예시**: Istio, Linkerd, Consul Connect
 
 **참고자료**
 - [Istio Documentation](https://istio.io/latest/docs/)[^95]

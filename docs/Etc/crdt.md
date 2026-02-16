@@ -15,15 +15,28 @@ CRDT(Conflict-free Replicated Data Type)의 기본 개념과 사용 목적은 �
 
 CRDT는 분산 시스템에서 여러 복제본(replica)이 독립적으로 수정되더라도 충돌 없이 자동으로 병합될 수 있도록 설계된 데이터 구조입니다.
 
+**CRDT의 두 가지 유형:**
+
+| 유형 | State-based (CvRDT) | Operation-based (CmRDT) |
+|------|---------------------|-------------------------|
+| **동기화 방식** | 전체 상태 전송 후 병합 | 개별 연산만 전송 |
+| **병합 함수** | merge(state1, state2) | 연산을 순서대로 적용 |
+| **네트워크 요구사항** | 신뢰성 불필요 (멱등성) | 정확히 한 번 전달 필요 |
+| **대역폭** | 상태 크기에 비례 | 연산 크기에 비례 |
+| **예시** | G-Counter, OR-Set | Yjs (내부적으로 op-based) |
+
+> **트레이드오프**: State-based는 구현이 단순하고 메시지 손실에 강하지만 대역폭을 많이 사용합니다. Operation-based는 효율적이지만 메시지 순서와 전달 보장이 필요합니다. 실제로 Yjs는 두 접근법을 혼합하여 사용합니다.
+
 **핵심 특징:**
 - **중앙 서버 불필요**: 각 클라이언트가 독립적으로 데이터를 수정하고, 최종적으로 모든 복제본이 동일한 상태로 수렴
-- **Eventual Consistency 보장**: 동일한 업데이트를 받은 모든 복제본은 결정론적으로 같은 상태에 도달
+- **Strong Eventual Consistency (SEC) 보장**: 동일한 업데이트를 받은 모든 복제본은 결정론적으로 같은 상태에 도달 (일반 EC보다 강한 보장)
 - **오프라인 지원**: 네트워크 연결 없이도 로컬 편집이 가능하며, 나중에 동기화
 
 **사용 목적:**
-- 실시간 협업 애플리케이션 (Google Docs, Figma 등)
+- 실시간 협업 애플리케이션 (Notion, Linear 등)
 - 오프라인-퍼스트 애플리케이션
 - P2P 분산 시스템
+- 분산 데이터베이스 (Redis CRDT, Riak 등)
 
 **참고자료**
 - [CRDT.tech - About CRDTs](https://crdt.tech/)[^1]
@@ -48,10 +61,11 @@ Yjs는 고성능 CRDT 라이브러리로, 실시간 협업 애플리케이션 �
 - **풍부한 에디터 통합**: ProseMirror, Quill, Monaco, CodeMirror 등 주요 에디터 바인딩 지원
 
 **특징:**
-- **최고 수준의 성능**: 벤치마크에서 가장 빠른 CRDT 구현체로 평가
-- **YATA 알고리즘**: 효율적인 텍스트 편집을 위한 최적화된 알고리즘 사용
-- **바이너리 인코딩**: 메모리 효율적인 바이너리 형식으로 데이터 저장
-- **모듈화 구조**: 필요한 기능만 선택적으로 사용 가능
+- **최고 수준의 성능**: crdt-benchmarks에서 다른 CRDT 라이브러리 대비 우수한 성능
+- **YATA 알고리즘**: 인터리빙 문제를 해결한 텍스트 CRDT 알고리즘 (2016년 발표)
+- **바이너리 인코딩**: 커스텀 바이너리 형식으로 JSON 대비 10배 이상 작은 크기
+- **모듈화 구조**: 핵심 라이브러리(yjs) + 네트워크(y-websocket, y-webrtc) + 에디터 바인딩 분리
+- **Awareness 프로토콜**: 커서 위치, 사용자 정보 등 임시 상태 공유 내장
 
 **참고자료**
 - [Yjs 공식 문서](https://docs.yjs.dev/)[^3]
@@ -126,21 +140,27 @@ CRDT와 OT는 모두 분산 환경에서 협업 편집을 가능하게 하지만
 | **서버 의존성** | 중앙 서버 필요 (일반적) | 완전한 P2P 가능 |
 | **오프라인 지원** | 제한적 | 우수함 |
 | **메모리 사용** | 낮음 | 높음 (메타데이터 오버헤드) |
-| **의도 보존** | 우수함 | 제한적 |
+| **의도 보존** | 변환 함수로 보존 가능 | 데이터 구조에 따라 다름 |
+| **구현 복잡도** | 변환 함수 정확성 증명 어려움 | 수학적으로 검증 가능 |
 
 **OT 동작 방식:**
 - 편집을 연산(operation) 시퀀스로 처리
 - 동시 연산 발생 시 서버에서 변환(transform)하여 적용
 - 예: "위치 5에 삽입" → 다른 편집으로 인해 "위치 3에 삽입"으로 변환
+- 변환 함수의 정확성(TP1, TP2 속성)을 보장해야 함
 
 **CRDT 동작 방식:**
 - 데이터 구조 자체에 충분한 메타데이터 포함
 - 각 요소에 고유 ID 부여하여 위치 대신 ID 기반 참조
 - 예: "문자 ID 'a1b2' 뒤에 삽입"
+- 수학적으로 수렴이 보장됨 (교환법칙, 결합법칙, 멱등성)
+
+> **함정 주의**: "CRDT가 OT보다 항상 우수하다"는 오해가 있습니다. 실제로는 사용 사례에 따라 다릅니다. OT는 중앙 서버가 있고 네트워크가 안정적인 환경에서 메모리 효율적이며, CRDT는 P2P나 오프라인 환경에서 강점을 보입니다.
 
 **실제 사용 사례:**
-- OT: Google Docs
-- CRDT: Figma, Notion (일부)
+- OT: Google Docs, Etherpad
+- CRDT: Notion, Linear, Apple Notes (일부 기능)
+- 하이브리드: Figma (자체 구현, CRDT 영감을 받은 커스텀 솔루션)
 
 **참고자료**
 - [Real Differences between OT and CRDT](https://arxiv.org/abs/1905.01518)[^6]
@@ -282,12 +302,15 @@ const diff = Y.encodeStateAsUpdate(ydoc,
   Y.encodeSnapshotV2(snapshot))
 ```
 
-**충돌 해결:**
+**충돌 해결 메커니즘:**
 
 YATA 알고리즘에 기반한 결정론적 규칙:
-1. **삽입 위치 결정**: 동일 위치 삽입 시 클라이언트 ID로 순서 결정
-2. **삭제 처리**: 삭제된 항목은 tombstone으로 마킹 (실제 제거 대신)
+
+1. **삽입 위치 결정**: 동일 위치 삽입 시 origin, rightOrigin, 클라이언트 ID 순으로 결정
+2. **삭제 처리**: 삭제된 항목은 tombstone으로 마킹 (참조 무결성 유지)
 3. **자동 병합**: 모든 클라이언트가 동일한 규칙을 적용하므로 최종 상태 수렴 보장
+
+> **State Vector의 역할**: State Vector는 "내가 어떤 업데이트까지 받았는지"를 표현합니다. 동기화 시 상대방의 State Vector와 비교하여 부족한 업데이트만 전송함으로써 대역폭을 절약합니다. 이는 벡터 시계(Vector Clock)의 개념과 유사합니다.
 
 **참고자료**
 - [Yjs Internals](https://docs.yjs.dev/api/internals)[^10]
@@ -413,32 +436,38 @@ Yjs와 다른 CRDT 라이브러리(예: Automerge) 간의 주요 차이점은 �
 
 Yjs와 Automerge는 모두 인기 있는 CRDT 라이브러리이지만 설계 철학과 특성이 다릅니다.
 
-| 구분 | Yjs | Automerge |
-|------|-----|-----------|
-| **알고리즘** | YATA | RGA |
-| **데이터 모델** | 타입별 전용 구조 | JSON 문서 |
-| **인코딩** | 바이너리 | JSON (WASM 버전은 바이너리) |
-| **언어** | JavaScript | Rust + WASM 바인딩 |
-| **성능** | 매우 빠름 | 상대적으로 느림 |
-| **메모리** | 효율적 | 더 많은 메모리 사용 |
-| **GC** | 지원 | 제한적 |
+| 구분 | Yjs | Automerge 2.0 |
+|------|-----|---------------|
+| **알고리즘** | YATA | RGA 변형 (OpSet) |
+| **데이터 모델** | 타입별 전용 구조 | JSON 문서 (불변 데이터) |
+| **인코딩** | 커스텀 바이너리 | 바이너리 (Rust 기반) |
+| **언어** | JavaScript (순수) | Rust + WASM/네이티브 바인딩 |
+| **성능** | 매우 빠름 | 2.0에서 크게 개선됨 |
+| **메모리** | 효율적 | 2.0에서 개선 (여전히 더 높음) |
+| **GC** | 지원 | 제한적 (히스토리 보존 우선) |
+| **히스토리** | 선택적 | 전체 히스토리 보존 기본 |
 
 **Yjs 강점:**
 - 텍스트 협업에 최적화된 성능
-- 다양한 에디터 바인딩 생태계
+- 다양한 에디터 바인딩 생태계 (ProseMirror, Quill, Monaco 등)
 - 네트워크 Provider 선택의 유연성
 - 가비지 컬렉션으로 문서 크기 관리
+- 브라우저 환경에서 가볍고 빠름
 
 **Automerge 강점:**
-- JSON 친화적 데이터 모델
-- 다국어 지원 (Rust, Python, Go 등)
+- JSON 친화적 데이터 모델 (스키마리스)
+- 다국어 지원 (Rust, Python, Go, Swift 등)
 - automerge-repo로 end-to-end 동기화 제공
-- 오프라인-퍼스트 설계
+- 전체 변경 히스토리 추적 (시간 여행 디버깅)
+- 강력한 머지 시맨틱스
+
+> **트레이드오프**: Yjs는 성능과 에디터 통합에 최적화되어 있고, Automerge는 데이터 무결성과 히스토리 보존에 중점을 둡니다. Automerge 2.0은 Rust로 재작성되어 성능이 크게 개선되었지만, 여전히 Yjs가 텍스트 편집 벤치마크에서 앞서는 경우가 많습니다.
 
 **선택 기준:**
 - 텍스트 에디터 중심 → Yjs
-- JSON 데이터 구조 중심 → Automerge
+- JSON 데이터 구조 + 히스토리 필요 → Automerge
 - 성능이 최우선 → Yjs
+- 백엔드가 Rust/다국어 → Automerge
 
 **참고자료**
 - [CRDT Implementations](https://crdt.tech/implementations)[^14]
@@ -650,40 +679,78 @@ Yjs 문서 병합 과정에서 동시 삽입, 동시 삭제 등 발생할 수 �
 <details>
 <summary>답변</summary>
 
-CRDT 특성상 Yjs에서는 "충돌"이 자동으로 해결되지만, 의도하지 않은 결과가 발생할 수 있는 상황이 있습니다.
+CRDT 특성상 Yjs에서는 "충돌"이 자동으로 해결되지만, 결과가 사용자의 의도와 다를 수 있는 상황을 이해해야 합니다.
+
+> **핵심 개념**: CRDT에서 "충돌"은 기술적으로 발생하지 않습니다. 모든 동시 편집은 결정론적 규칙에 따라 자동 병합됩니다. 그러나 "의미적 충돌"(사용자 의도와 다른 결과)은 여전히 발생할 수 있습니다.
 
 **1. 동시 삽입 충돌:**
 - **상황**: 두 사용자가 같은 위치에 동시에 텍스트 삽입
 - **해결**: 클라이언트 ID를 기준으로 결정론적 순서 적용
 
 ```javascript
-// User A: "Hello|World" → "Hello_X_World"
-// User B: "Hello|World" → "Hello_Y_World"
-// 결과: "Hello_X_Y_World" 또는 "Hello_Y_X_World"
-// (클라이언트 ID에 따라 일관되게 결정)
+// User A (clientID: 100): "Hello|World" → "Hello_X_World"
+// User B (clientID: 200): "Hello|World" → "Hello_Y_World"
+// 결과: "Hello_XY_World" (clientID 100 < 200 이므로 X가 앞)
+// 모든 클라이언트에서 항상 동일한 결과!
 ```
 
 **2. 동시 삭제와 수정:**
-- **상황**: 한 사용자가 삭제하는 동안 다른 사용자가 수정
-- **해결**: 삭제 우선 (tombstone으로 마킹)
+- **상황**: 한 사용자가 텍스트를 삭제하는 동안 다른 사용자가 같은 텍스트를 수정
+- **해결**: 삭제가 적용됨 (tombstone). 수정 연산은 이미 삭제된 항목에 적용
 
-**3. 동시 속성 변경:**
-- **상황**: 같은 텍스트에 다른 서식 적용
-- **해결**: Last-Write-Wins (마지막 변경 적용)
+```javascript
+// User A: "Hello" → "" (전체 삭제)
+// User B: "Hello" → "HELLO" (대문자 변환 시도)
+// 결과: "" (삭제 승리)
+// 이것이 의도한 결과인지는 애플리케이션 레벨에서 판단 필요
+```
+
+**3. 동시 속성 변경 (Y.Map, 서식):**
+- **상황**: 같은 키나 같은 텍스트 범위에 다른 값/서식 적용
+- **해결**: Last-Write-Wins (LWW) - 논리적 시계 기준 마지막 변경 적용
+
+```javascript
+// User A (clock: 5): ymap.set('color', 'red')
+// User B (clock: 6): ymap.set('color', 'blue')
+// 결과: 'blue' (clock 6 > 5)
+```
 
 **4. Interleaving 문제:**
 - **상황**: "foo"와 "bar" 동시 입력 시 "fboaor" 같은 결과
-- **해결**: YATA 알고리즘이 이 문제를 최소화
+- **해결**: YATA 알고리즘이 rightOrigin을 사용하여 이 문제를 최소화
+
+```javascript
+// 기존 알고리즘 (RGA 등):
+// User A: "" → "f" → "fo" → "foo"
+// User B: "" → "b" → "ba" → "bar"
+// 가능한 결과: "fboaor" (인터리빙 발생!)
+
+// YATA:
+// rightOrigin 정보를 사용하여 "단어" 단위 유지
+// 결과: "foobar" 또는 "barfoo"
+```
 
 **의도 보존을 위한 전략:**
 
 ```javascript
-// 트랜잭션으로 원자적 변경
+// 1. 트랜잭션으로 원자적 변경 (관련 변경을 묶음)
 ydoc.transact(() => {
   ymap.set('status', 'editing')
   ytext.insert(0, 'Draft: ')
+}, 'user-action')
+
+// 2. 의미적 충돌 감지 및 알림
+ytext.observe((event) => {
+  if (event.origin !== 'local' && hasOverlap(event, localPendingEdits)) {
+    showConflictWarning()
+  }
 })
+
+// 3. 중요한 변경에 대한 락 (Awareness 활용)
+awareness.setLocalState({ editing: 'paragraph-1' })
 ```
+
+> **함정 주의**: "CRDT는 충돌이 없다"는 말은 "기술적 충돌"이 없다는 의미입니다. 사용자 관점에서의 "의미적 충돌"은 여전히 발생하며, 좋은 UX를 위해서는 이를 시각적으로 표시하거나 알림을 제공해야 합니다.
 
 **참고자료**
 - [YATA Algorithm](https://docs.yjs.dev/api/internals)[^20]
@@ -709,9 +776,11 @@ Yjs 애플리케이션의 성능을 최적화하기 위한 여러 전략이 있�
 ```javascript
 const ydoc = new Y.Doc({ gc: true }) // 기본값
 
-// GC는 삭제된 콘텐츠의 구조를 정리
-// 단, undo/redo 히스토리에 영향을 줄 수 있음
+// GC는 삭제된 콘텐츠(tombstone)의 구조를 정리
+// 메모리와 문서 크기 절약
 ```
+
+> **GC 트레이드오프**: GC를 활성화하면 메모리가 절약되지만, Undo/Redo 히스토리가 제한됩니다. GC가 실행된 후에는 GC된 시점 이전으로 되돌릴 수 없습니다. 협업 히스토리가 중요한 경우 `gc: false`를 고려하세요.
 
 **2. Subdocuments (하위 문서):**
 
@@ -1024,10 +1093,11 @@ CRDT를 이용한 분산 시스템에서 eventual consistency와 strong consiste
 
 분산 시스템에서 일관성 모델은 데이터 동기화의 보장 수준을 정의합니다.
 
-**Strong Consistency (강한 일관성):**
+**Strong Consistency (강한 일관성 / Linearizability):**
 - 모든 읽기는 가장 최근 쓰기 결과를 반환
 - 모든 노드가 동일한 순서로 업데이트 확인
-- 예: 전통적인 RDBMS, Raft/Paxos 기반 시스템
+- 전역 총 순서(total order)가 존재
+- 예: 전통적인 RDBMS, Raft/Paxos 기반 시스템, Spanner
 
 ```
 시간 ---->
@@ -1038,30 +1108,34 @@ Node B: Read(x) = 1 ---+  (A의 쓰기 후에만 읽기 가능)
 **Eventual Consistency (최종 일관성):**
 - 충분한 시간이 지나면 모든 노드가 같은 상태에 도달
 - 중간 상태에서는 노드별로 다른 값을 볼 수 있음
-- CRDT가 보장하는 일관성 모델
+- 수렴 방식이 정의되지 않음 (충돌 해결 필요)
 
 ```
 시간 ---->
 Node A: Write(x=1) -----> x=1
-Node B: Read(x) = 0 ...-> x=1 (나중에 동기화)
+Node B: Read(x) = 0 ...-> x=1 (나중에 동기화, 충돌 시 해결 필요)
 ```
 
-**CRDT의 강점 - Strong Eventual Consistency:**
+**Strong Eventual Consistency (SEC) - CRDT의 핵심:**
 
-CRDT는 일반적인 Eventual Consistency보다 강한 보장을 제공:
+CRDT는 일반적인 Eventual Consistency보다 강한 보장을 제공합니다. Shapiro et al. (2011) 논문에서 정의한 SEC의 세 가지 속성:
 
-1. **수렴 보장**: 같은 업데이트를 받은 복제본은 반드시 같은 상태
-2. **충돌 없음**: 병합 시 충돌 해결이 자동으로 결정론적
-3. **순서 독립**: 업데이트 적용 순서가 최종 결과에 영향 없음
+1. **Eventual Delivery**: 한 복제본에 전달된 업데이트는 결국 모든 복제본에 전달됨
+2. **Strong Convergence**: 같은 업데이트 집합을 받은 복제본은 *즉시* 동일한 상태 (순서 무관)
+3. **Termination**: 모든 연산은 유한 시간 내에 완료
 
-**트레이드오프 (CAP 정리):**
+> **핵심 차이**: 일반 EC는 "언젠가 같아진다"만 보장하고 충돌 해결이 별도로 필요합니다. SEC는 "같은 업데이트를 받으면 *항상* 같은 상태가 된다"를 수학적으로 보장하며, 충돌 해결이 데이터 구조에 내장되어 있습니다.
 
-| 속성 | Strong | Eventual |
-|------|--------|----------|
-| 가용성 | 낮음 | 높음 |
-| 지연 시간 | 높음 | 낮음 |
-| 네트워크 분할 허용 | 불가 | 가능 |
-| 오프라인 작업 | 불가 | 가능 |
+**트레이드오프 (CAP/PACELC 정리):**
+
+| 속성 | Strong Consistency | Eventual Consistency | Strong Eventual (CRDT) |
+|------|-------------------|---------------------|----------------------|
+| 가용성 | 낮음 (P 시 불가) | 높음 | 높음 |
+| 지연 시간 | 높음 (합의 필요) | 낮음 | 낮음 |
+| 네트워크 분할 허용 | 불가 | 가능 | 가능 |
+| 오프라인 작업 | 불가 | 제한적 | 완전 지원 |
+| 충돌 해결 | 불필요 | 수동/LWW 등 | 자동 (결정론적) |
+| 메모리 오버헤드 | 낮음 | 낮음 | 높음 (메타데이터) |
 
 **참고자료**
 - [CRDT.tech - About CRDTs](https://crdt.tech/)[^27]
@@ -1082,18 +1156,22 @@ Yjs 문서 크기가 커질 때 발생할 수 있는 성능 이슈와 대응 방
 
 대용량 Yjs 문서는 메모리, 네트워크, 초기 로드 시간에 영향을 줄 수 있습니다.
 
+> **실제 사례**: 일반적인 협업 문서(10-50페이지)에서는 Yjs가 매우 효율적입니다. 문제는 수백 페이지의 문서, 오랜 편집 히스토리가 누적된 경우, 또는 대량의 동시 편집자가 있는 경우에 발생합니다.
+
 **성능 이슈:**
 
 1. **메모리 사용량 증가**
-   - 각 문자에 메타데이터 (ID, 참조) 포함
-   - 삭제된 항목도 tombstone으로 유지
+   - 각 문자에 메타데이터 포함 (ID: clientID + clock, origin 참조)
+   - 삭제된 항목도 tombstone으로 유지 (GC 전까지)
+   - 예: 1MB 텍스트 → Yjs 문서에서 3-5MB (메타데이터 포함)
 
 2. **초기 동기화 지연**
-   - 전체 문서 상태를 전송해야 함
-   - 새 클라이언트 연결 시 병목
+   - 새 클라이언트는 전체 문서 상태를 수신해야 함
+   - 히스토리가 긴 문서일수록 초기 로드 시간 증가
 
 3. **업데이트 처리 시간**
-   - 큰 문서에서 변경 적용이 느려질 수 있음
+   - 큰 문서에서 삽입 위치 탐색 시간 증가
+   - YATA의 최악 케이스: O(n) (하지만 실제로는 대부분 O(1))
 
 **대응 방법:**
 
@@ -1831,44 +1909,64 @@ Yjs의 YATA(Yet Another Transformation Approach) 기반 업데이트 충돌 해�
 <details>
 <summary>답변</summary>
 
-Yjs는 YATA (Yet Another Transformation Approach) 알고리즘을 기반으로 충돌을 해결합니다.
+Yjs는 YATA (Yet Another Transformation Approach) 알고리즘을 기반으로 충돌을 해결합니다. YATA는 2016년 Nicolaescu et al.이 발표한 알고리즘으로, 기존 RGA의 한계를 개선했습니다.
 
 **YATA 알고리즘 핵심:**
 
-**1. 고유 식별자:**
+**1. 고유 식별자 (Unique ID):**
 ```
 각 항목 = (clientID, clock)
-- clientID: 클라이언트별 고유 ID
-- clock: 해당 클라이언트의 논리적 시계
+- clientID: 클라이언트별 고유 53비트 정수 (Yjs에서는 랜덤 생성)
+- clock: 해당 클라이언트의 논리적 시계 (Lamport timestamp와 유사)
 ```
 
-**2. 위치 참조:**
+**2. 위치 참조 (Relative Positioning):**
 ```
 새 항목 삽입 시 절대 위치가 아닌 참조 사용:
-- origin: 삽입 시점에 왼쪽에 있던 항목
-- rightOrigin: 삽입 시점에 오른쪽에 있던 항목
+- origin (left): 삽입 시점에 왼쪽에 있던 항목의 ID
+- rightOrigin (right): 삽입 시점에 오른쪽에 있던 항목의 ID
+
+이로 인해 동시 편집 시에도 위치가 "이동"하지 않음
 ```
 
-**3. 삽입 규칙:**
-동일 위치에 동시 삽입 시:
+**3. 삽입 규칙 (Integration Rules):**
+동일 위치에 동시 삽입 시 결정론적 순서 결정:
 ```javascript
-// 두 항목 A, B가 같은 위치에 삽입된 경우
-if (A.origin === B.origin) {
-  // 더 작은 clientID가 왼쪽에 위치
-  if (A.id.client < B.id.client) {
-    // A가 B보다 앞
-  } else {
-    // B가 A보다 앞
+// 두 항목 A, B가 같은 origin을 가진 경우
+function compareItems(A, B) {
+  // 규칙 1: origin이 같으면 clientID로 비교
+  if (A.origin === B.origin) {
+    return A.id.client < B.id.client ? -1 : 1
   }
+  // 규칙 2: origin이 다르면 origin의 위치로 결정
+  // (더 복잡한 규칙이 있지만 핵심은 결정론적 순서)
 }
 ```
 
-**4. 삭제 처리:**
+**4. 삭제 처리 (Tombstones):**
 ```javascript
-// 삭제는 tombstone으로 마킹
+// 삭제는 tombstone으로 마킹 (실제 제거 X)
 item.deleted = true
-// 실제 제거가 아닌 마킹 → 구조 유지
-// GC 시점에 안전하게 정리
+item.content = null  // 메모리 절약
+
+// 왜 즉시 삭제하지 않는가?
+// - 다른 클라이언트의 삽입이 삭제된 항목을 참조할 수 있음
+// - origin/rightOrigin 참조 무결성 유지
+// - GC는 모든 클라이언트가 삭제를 확인한 후에만 안전
+```
+
+**인터리빙 문제와 해결:**
+
+```
+문제 상황 (RGA에서 발생):
+User A: "" → "AB" (A 삽입, B 삽입)
+User B: "" → "CD" (C 삽입, D 삽입)
+RGA 결과: "CADB" 또는 "ACBD" (인터리빙!)
+
+YATA 해결:
+- rightOrigin도 함께 저장
+- 삽입 시 오른쪽 컨텍스트도 고려
+- 결과: "ABCD" 또는 "CDAB" (단어 단위 유지)
 ```
 
 **예시 시나리오:**
@@ -1877,24 +1975,35 @@ item.deleted = true
 초기 상태: "AC"
 
 User 1 (clientID: 1): "A" 뒤에 "B" 삽입 → "ABC"
+  - origin: A의 ID
+  - rightOrigin: C의 ID
+
 User 2 (clientID: 2): "A" 뒤에 "X" 삽입 → "AXC"
+  - origin: A의 ID
+  - rightOrigin: C의 ID
 
 동기화 후:
-- 둘 다 origin = "A"
+- 둘 다 같은 origin과 rightOrigin
 - clientID 1 < 2 이므로 "B"가 "X" 앞
 - 최종: "ABXC"
 
 모든 클라이언트에서 동일한 결과!
 ```
 
-**YATA vs RGA:**
-- RGA: 전역 카운터 사용
-- YATA: 클라이언트별 카운터 (더 효율적)
+**YATA vs 다른 알고리즘:**
+
+| 알고리즘 | 인터리빙 | 복잡도 | 메타데이터 |
+|---------|---------|--------|-----------|
+| RGA | 발생 가능 | O(n) | ID만 |
+| WOOT | 해결 | O(n²) | 많음 |
+| Logoot/LSEQ | 발생 가능 | O(log n) | 가변 ID |
+| YATA | 최소화 | O(n) 최악, 평균 O(1) | origin + rightOrigin |
 
 **장점:**
-- O(log n) 삽입 복잡도
-- 인터리빙 문제 최소화
-- 메모리 효율적
+- 인터리빙 문제 최소화 (사용자 의도 보존)
+- 실제 협업 패턴에서 O(1)에 가까운 성능
+- 효율적인 메모리 사용
+- 가비지 컬렉션 지원
 
 **참고자료**
 - [YATA Paper](https://www.researchgate.net/publication/310212186_Near_Real-Time_Peer-to-Peer_Shared_Editing_on_Extensible_Data_Types)[^36]

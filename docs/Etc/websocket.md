@@ -23,10 +23,12 @@ WebSocket의 기본 개념과 HTTP와의 차이점은 무엇인가요?
 | 구분 | HTTP | WebSocket |
 |------|------|-----------|
 | 통신 방식 | 요청-응답 (반이중) | 양방향 (전이중) |
-| 연결 | 매 요청마다 연결/해제 | 한 번 연결 후 지속 유지 |
-| 오버헤드 | 매 요청마다 헤더 전송 | 초기 핸드셰이크 후 최소 |
-| 서버 푸시 | 불가 (폴링 필요) | 가능 |
+| 연결 | 요청-응답 후 종료 (Keep-Alive로 재사용 가능) | 한 번 연결 후 지속 유지 |
+| 오버헤드 | 매 요청마다 헤더 전송 | 초기 핸드셰이크 후 2-14바이트 프레임 헤더 |
+| 서버 푸시 | 불가 (폴링 필요) | 언제든 가능 |
 | 상태 | Stateless | Stateful |
+
+**참고**: HTTP/1.1의 Keep-Alive는 연결을 재사용하지만, 여전히 요청-응답 패턴이며 서버가 먼저 데이터를 보낼 수 없습니다.
 
 **참고자료**
 - [RFC 6455 - The WebSocket Protocol](https://datatracker.ietf.org/doc/html/rfc6455)[^1]
@@ -67,9 +69,17 @@ Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
 
 **주요 헤더 설명**
 - `Upgrade: websocket`: 프로토콜 업그레이드 요청
-- `Sec-WebSocket-Key`: 클라이언트가 생성한 Base64 인코딩 키
-- `Sec-WebSocket-Accept`: 서버가 Key + GUID를 SHA-1 해시 후 Base64 인코딩한 값
-- `Sec-WebSocket-Version`: 프로토콜 버전 (현재 13)
+- `Connection: Upgrade`: 연결 업그레이드 의사 표시
+- `Sec-WebSocket-Key`: 클라이언트가 생성한 16바이트 랜덤 값의 Base64 인코딩
+- `Sec-WebSocket-Accept`: 서버 응답 검증용
+  ```
+  Accept = Base64(SHA-1(Key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
+  ```
+  - GUID는 RFC 6455에 정의된 고정 문자열
+  - 서버가 WebSocket을 이해함을 증명 (프록시 오동작 방지)
+- `Sec-WebSocket-Version`: 프로토콜 버전 (현재 13, RFC 6455)
+- `Sec-WebSocket-Protocol`: (선택) 서브프로토콜 협상 (예: `graphql-ws`)
+- `Sec-WebSocket-Extensions`: (선택) 확장 협상 (예: `permessage-deflate`)
 
 **참고자료**
 - [RFC 6455 Section 4 - Opening Handshake](https://datatracker.ietf.org/doc/html/rfc6455#section-4)[^3]
@@ -101,11 +111,24 @@ WebSocket 연결 수립 후 데이터 전송 시 사용되는 메시지 프레�
 
 **주요 필드**
 - **FIN**: 메시지의 마지막 프레임인지 표시 (1비트)
+- **RSV1-3**: 확장용 예약 비트 (permessage-deflate가 RSV1 사용)
 - **Opcode**: 프레임 타입 (4비트)
-  - `0x0`: Continuation, `0x1`: Text, `0x2`: Binary
-  - `0x8`: Close, `0x9`: Ping, `0xA`: Pong
-- **MASK**: 클라이언트→서버 메시지는 반드시 마스킹
-- **Payload length**: 페이로드 크기 (7/16/64비트)
+  - `0x0`: Continuation (분할 메시지의 후속 프레임)
+  - `0x1`: Text (UTF-8 텍스트)
+  - `0x2`: Binary (바이너리 데이터)
+  - `0x8`: Close, `0x9`: Ping, `0xA`: Pong (제어 프레임)
+- **MASK**: 마스킹 여부 (1비트)
+  - 클라이언트→서버: **반드시 1** (MUST)
+  - 서버→클라이언트: **반드시 0** (MUST NOT)
+- **Payload length**: 페이로드 크기
+  - 0-125: 7비트로 직접 표현
+  - 126: 다음 2바이트가 실제 길이 (16비트)
+  - 127: 다음 8바이트가 실제 길이 (64비트)
+
+**마스킹의 목적 (중요)**
+- 프록시 캐시 포이즈닝 공격 방지
+- 클라이언트가 매 프레임마다 랜덤 4바이트 마스킹 키 생성
+- 마스킹되지 않은 클라이언트 프레임 수신 시 연결 종료 (MUST)
 
 **참고자료**
 - [RFC 6455 Section 5 - Data Framing](https://datatracker.ietf.org/doc/html/rfc6455#section-5)[^4]
@@ -124,24 +147,31 @@ Long Polling과 WebSocket의 차이점은 무엇인가요?
 <details>
 <summary>답변</summary>
 
-| 구분 | Long Polling | WebSocket |
-|------|--------------|-----------|
-| **연결 방식** | HTTP 요청을 길게 유지 | 단일 TCP 연결 유지 |
-| **통신 방향** | 단방향 (요청-응답) | 양방향 |
-| **오버헤드** | 매 요청마다 HTTP 헤더 | 핸드셰이크 후 최소 오버헤드 |
-| **지연시간** | 응답 후 재연결 필요 | 실시간 |
-| **서버 부하** | 연결 재설정 비용 높음 | 연결 유지 비용만 |
-| **호환성** | 모든 브라우저/프록시 지원 | 일부 프록시 문제 가능 |
+| 구분 | Long Polling | WebSocket | SSE |
+|------|--------------|-----------|-----|
+| **연결 방식** | HTTP 요청을 길게 유지 | 단일 TCP 연결 유지 | HTTP 스트림 유지 |
+| **통신 방향** | 단방향 (요청-응답) | 양방향 | 단방향 (서버→클라이언트) |
+| **오버헤드** | 매 요청마다 HTTP 헤더 | 핸드셰이크 후 2-14바이트 | HTTP 스트림이라 중간 |
+| **지연시간** | 응답 후 재연결 필요 | 실시간 | 실시간 |
+| **서버 부하** | 연결 재설정 비용 높음 | 연결 유지 비용만 | 연결 유지 비용 |
+| **호환성** | 모든 브라우저/프록시 | 일부 프록시 문제 가능 | HTTP 기반이라 좋음 |
+| **재연결** | 직접 구현 | 직접 구현 | 자동 재연결 내장 |
+| **데이터 형식** | 모두 가능 | 텍스트/바이너리 | 텍스트만 (UTF-8) |
 
 **Long Polling 동작**
 1. 클라이언트가 요청 전송
-2. 서버는 이벤트가 발생할 때까지 응답 대기
+2. 서버는 이벤트가 발생할 때까지 응답 대기 (보통 20-30초 타임아웃)
 3. 이벤트 발생 시 응답 반환
 4. 클라이언트가 즉시 새 요청 전송 (반복)
 
-**WebSocket 선택 기준**
-- 실시간성이 중요하고 양방향 통신이 필요한 경우 → WebSocket
-- 프록시 호환성이 중요하거나 간단한 서버 푸시만 필요한 경우 → Long Polling
+**선택 기준 (트레이드오프)**
+| 상황 | 권장 기술 | 이유 |
+|------|-----------|------|
+| 양방향 실시간 (채팅, 게임) | WebSocket | 클라이언트→서버 즉시 전송 필요 |
+| 단방향 실시간 (알림, 주식) | SSE | 간단하고 자동 재연결 지원 |
+| 레거시/프록시 환경 | Long Polling | 호환성 최고, 폴백용 |
+| 바이너리 데이터 스트리밍 | WebSocket | SSE는 텍스트만 지원 |
+| 빠른 프로토타이핑 | SSE | 구현이 가장 간단 |
 
 </details>
 
@@ -184,8 +214,27 @@ if (request.headers.origin !== 'https://trusted-domain.com') {
 - 최대 프레임/메시지 크기 설정
 - 메모리 고갈 공격 방지
 
+**7. 마스킹 검증 (서버)**
+```javascript
+// RFC 6455: 클라이언트→서버 메시지는 반드시 마스킹되어야 함
+// 마스킹되지 않은 프레임 수신 시 연결 종료
+wss.on('connection', (ws) => {
+  // ws 라이브러리는 자동으로 마스킹 검증
+  // 직접 구현 시 MASK 비트 확인 필수
+});
+```
+
+**흔한 실수와 함정**
+| 실수 | 위험 | 해결 |
+|------|------|------|
+| Origin 검증 안 함 | CSWSH 공격 | 화이트리스트 검증 |
+| ws:// 사용 | 평문 노출 | wss:// 필수 |
+| 쿼리 파라미터에 토큰 | URL 로깅에 노출 | 첫 메시지로 전송 |
+| 토큰 만료 미처리 | 무한 세션 유지 | 주기적 재검증 |
+
 **참고자료**
 - [OWASP WebSocket Security](https://owasp.org/www-project-web-security-testing-guide/)[^5]
+- [RFC 6455 Section 10 - Security Considerations](https://datatracker.ietf.org/doc/html/rfc6455#section-10)
 
 </details>
 
@@ -231,10 +280,19 @@ class WebSocketClient {
 ```
 
 **2. 고려사항**
-- **Jitter 추가**: 다수 클라이언트 동시 재연결 방지
+- **Jitter 추가**: 다수 클라이언트 동시 재연결 방지 (Thundering Herd 문제)
+  ```javascript
+  // Jitter: 지연 시간의 0~50%를 랜덤하게 추가
+  const jitter = this.reconnectDelay * Math.random() * 0.5;
+  setTimeout(() => this.connect(), this.reconnectDelay + jitter);
+  ```
 - **최대 재시도 횟수**: 무한 재시도 방지
 - **상태 복구**: 재연결 후 구독 정보 재전송
 - **오프라인 감지**: `navigator.onLine` 활용
+  ```javascript
+  window.addEventListener('online', () => this.connect());
+  window.addEventListener('offline', () => this.disconnect());
+  ```
 
 **3. 라이브러리 활용**
 - Socket.IO: 자동 재연결 내장
@@ -254,20 +312,26 @@ WebSocket 프로토콜에서 사용되는 상태 코드와 그 의미에 대해 
 
 **주요 Close 상태 코드 (RFC 6455)**
 
-| 코드 | 이름 | 설명 |
-|------|------|------|
-| **1000** | Normal Closure | 정상 종료 |
-| **1001** | Going Away | 서버 셧다운, 브라우저 이탈 |
-| **1002** | Protocol Error | 프로토콜 오류 |
-| **1003** | Unsupported Data | 지원하지 않는 데이터 타입 |
-| **1005** | No Status Received | 상태 코드 없이 종료 (예약) |
-| **1006** | Abnormal Closure | 비정상 종료 (연결 끊김) |
-| **1007** | Invalid Payload | 잘못된 데이터 (예: UTF-8 오류) |
-| **1008** | Policy Violation | 정책 위반 |
-| **1009** | Message Too Big | 메시지 크기 초과 |
-| **1010** | Mandatory Extension | 필수 확장 미지원 |
-| **1011** | Internal Error | 서버 내부 오류 |
-| **1015** | TLS Handshake | TLS 핸드셰이크 실패 (예약) |
+| 코드 | 이름 | 설명 | 전송 가능 여부 |
+|------|------|------|----------------|
+| **1000** | Normal Closure | 정상 종료 | O |
+| **1001** | Going Away | 서버 셧다운, 브라우저 이탈 | O |
+| **1002** | Protocol Error | 프로토콜 오류 | O |
+| **1003** | Unsupported Data | 지원하지 않는 데이터 타입 | O |
+| **1005** | No Status Received | 상태 코드 없이 종료됨 | X (API 전용) |
+| **1006** | Abnormal Closure | 비정상 종료 (TCP 끊김) | X (API 전용) |
+| **1007** | Invalid Payload | 잘못된 데이터 (예: UTF-8 오류) | O |
+| **1008** | Policy Violation | 정책 위반 | O |
+| **1009** | Message Too Big | 메시지 크기 초과 | O |
+| **1010** | Mandatory Extension | 필수 확장 미지원 (클라이언트만) | O |
+| **1011** | Internal Error | 서버 내부 오류 | O |
+| **1015** | TLS Handshake | TLS 핸드셰이크 실패 | X (API 전용) |
+
+**중요**: 1005, 1006, 1015는 Close 프레임으로 전송하면 안 됩니다 (MUST NOT). 이 코드들은 WebSocket API가 애플리케이션에 상태를 알리기 위해 내부적으로 사용합니다.
+
+**사용자 정의 코드 범위**
+- `3000-3999`: 라이브러리/프레임워크용 (IANA 등록 가능)
+- `4000-4999`: 애플리케이션용 (비공개 사용)
 
 **사용 예시**
 ```javascript
@@ -300,9 +364,15 @@ WebSocket의 Ping/Pong 메커니즘이 연결 상태 확인 및 연결 유지(Ke
 - 연결 상태 확인 및 유지(Keep-Alive) 목적
 
 **동작 방식**
-1. 한 쪽이 Ping 프레임 전송
-2. 수신 측은 **반드시** Pong으로 응답 (자동 처리)
+1. 한 쪽이 Ping 프레임 전송 (Application Data 포함 가능, 최대 125바이트)
+2. 수신 측은 **반드시** 동일한 Application Data로 Pong 응답 (MUST)
 3. 응답 없으면 연결 끊김으로 판단
+4. Pong은 Ping 없이도 전송 가능 (단방향 heartbeat)
+
+**주의사항**
+- 브라우저 WebSocket API는 Ping/Pong을 직접 노출하지 않음
+- 브라우저는 Ping 수신 시 자동으로 Pong 응답
+- 애플리케이션 레벨 heartbeat가 필요하면 일반 메시지로 구현
 
 **활용 목적**
 - **연결 상태 확인**: Dead connection 감지
@@ -399,15 +469,20 @@ WebSocket 구현 시 발생할 수 있는 Cross-Origin 문제와 그 해결 방�
 
 **WebSocket과 CORS의 관계**
 
-WebSocket은 HTTP CORS 정책의 적용을 받지 **않습니다**. 그러나 보안상 Origin 검증이 필요합니다.
+WebSocket은 HTTP CORS 정책(preflight OPTIONS 요청)의 적용을 받지 **않습니다**. 이것이 보안상 위험한 이유:
+- **CORS preflight 없음**: 브라우저가 사전 검사 없이 바로 연결 시도
+- **Origin 헤더 전송**: 브라우저는 `Origin` 헤더를 전송하지만, 서버 검증이 필수는 아님
+- **쿠키 자동 전송**: 동일 도메인이면 인증 쿠키가 자동으로 포함됨
 
 **브라우저 동작**
 - 브라우저는 핸드셰이크 시 `Origin` 헤더를 자동 전송
-- 서버가 연결을 수락하면 통신 가능
+- **서버가 검증하지 않으면** 어떤 Origin에서든 연결 가능
+- CORS처럼 브라우저가 차단하지 않음 (서버 책임)
 
 **보안 문제: CSWSH (Cross-Site WebSocket Hijacking)**
-- 악성 사이트에서 사용자 세션으로 WebSocket 연결 시도 가능
-- 서버가 Origin을 검증하지 않으면 취약
+- 악성 사이트에서 사용자의 인증된 세션으로 WebSocket 연결 시도
+- 서버가 Origin을 검증하지 않으면 공격자가 사용자 대신 통신 가능
+- CSRF와 유사하지만, WebSocket은 지속적 양방향 통신이므로 더 위험
 
 **해결 방법**
 
@@ -479,6 +554,20 @@ pub.publish('chat', JSON.stringify(data));
 const { createAdapter } = require('@socket.io/redis-adapter');
 io.adapter(createAdapter(pubClient, subClient));
 ```
+
+**스케일링 고려사항**
+
+| 규모 | 연결 수 | 권장 아키텍처 |
+|------|---------|---------------|
+| 소규모 | ~1만 | 단일 서버 + Redis |
+| 중규모 | 1-10만 | 다중 서버 + Redis Pub/Sub |
+| 대규모 | 10만+ | Kafka/NATS + 샤딩 |
+
+**실제 운영 시 고려점**
+- **Sticky Session의 한계**: 서버 장애 시 재연결이 다른 서버로 가면 상태 유실
+- **Redis Pub/Sub 병목**: 대량 브로드캐스트 시 Redis가 병목 가능
+- **연결 재분배**: 서버 추가 시 기존 연결은 자동 재분배되지 않음
+- **상태 저장소 분리**: 연결 상태는 Redis, 영속 데이터는 DB
 
 **참고자료**
 - [Socket.IO Redis Adapter](https://socket.io/docs/v4/redis-adapter/)[^9]
@@ -584,9 +673,17 @@ wss.clients.forEach(client => {
 - 게임 상태 브로드캐스트
 
 **대안과 비교**
-- **SSE**: 단방향만 가능, 클라이언트→서버는 별도 HTTP 필요
-- **HTTP/2 Push**: 리소스 프리로드용, 양방향 불가
-- **WebRTC**: P2P 가능하나 복잡도 높음
+| 기술 | 양방향 | 지연시간 | 복잡도 | 적합한 용도 |
+|------|--------|----------|--------|-------------|
+| **WebSocket** | O | ~ms | 중간 | 채팅, 게임, 협업 |
+| **SSE** | X (단방향) | ~ms | 낮음 | 알림, 피드, 대시보드 |
+| **Long Polling** | X | 높음 | 낮음 | 레거시 환경 폴백 |
+| **WebRTC** | O (P2P) | ~ms | 높음 | 영상통화, 화면공유 |
+| **gRPC Streaming** | O | ~ms | 중간 | 마이크로서비스 |
+
+**WebRTC vs WebSocket**
+- WebRTC: 브라우저 간 P2P, 미디어 스트리밍에 최적화
+- WebSocket: 클라이언트-서버, 텍스트/바이너리 메시지에 최적화
 
 </details>
 
@@ -755,6 +852,8 @@ WebSocket과 HTTP/2의 주요 차이점은 무엇인가요?
 - **멀티플렉싱**: 하나의 연결에서 여러 요청/응답 병렬 처리
 - **헤더 압축**: HPACK으로 반복 헤더 압축
 - **Server Push**: 클라이언트 요청 전에 리소스 전송 (캐시 용도)
+  - **주의**: Chrome 106+에서 HTTP/2 Server Push 지원 제거됨
+  - 실시간 푸시 용도로는 적합하지 않음
 - **스트림 우선순위**: 중요한 리소스 먼저 전송
 
 **WebSocket 특징**
@@ -965,10 +1064,15 @@ ws.addEventListener('close', (event) => {
 **3. 상태 코드 분석**
 | 코드 | 의미 | 해결 방법 |
 |------|------|-----------|
-| 1006 | 비정상 종료 | 네트워크/서버 문제 확인 |
-| 1002 | 프로토콜 오류 | 프레임 형식 확인 |
-| 1003 | 지원 안되는 데이터 | 데이터 타입 확인 |
-| 1015 | TLS 실패 | 인증서 확인 |
+| 1000 | 정상 종료 | 정상 동작 |
+| 1001 | Going Away | 서버 재시작 중, 재연결 대기 |
+| 1002 | 프로토콜 오류 | 프레임 형식/라이브러리 버전 확인 |
+| 1003 | 지원 안되는 데이터 | 텍스트/바이너리 타입 확인 |
+| 1006 | 비정상 종료 (API 전용) | 네트워크 끊김, TCP 타임아웃 |
+| 1009 | 메시지 너무 큼 | maxPayload 설정 확인 |
+| 1011 | 서버 내부 오류 | 서버 로그 확인 |
+| 1015 | TLS 실패 (API 전용) | 인증서/TLS 버전 확인 |
+| 4000+ | 애플리케이션 정의 | 서버 문서 참조 |
 
 **4. 외부 도구**
 - **Wireshark**: 패킷 레벨 분석
@@ -1007,35 +1111,47 @@ WebSocket과 서버 푸시(Server-Sent Events)의 차이점은 무엇인가요?
 | **통신 방향** | 양방향 (Full-Duplex) | 단방향 (서버→클라이언트) |
 | **프로토콜** | ws:// / wss:// | HTTP/HTTPS |
 | **데이터 형식** | 텍스트/바이너리 | 텍스트만 (UTF-8) |
-| **재연결** | 직접 구현 | 자동 재연결 내장 |
-| **브라우저 지원** | 대부분 지원 | IE 미지원 |
+| **재연결** | 직접 구현 필요 | 자동 재연결 내장 |
+| **브라우저 지원** | 대부분 지원 | IE 미지원 (polyfill 가능) |
 | **프록시 호환** | 문제 가능 | HTTP라 호환성 좋음 |
+| **연결 수 제한** | 도메인당 제한 없음 | HTTP/1.1: 도메인당 6개 |
+| **구현 복잡도** | 중간 | 매우 간단 |
 
 **SSE 특징**
 ```javascript
 // 클라이언트
 const eventSource = new EventSource('/events');
 eventSource.onmessage = (e) => console.log(e.data);
+eventSource.onerror = (e) => console.log('자동 재연결 시도...');
 
 // 서버 (Node.js)
 res.setHeader('Content-Type', 'text/event-stream');
 res.setHeader('Cache-Control', 'no-cache');
+res.setHeader('Connection', 'keep-alive');
+res.write(`id: ${eventId}\n`);  // 재연결 시 Last-Event-ID로 복구
+res.write(`retry: 3000\n`);      // 재연결 간격 (ms)
 res.write(`data: ${JSON.stringify(data)}\n\n`);
 ```
 
-**SSE 장점**
-- HTTP 기반으로 구현 간단
-- 자동 재연결 (`retry:` 필드)
-- 이벤트 ID로 누락 메시지 복구
+**트레이드오프 분석**
 
-**WebSocket 장점**
-- 클라이언트→서버 실시간 전송
-- 바이너리 데이터 지원
-- 낮은 오버헤드
+| 측면 | WebSocket 유리 | SSE 유리 |
+|------|---------------|----------|
+| **양방향 통신** | 네이티브 지원 | 별도 HTTP 요청 필요 |
+| **바이너리 데이터** | 네이티브 지원 | Base64 인코딩 필요 |
+| **프록시/방화벽** | 문제 가능 | HTTP라 통과 쉬움 |
+| **자동 재연결** | 직접 구현 | 내장 (Last-Event-ID) |
+| **HTTP/2 활용** | RFC 8441 필요 | 멀티플렉싱 자동 지원 |
+| **메시지 복구** | 직접 구현 | Last-Event-ID로 자동 |
+| **구현 난이도** | 중간 | 매우 쉬움 |
+
+**HTTP/2와의 조합**
+- **SSE + HTTP/2**: 연결 수 제한 문제 해결 (멀티플렉싱), 클라이언트→서버는 별도 fetch
+- **WebSocket over HTTP/2 (RFC 8441)**: 아직 지원 브라우저 제한적
 
 **선택 기준**
-- **SSE**: 주식 시세, 알림, 뉴스 피드 등 단방향
-- **WebSocket**: 채팅, 게임, 협업 도구 등 양방향
+- **SSE**: 서버→클라이언트 위주 (알림, 주식, 뉴스), 빠른 개발, 메시지 복구 필요
+- **WebSocket**: 양방향 필수 (채팅, 게임), 바이너리 데이터, 고빈도 메시지
 
 **참고자료**
 - [MDN Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events)[^14]
@@ -1696,6 +1812,10 @@ wss.on('connection', (ws, req) => {
   }
 });
 ```
+
+**보안 주의**: 쿼리 파라미터는 서버 로그, 브라우저 히스토리, Referer 헤더에 노출될 수 있음
+- **권장**: 일회용 토큰 사용 (연결 후 폐기)
+- **대안**: 첫 메시지로 토큰 전송 (아래 방법 4 참조)
 
 **2. 핸드셰이크 헤더 (제한적)**
 ```javascript

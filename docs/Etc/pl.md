@@ -758,9 +758,10 @@ volatile 키워드의 의미와 사용 시나리오는 무엇인가요?
 - 변수를 CPU 캐시가 아닌 메인 메모리에서 직접 읽고 씀
 - 가시성(Visibility) 보장: 한 스레드의 변경이 다른 스레드에 즉시 보임
 - Happens-Before 관계 보장
+- **64비트 원자성**: volatile long/double은 읽기/쓰기가 원자적 (비volatile은 32비트 두 번 연산 가능)
 
 **보장하지 않는 것:**
-- 원자성: `count++` 같은 복합 연산은 원자적이지 않음
+- 복합 연산의 원자성: `count++` 같은 읽기-수정-쓰기는 원자적이지 않음
 - 상호 배제: 여러 스레드의 동시 접근 차단 안 함
 
 **사용 시나리오:**
@@ -1585,7 +1586,7 @@ var result = service.process();           // 타입 불명확
 
 ### JAVA-038
 
-Record 클래스(Java 14+)의 특징과 사용 시나리오를 설명해주세요.
+Record 클래스(Java 16+)의 특징과 사용 시나리오를 설명해주세요.
 
 <details>
 <summary>답변</summary>
@@ -3644,7 +3645,7 @@ JavaScript의 데이터 타입에 대해 설명해주세요.
 ```javascript
 typeof 42          // "number"
 typeof "hello"     // "string"
-typeof null        // "object" (역사적 버그)
+typeof null        // "object" (역사적 이유로 유지, null 체크는 === null 사용)
 typeof undefined   // "undefined"
 typeof Symbol()    // "symbol"
 Array.isArray([])  // true
@@ -3653,6 +3654,14 @@ Array.isArray([])  // true
 **원시 vs 참조:**
 - 원시: 값 복사, 불변
 - 참조: 주소 복사, 가변
+
+**특수 값 주의:**
+```javascript
+NaN === NaN      // false (유일하게 자기 자신과 같지 않은 값)
+Number.isNaN(NaN) // true (NaN 체크는 isNaN() 사용)
+0 === -0         // true
+Object.is(0, -0) // false (엄격 비교)
+```
 
 **참고자료**
 - [Data Types](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures)[^js1]
@@ -3829,7 +3838,17 @@ add(1)(2);  // 3
 
 **주의:**
 - 메모리 누수 가능 (불필요한 참조 유지)
-- 루프에서 var 사용 시 문제 (let 또는 IIFE 사용)
+- 루프에서 var 사용 시 클로저 문제:
+```javascript
+// 문제: 모든 함수가 i=3 참조
+for (var i = 0; i < 3; i++) {
+    setTimeout(() => console.log(i), 100);  // 3, 3, 3
+}
+// 해결: let 사용 (블록 스코프)
+for (let i = 0; i < 3; i++) {
+    setTimeout(() => console.log(i), 100);  // 0, 1, 2
+}
+```
 
 **참고자료**
 - [Closures](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Closures)[^js4]
@@ -5690,6 +5709,16 @@ with Pool(4) as p:
 3. **asyncio**: 비동기 I/O
 
 4. **다른 인터프리터**: Jython, PyPy (STM)
+
+5. **Free-threaded Python (Python 3.13+)**: GIL 비활성화 빌드
+```bash
+# GIL 없이 실행
+python -X gil=0 script.py
+# 또는 환경변수
+PYTHON_GIL=0 python script.py
+```
+- PEP 703에서 제안된 실험적 기능
+- 진정한 멀티스레드 병렬 처리 가능
 
 **참고자료**
 - [GIL](https://docs.python.org/3/glossary.html#term-global-interpreter-lock)[^py2]
@@ -7712,14 +7741,23 @@ arr := [...]int{1, 2, 3} // 길이 추론
 
 **슬라이스:**
 ```go
-var s []int              // nil 슬라이스
+var s []int              // nil 슬라이스 (ptr=nil, len=0, cap=0)
 s := make([]int, 5)      // len=5, cap=5
 s := make([]int, 5, 10)  // len=5, cap=10
 s := []int{1, 2, 3}      // 리터럴
+s := []int{}             // 빈 슬라이스 (ptr!=nil, len=0, cap=0)
 
 // 배열에서 생성
 arr := [5]int{1, 2, 3, 4, 5}
 s := arr[1:4]  // [2, 3, 4]
+```
+
+**nil vs 빈 슬라이스:**
+```go
+var nilSlice []int       // nil (s == nil: true)
+emptySlice := []int{}    // 비어있지만 nil 아님 (s == nil: false)
+// 둘 다 len=0, 동작은 동일 (append, range 가능)
+// JSON 마샬링 시: nil→null, 빈 슬라이스→[]
 ```
 
 **슬라이스 내부 구조:**

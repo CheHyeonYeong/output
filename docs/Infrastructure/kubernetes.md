@@ -59,8 +59,20 @@ Kubernetes의 etcd의 역할과 중요성에 대해 설명해주세요. 왜 etcd
 **중요성**:
 - 모든 클러스터 설정, Pod/Service 정보, Secret 등 저장
 - 고가용성을 위해 Raft 합의 알고리즘 사용
+- 강력한 일관성 보장 (linearizable reads)
 
 **백업이 중요한 이유**: etcd 손실 = 클러스터 전체 상태 손실. 재해 복구를 위해 정기적 백업 필수
+
+**운영 시 주의사항**:
+- 홀수 개 노드 권장 (3, 5, 7) - 쿼럼 유지 위해
+- 디스크 I/O 성능 중요 (SSD 권장)
+- 네트워크 지연에 민감 (같은 데이터센터 권장)
+- API Server만 etcd에 직접 접근해야 함
+
+**흔한 함정**:
+- etcd 복구 시 모든 Control Plane 노드에서 동시 수행 필요
+- 스냅샷 복원 후 클러스터 멤버십 재구성 필요할 수 있음
+- 백업 없이 업그레이드 시도 (항상 먼저 백업)
 
 **참고자료**
 - [etcd](https://kubernetes.io/docs/concepts/overview/components/#etcd)[^3]
@@ -76,12 +88,24 @@ Kubernetes kube-scheduler의 스케줄링 과정을 단계별로 설명해주세
 <summary>답변</summary>
 
 **스케줄링 과정**:
-1. **Filtering**: Pod 실행 가능한 노드 필터링 (리소스, nodeSelector, taint/toleration 등 확인)
-2. **Scoring**: 필터링된 노드들에 점수 부여 (리소스 균형, affinity 등 고려)
-3. 최고 점수 노드에 Pod 배정
+1. **Filtering (Predicates)**: Pod 실행 가능한 노드 필터링 (리소스, nodeSelector, taint/toleration 등 확인)
+2. **Scoring (Priorities)**: 필터링된 노드들에 점수 부여 (리소스 균형, affinity 등 고려)
+3. 최고 점수 노드에 Pod 배정 (동점 시 랜덤)
 
 **Filtering**: "실행 가능한가?" - 불가능한 노드 제외
-**Scoring**: "어디가 최적인가?" - 적합도 점수 계산
+- PodFitsResources, PodFitsHostPorts, MatchNodeSelector 등
+
+**Scoring**: "어디가 최적인가?" - 적합도 점수 계산 (0-100)
+- LeastRequestedPriority, BalancedResourceAllocation, NodeAffinityPriority 등
+
+**흔한 함정**:
+| 상황 | 결과 |
+|------|------|
+| Filtering 통과 노드 0개 | Pod Pending (Unschedulable) |
+| 모든 노드 동점 | 랜덤 선택 (예측 불가) |
+| nodeSelector 오타 | Filtering 실패로 Pending |
+
+**디버깅 팁**: `kubectl describe pod`에서 Events의 FailedScheduling 메시지 확인
 
 **참고자료**
 - [Kubernetes Scheduler](https://kubernetes.io/docs/concepts/scheduling-eviction/kube-scheduler/)[^4]
@@ -171,15 +195,31 @@ Kubernetes Worker Node의 kube-proxy의 역할과 iptables/IPVS 모드의 차이
 
 **역할**: 노드의 네트워크 규칙 관리, Service의 가상 IP를 통한 Pod 접근 구현
 
-**iptables 모드**:
+**iptables 모드** (기본값):
 - 리눅스 iptables 규칙으로 트래픽 라우팅
 - 랜덤 방식 로드밸런싱
-- 규칙이 많아지면 성능 저하
+- 규칙이 많아지면 성능 저하 (O(n) 복잡도)
 
 **IPVS 모드**:
 - 커널 레벨 로드밸런서 사용
-- 다양한 로드밸런싱 알고리즘 지원 (rr, lc, sh 등)
-- 대규모 클러스터에서 더 나은 성능
+- 다양한 로드밸런싱 알고리즘 지원 (rr, lc, sh, dh, sed, nq)
+- 대규모 클러스터에서 더 나은 성능 (O(1) 복잡도)
+
+**트레이드오프 비교**:
+| 관점 | iptables | IPVS |
+|------|----------|------|
+| 성능 (Service 수 증가) | 저하됨 | 일정 유지 |
+| 설정 복잡도 | 단순 | 추가 커널 모듈 필요 |
+| 로드밸런싱 알고리즘 | 랜덤만 | 다양한 선택 |
+| 디버깅 용이성 | 익숙함 | 별도 도구 필요 |
+| 기본 지원 | 모든 환경 | 커널 지원 확인 필요 |
+
+**IPVS 권장 상황**:
+- 1,000개 이상 Service
+- 세션 어피니티 필요 (sh 알고리즘)
+- 균등 분배 외 알고리즘 필요
+
+**주의**: IPVS 모드 사용 시 ipset, ip_vs 커널 모듈 필요
 
 **참고자료**
 - [kube-proxy](https://kubernetes.io/docs/concepts/overview/components/#kube-proxy)[^8]
@@ -197,16 +237,28 @@ Kubernetes의 Container Runtime Interface(CRI)란 무엇이며, containerd와 CR
 **CRI**: kubelet과 컨테이너 런타임 간의 표준 인터페이스. 다양한 런타임을 플러그인 방식으로 사용 가능
 
 **containerd**:
-- Docker에서 분리된 런타임
+- Docker에서 분리된 런타임 (CNCF graduated)
 - 범용적, 다양한 기능 제공
 - Docker 이미지 호환
+- Docker Desktop, EKS, GKE 기본 런타임
 
 **CRI-O**:
-- Kubernetes 전용으로 설계
+- Kubernetes 전용으로 설계 (CNCF incubating)
 - 경량화, 최소 기능만 제공
 - OCI 표준 준수에 집중
+- OpenShift 기본 런타임
 
 **공통점**: 둘 다 OCI 표준 준수, Kubernetes와 호환
+
+**트레이드오프**:
+| 관점 | containerd | CRI-O |
+|------|-----------|-------|
+| 기능 범위 | 광범위 (Docker 생태계) | Kubernetes 필수만 |
+| 리소스 사용 | 약간 더 많음 | 더 적음 |
+| 커뮤니티 | 더 큼 | Red Hat 중심 |
+| 디버깅 도구 | ctr, nerdctl | crictl |
+
+**참고**: Docker는 Kubernetes 1.24부터 직접 지원 중단 (containerd 사용)
 
 **참고자료**
 - [Container Runtime](https://kubernetes.io/docs/setup/production-environment/container-runtimes/)[^9]
@@ -224,12 +276,23 @@ Kubernetes에서 사용되는 CNI(Container Network Interface)란 무엇이며, 
 **CNI**: 컨테이너 네트워크 설정을 위한 표준 인터페이스
 
 **주요 플러그인 비교**:
-- **Calico**: NetworkPolicy 지원, BGP 기반, 대규모 클러스터에 적합
-- **Flannel**: 간단한 설정, 오버레이 네트워크, 소규모 클러스터에 적합
-- **Cilium**: eBPF 기반, 고성능, 고급 보안 기능
-- **Weave**: 암호화 지원, 설정 간편, 멀티클라우드 환경에 적합
+| CNI | 특징 | 적합한 환경 |
+|-----|------|------------|
+| **Calico** | NetworkPolicy, BGP, eBPF 옵션 | 대규모, 보안 중시 |
+| **Flannel** | 단순, VXLAN 오버레이 | 소규모, 학습용 |
+| **Cilium** | eBPF 기반, L7 정책, 관찰성 | 고성능, 보안 중시 |
+| **Weave Net** | 암호화 기본, 간편 설정 | 멀티클라우드 |
+| **AWS VPC CNI** | 네이티브 VPC IP | AWS EKS |
+| **Azure CNI** | Azure VNET 통합 | AKS |
 
-**선택 기준**: 클러스터 규모, NetworkPolicy 필요 여부, 성능 요구사항
+**선택 기준**:
+- **NetworkPolicy 필요**: Flannel 제외
+- **대규모 (1000+ 노드)**: Calico, Cilium
+- **L7 정책/관찰성**: Cilium
+- **클라우드 네이티브**: 해당 클라우드 CNI
+- **단순함 우선**: Flannel (NetworkPolicy 불필요 시)
+
+**주의**: CNI 변경은 클러스터 재구성 필요 (운영 중 변경 어려움)
 
 **참고자료**
 - [Cluster Networking](https://kubernetes.io/docs/concepts/cluster-administration/networking/)[^10]
@@ -319,7 +382,19 @@ Pod가 Pending 상태에 머무는 원인들과 해결 방법을 설명해주세
 - **PVC 바인딩 실패**: PV 확인, StorageClass 점검
 - **이미지 다운로드 지연**: 이미지 경로/권한 확인
 
-**디버깅**: `kubectl describe pod <pod-name>`으로 Events 확인
+**디버깅 순서**:
+1. `kubectl describe pod <pod-name>` - Events 섹션 확인
+2. `kubectl get events --sort-by='.lastTimestamp'` - 최근 이벤트 확인
+3. Conditions 섹션의 상세 메시지 확인
+
+**흔한 함정**:
+| 증상 | 실제 원인 | 확인 방법 |
+|------|----------|----------|
+| Pending 지속 | Scheduler가 없음 | kube-scheduler Pod 확인 |
+| Pending + 이벤트 없음 | resourceQuota 초과 | kubectl describe resourcequota |
+| ImagePullBackOff와 혼동 | 이미지 문제는 Pending이 아님 | Events에서 구분 |
+
+**팁**: `kubectl get pod <name> -o yaml | grep -A 5 conditions` 로 상세 조건 확인
 
 **참고자료**
 - [Debugging Pods](https://kubernetes.io/docs/tasks/debug/debug-application/debug-pods/)[^14]
@@ -448,13 +523,25 @@ Init Container의 역할과 일반 컨테이너와의 차이점을 설명해주�
 |------|----------------|---------------|
 | 실행 시점 | 메인 컨테이너 전 | Init 완료 후 |
 | 실행 방식 | 순차적 (하나씩) | 동시 (병렬) |
-| 완료 조건 | 반드시 완료되어야 함 | 계속 실행 |
+| 완료 조건 | 반드시 성공 종료 | 계속 실행 |
 | Probe | 지원 안함 | 지원 |
+| 리소스 계산 | 가장 큰 것만 | 합계 |
 
 **사용 예시**:
-- DB 연결 대기
+- DB 연결 대기 (의존성 확인)
 - 설정 파일 다운로드
 - 권한/스키마 초기화
+- 보안 검사, 인증서 설정
+
+**Kubernetes 1.28+ Sidecar Container**:
+- `restartPolicy: Always`를 가진 Init Container
+- Init 완료 후에도 계속 실행
+- 기존 Sidecar 패턴의 공식 지원
+
+**흔한 함정**:
+- Init Container 무한 루프 시 Pod 시작 불가
+- 외부 의존성 timeout 미설정 시 무한 대기
+- Init Container도 imagePullPolicy 적용됨
 
 **참고자료**
 - [Init Containers](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/)[^19]
@@ -537,12 +624,24 @@ Kubernetes Deployment의 배포 전략(RollingUpdate, Recreate)을 비교하고,
 - 다운타임 발생
 - 버전 혼재 없음
 
+**트레이드오프 비교**:
+| 관점 | RollingUpdate | Recreate |
+|------|--------------|----------|
+| 다운타임 | 없음 | 있음 (수초~수분) |
+| 리소스 사용 | 일시적 증가 (신/구 공존) | 일정 |
+| 버전 호환성 | 두 버전 공존 처리 필요 | 불필요 |
+| 롤백 속도 | 빠름 (이전 ReplicaSet 유지) | 느림 (재배포) |
+| 데이터 마이그레이션 | 복잡 (양방향 호환 필요) | 단순 |
+
 **사용 시나리오**:
 - RollingUpdate: 일반적인 웹 서비스, API 서버
 - Recreate:
-  - 볼륨을 단일 Pod만 사용해야 할 때
-  - 버전 호환성 문제가 있을 때
+  - RWO 볼륨을 단일 Pod만 사용해야 할 때
+  - 버전 간 호환성 문제가 있을 때 (DB 스키마 변경)
   - 개발/테스트 환경
+  - 리소스 여유가 없을 때
+
+**주의**: RollingUpdate 시 API 버전 호환성 (backward/forward compatibility) 설계 필수
 
 **참고자료**
 - [Deployment Strategy](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy)[^22]
@@ -658,6 +757,20 @@ StatefulSet이란 무엇이며, Deployment와의 차이점을 설명해주세요
 | 스토리지 | Pod별 PVC 유지 | 공유 또는 없음 |
 | 배포 순서 | 순차적 | 병렬 |
 | 삭제 순서 | 역순 | 무관 |
+
+**트레이드오프 고려사항**:
+| 관점 | StatefulSet 선택 | Deployment 선택 |
+|------|-----------------|----------------|
+| 복잡도 | 높음 (Headless Service, PVC 관리) | 낮음 |
+| 스케일링 속도 | 느림 (순차적) | 빠름 (병렬) |
+| 복구 시간 | 느림 (순서 보장) | 빠름 |
+| 데이터 지속성 | 보장 (PVC 유지) | 별도 설계 필요 |
+
+**StatefulSet 사용 시 주의점**:
+- Headless Service 필수 (clusterIP: None)
+- StatefulSet 삭제해도 PVC는 자동 삭제 안됨 (데이터 보호)
+- 롤링 업데이트 시 역순(N-1 → 0)으로 진행
+- Pod 재생성 시 같은 노드 보장 안됨 (PV 접근 가능해야 함)
 
 **사용 사례**: 데이터베이스, 분산 시스템 (Kafka, ZooKeeper, Elasticsearch)
 
@@ -1015,6 +1128,15 @@ Kubernetes ClusterIP 타입 Service의 동작 방식과 사용 시나리오를 �
 - 외부에서 직접 접근 불가
 - 클러스터 내 Pod 간 통신용
 
+**장점**:
+- 가장 단순하고 안전한 옵션
+- 외부 노출이 없어 보안에 유리
+- 리소스 오버헤드 최소
+
+**단점/제한**:
+- 외부 접근 불가 (kubectl port-forward로 디버깅 가능)
+- 클러스터 외부 클라이언트는 사용 불가
+
 **사용 시나리오**:
 - 내부 마이크로서비스 간 통신
 - 백엔드 DB 접근
@@ -1044,12 +1166,26 @@ Kubernetes NodePort 타입 Service의 동작 방식과 포트 범위 제한에 �
 - 기본: 30000-32767
 - kube-apiserver `--service-node-port-range` 플래그로 변경 가능
 
+**장점**:
+- 클라우드 로드밸런서 없이 외부 노출 가능
+- 비용 없음 (추가 인프라 불필요)
+- 온프레미스 환경에서 유용
+
+**단점/제한**:
+- 노드 IP 직접 노출 (보안 위험)
+- 노드당 하나의 포트만 사용 가능
+- 노드 장애 시 해당 노드로의 접근 불가 (클라이언트가 다른 노드 IP 알아야 함)
+- 포트 범위 제한 (30000-32767)
+- Well-known 포트 (80, 443) 사용 불가
+
 **사용 시나리오**:
 - 개발/테스트 환경
 - 로드밸런서 없는 온프레미스 환경
 - 외부 로드밸런서와 연동
 
-**단점**: 노드 IP 노출, 포트 관리 필요
+**실제 운영 고려사항**:
+- 프로덕션에서는 앞단에 로드밸런서 배치 권장
+- externalTrafficPolicy: Local 설정 시 클라이언트 IP 보존 가능 (단, 트래픽 불균형 가능)
 
 **참고자료**
 - [NodePort](https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport)[^38]
@@ -1075,6 +1211,22 @@ Kubernetes LoadBalancer 타입 Service의 동작 방식과 클라우드 환경�
 2. 클라우드 API 호출하여 LB 생성 (AWS ELB, GCP LB 등)
 3. LB가 NodePort로 트래픽 전달하도록 설정
 4. External IP가 Service에 할당
+
+**장점**:
+- 단일 외부 IP로 서비스 노출
+- 클라우드 네이티브 로드밸런싱 (헬스체크, SSL 종료 등)
+- 노드 장애에도 자동 페일오버
+- Well-known 포트 (80, 443) 사용 가능
+
+**단점/제한**:
+- Service당 로드밸런서 1개 = 비용 증가
+- 클라우드 환경 의존적
+- 프로비저닝 시간 필요 (수십 초 ~ 수 분)
+- L4 로드밸런서 (HTTP 라우팅 불가)
+
+**비용 최적화 팁**:
+- 여러 서비스 노출 시 Ingress 사용 권장 (LB 1개로 여러 서비스)
+- 내부 전용 서비스는 ClusterIP 사용
 
 **주의사항**:
 - 클라우드 환경에서만 동작
@@ -1177,6 +1329,20 @@ Ingress의 역할과 Service와의 차이점을 설명해주세요.
 - 경로 기반 라우팅 (`/api`, `/web`)
 - 호스트 기반 라우팅 (`api.example.com`)
 - TLS/SSL 종료
+
+**트레이드오프 - Ingress vs LoadBalancer Service**:
+| 상황 | Ingress 선택 | LoadBalancer 선택 |
+|------|-------------|------------------|
+| HTTP/HTTPS 서비스 | O | - |
+| TCP/UDP 서비스 (DB, gRPC) | X | O |
+| 여러 서비스 통합 | O | - |
+| 단일 서비스 노출 | - | O (단순) |
+| 비용 최적화 | O | - |
+| L4 기능 필요 | - | O |
+
+**주의사항**:
+- Ingress 리소스만으로는 동작 안함 - Ingress Controller 필수
+- 비-HTTP 프로토콜은 Ingress로 처리 불가
 
 **참고자료**
 - [Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/)[^42]
@@ -1485,9 +1651,20 @@ reclaimPolicy: Delete
 volumeBindingMode: WaitForFirstConsumer
 ```
 
-**volumeBindingMode**:
-- Immediate: PVC 생성 즉시 바인딩
-- WaitForFirstConsumer: Pod 스케줄링 후 바인딩
+**volumeBindingMode 트레이드오프**:
+| 모드 | 장점 | 단점 |
+|------|------|------|
+| Immediate | PVC 생성 즉시 볼륨 확보 | 잘못된 Zone에 생성 가능 |
+| WaitForFirstConsumer | Pod와 같은 Zone 보장 | Pod 스케줄링까지 대기 필요 |
+
+**WaitForFirstConsumer 권장 상황**:
+- 멀티 Zone 클러스터
+- Zone 제약 있는 스토리지 (EBS, PD)
+
+**흔한 함정**:
+- Immediate + Zone 스토리지 → Pod가 다른 Zone에 스케줄되면 마운트 실패
+- StorageClass 없이 PVC 생성 → default StorageClass 필요
+- reclaimPolicy: Delete인데 데이터 보존 기대
 
 **참고자료**
 - [Storage Classes](https://kubernetes.io/docs/concepts/storage/storage-classes/)[^50]
@@ -1672,18 +1849,32 @@ Kubernetes Secret의 역할과 ConfigMap과의 차이점을 설명해주세요. 
 |------|--------|-----------|
 | 용도 | 민감 데이터 | 일반 설정 |
 | 저장 | Base64 인코딩 | 평문 |
-| 메모리 | tmpfs에 저장 | 일반 저장 |
+| 메모리 | tmpfs에 저장 (볼륨 마운트 시) | 일반 저장 |
 | 크기 제한 | 1MB | 1MB |
+| kubectl 출력 | 기본적으로 숨김 | 표시됨 |
 
 **Secret은 정말 안전한가?**
-- **기본적으로 안전하지 않음**: Base64는 암호화가 아님
+- **기본적으로 안전하지 않음**: Base64는 암호화가 아닌 인코딩
 - etcd에 평문 저장 (기본 설정)
+- API 접근 권한이 있으면 누구나 디코딩 가능
+- kubectl get secret -o yaml로 노출 가능
 
-**보안 강화 방법**:
-- etcd 암호화 활성화
-- RBAC로 접근 제한
-- 외부 시크릿 관리자 사용 (Vault, AWS Secrets Manager)
-- Sealed Secrets 사용
+**기본 제공 보안 기능**:
+- etcd 통신 TLS 암호화 (전송 중)
+- RBAC로 접근 제어 가능
+- Audit 로그로 접근 추적 가능
+
+**보안 강화 방법 (프로덕션 필수)**:
+1. **etcd 암호화 활성화** (EncryptionConfiguration) - 저장 시 암호화
+2. **RBAC로 접근 제한** - 필요한 ServiceAccount/User만 허용
+3. **외부 시크릿 관리자 사용** (Vault, AWS Secrets Manager)
+4. **Sealed Secrets 사용** - Git에 암호화된 상태로 저장
+5. **Secret 자동 회전** - 정기적으로 갱신
+
+**흔한 실수**:
+- Secret을 Git에 커밋 (Base64는 쉽게 디코딩됨)
+- 모든 Pod에 default ServiceAccount 사용
+- Secret 접근 로그 미확인
 
 **참고자료**
 - [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/)[^55]
@@ -2217,6 +2408,7 @@ Kubernetes에서 requests만 설정했을 때와 limits만 설정했을 때의 �
 - limits: 무제한 (노드 전체 리소스 사용 가능)
 - QoS: Burstable
 - 스케줄링 시 requests 기준으로 노드 선택
+- **위험**: 다른 Pod 리소스를 빼앗을 수 있음
 
 **limits만 설정**:
 - requests: limits와 동일 값으로 자동 설정
@@ -2232,10 +2424,21 @@ resources:
 # 결과: requests도 동일하게 설정됨
 ```
 
+**흔한 실수와 함정**:
+| 설정 | 문제점 |
+|------|--------|
+| requests만 높게 | 스케줄링은 되지만 실제 사용량 적으면 리소스 낭비 |
+| requests만 낮게 | 과도한 오버커밋으로 노드 리소스 부족 |
+| limits만 설정 | requests=limits가 되어 burst 불가, 리소스 낭비 가능 |
+| 둘 다 미설정 | QoS BestEffort로 가장 먼저 eviction 대상 |
+
 **권장 사항**:
 - 항상 requests와 limits 둘 다 설정
-- requests <= limits
-- 프로덕션에서는 적절한 값 측정 후 설정
+- requests <= limits (burst 허용)
+- requests = limits (안정성 우선, Guaranteed QoS)
+- 프로덕션에서는 실제 사용량 측정 후 설정 (kubectl top, Prometheus)
+
+**LimitRange로 기본값 강제**: 네임스페이스에 기본 requests/limits 설정 권장
 
 **참고자료**
 - [Resource Management](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/)[^69]
@@ -2292,23 +2495,32 @@ Kubernetes Pod의 QoS(Quality of Service) 클래스(Guaranteed, Burstable, BestE
 
 | QoS | 조건 | Eviction 우선순위 |
 |-----|------|------------------|
-| **Guaranteed** | 모든 컨테이너: requests = limits (CPU, Memory) | 최후 |
-| **Burstable** | 최소 하나의 requests/limits 설정 | 중간 |
-| **BestEffort** | requests/limits 없음 | 최우선 |
+| **Guaranteed** | 모든 컨테이너: requests = limits (CPU, Memory 모두) | 최후 |
+| **Burstable** | 최소 하나의 requests 또는 limits 설정, Guaranteed 아님 | 중간 |
+| **BestEffort** | requests/limits 모두 없음 | 최우선 |
 
 **의미**:
 - 노드 리소스 부족 시 Eviction 순서 결정
 - BestEffort -> Burstable -> Guaranteed 순으로 제거
+- 같은 QoS 내에서는 메모리 사용량 초과 비율로 결정
 
 **확인 방법**:
 ```bash
 kubectl get pod <name> -o jsonpath='{.status.qosClass}'
 ```
 
+**흔한 함정**:
+| 설정 | 예상 QoS | 실제 QoS |
+|------|----------|----------|
+| CPU만 requests=limits | Guaranteed | Burstable (Memory 미설정) |
+| 일부 컨테이너만 설정 | Guaranteed | Burstable |
+| limits만 설정 | Burstable | Guaranteed (자동으로 requests=limits) |
+
 **권장 사항**:
-- 중요 워크로드: Guaranteed
-- 일반 워크로드: Burstable (적절한 requests/limits)
+- 중요 워크로드: Guaranteed (안정성)
+- 일반 워크로드: Burstable (효율성)
 - 개발/테스트: BestEffort 허용 가능
+- **프로덕션 Best Practice**: 최소 requests는 반드시 설정
 
 **참고자료**
 - [Pod QoS Classes](https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/)[^71]
@@ -2597,7 +2809,7 @@ Kubernetes HPA 사용 시 주의사항과 Best Practice를 설명해주세요.
 <summary>답변</summary>
 
 **주의사항**:
-1. **requests 필수**: HPA는 requests 기준으로 사용률 계산
+1. **requests 필수**: HPA는 requests 기준으로 사용률 계산 (requests 없으면 동작 안함)
 2. **metrics-server 필요**: 설치되어 있어야 메트릭 수집
 3. **Deployment 권장**: ReplicaSet 직접 사용 비권장
 4. **minReplicas**: 최소 2개 이상 (고가용성)
@@ -2618,9 +2830,18 @@ spec:
       stabilizationWindowSeconds: 300
 ```
 
+**흔한 함정과 실수**:
+| 상황 | 문제 | 해결 |
+|------|------|------|
+| HPA + VPA 동시 사용 | CPU/Memory 충돌로 진동 | VPA는 Off 모드로만 |
+| target 50% + requests 과소 설정 | 실제 부하 낮아도 스케일업 | 실측 기반 requests 설정 |
+| maxReplicas 너무 높음 | 비용 폭발 | 리소스 quota와 연계 |
+| 콜드 스타트 미고려 | 새 Pod 준비 전 부하 증가 | 여유있는 minReplicas |
+
 **모니터링**: HPA 상태 주기적 확인
 ```bash
 kubectl get hpa
+kubectl describe hpa <name>  # 상세 이벤트 확인
 ```
 
 **참고자료**
@@ -3182,7 +3403,7 @@ Kubernetes NetworkPolicy가 적용되지 않는 경우(CNI 미지원 등)와 기
 1. **CNI 미지원**:
    - Flannel (기본): 지원 안함
    - 지원 CNI: Calico, Cilium, Weave Net
-   - NetworkPolicy 생성해도 무시됨
+   - NetworkPolicy 생성해도 무시됨 (오류 없이 무시!)
 
 2. **HostNetwork Pod**: `hostNetwork: true` Pod는 영향 안받음
 
@@ -3192,7 +3413,15 @@ Kubernetes NetworkPolicy가 적용되지 않는 경우(CNI 미지원 등)와 기
 - NetworkPolicy 없음: 모든 트래픽 허용 (default allow)
 - NetworkPolicy 적용 시: 해당 Pod는 명시적 허용만 가능 (default deny)
 
-**전체 거부 정책**:
+**흔한 함정**:
+| 상황 | 예상 | 실제 |
+|------|------|------|
+| Flannel + NetworkPolicy | 트래픽 차단 | 아무 효과 없음 |
+| Ingress만 정의 | Egress 차단? | Egress는 모두 허용 |
+| podSelector: {} | 아무것도 선택 안함? | 네임스페이스 전체 Pod |
+| namespaceSelector + podSelector | AND 조건? | 같은 from/to 내 AND, 다른 from/to 간 OR |
+
+**전체 거부 정책** (Zero Trust 시작점):
 ```yaml
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -3204,6 +3433,8 @@ spec:
   - Ingress
   - Egress
 ```
+
+**주의**: DNS 통신 (kube-dns:53) Egress 허용 필요할 수 있음
 
 **참고자료**
 - [Network Policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/)[^92]
@@ -3406,9 +3637,19 @@ readinessProbe:
   periodSeconds: 5
 ```
 
+**흔한 실수와 함정**:
+| 실수 | 문제점 | 해결책 |
+|------|--------|--------|
+| Liveness = Readiness 동일 엔드포인트 | 일시적 과부하에 불필요한 재시작 | 분리된 엔드포인트 사용 |
+| Liveness에서 외부 의존성 체크 | DB 장애 시 모든 Pod 재시작 | 외부 의존성은 Readiness에서만 |
+| 너무 짧은 timeout | 정상 Pod도 실패 판정 | 충분한 여유 확보 |
+| Readiness 미설정 | 준비 안된 Pod로 트래픽 유입 | 반드시 설정 |
+
 **Best Practice**:
 - 둘 다 설정 권장
 - 다른 엔드포인트 사용 (/healthz vs /ready)
+- Liveness는 앱 자체 상태만 체크 (외부 의존성 X)
+- Readiness는 모든 의존성 포함 (DB, 캐시 연결 등)
 
 **참고자료**
 - [Readiness Probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-readiness-probes)[^97]
@@ -4014,10 +4255,20 @@ Kubernetes 클러스터 버전 업그레이드 절차와 주의사항을 설명�
 5. 검증
 
 **주의사항**:
-- **버전 스킵 금지**: 한 번에 한 마이너 버전만 (1.25 -> 1.26)
-- **버전 차이 제한**: kubelet은 API server보다 2버전 낮을 수 있음
+- **버전 스킵 금지**: 한 번에 한 마이너 버전만 (1.25 -> 1.26, 1.25 -> 1.27 불가)
+- **버전 차이 제한** (Skew Policy):
+  - kube-apiserver: 모든 Control Plane이 동일 버전 권장
+  - kubelet: API server보다 최대 2 마이너 버전 낮을 수 있음
+  - kube-proxy, kubectl: API server와 +/-1 버전
 - **API 변경 확인**: deprecated API 미리 대응
-- **애드온 호환성**: CNI, CSI 등 버전 확인
+- **애드온 호환성**: CNI, CSI, Ingress Controller 등 버전 확인
+
+**업그레이드 전 체크리스트**:
+1. etcd 백업 완료
+2. Release Notes의 Breaking Changes 확인
+3. deprecated API 사용 여부 확인: `kubectl deprecations`
+4. 충분한 노드 리소스 (drain 시 Pod 이동 공간)
+5. PodDisruptionBudget 확인
 
 **kubeadm 업그레이드 (예시)**:
 ```bash
@@ -4031,6 +4282,8 @@ apt-get upgrade kubelet kubectl
 systemctl restart kubelet
 kubectl uncordon node1
 ```
+
+**롤백**: kubeadm은 자동 롤백 미지원, etcd 스냅샷으로 복구
 
 **참고자료**
 - [Upgrading kubeadm clusters](https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-upgrade/)[^111]
@@ -4105,31 +4358,46 @@ ETCDCTL_API=3 etcdctl snapshot save snapshot.db \
   --cert=/etc/kubernetes/pki/etcd/server.crt \
   --key=/etc/kubernetes/pki/etcd/server.key
 
-# 백업 확인
-etcdctl snapshot status snapshot.db
+# 백업 확인 (무결성 검증)
+ETCDCTL_API=3 etcdctl snapshot status snapshot.db --write-out=table
 ```
 
-**etcd 복구**:
+**etcd 복구** (단일 노드 예시):
 ```bash
-# 1. kube-apiserver 중지
+# 1. 모든 Control Plane에서 kube-apiserver, etcd 중지
 mv /etc/kubernetes/manifests/kube-apiserver.yaml /tmp/
+mv /etc/kubernetes/manifests/etcd.yaml /tmp/
 
-# 2. 스냅샷 복구
+# 2. 스냅샷 복구 (새 클러스터로)
 ETCDCTL_API=3 etcdctl snapshot restore snapshot.db \
-  --data-dir=/var/lib/etcd-restore
+  --data-dir=/var/lib/etcd-restore \
+  --name=master \
+  --initial-cluster=master=https://127.0.0.1:2380 \
+  --initial-advertise-peer-urls=https://127.0.0.1:2380
 
 # 3. etcd 데이터 디렉토리 교체
 mv /var/lib/etcd /var/lib/etcd-backup
 mv /var/lib/etcd-restore /var/lib/etcd
 
-# 4. kube-apiserver 재시작
+# 4. etcd, kube-apiserver 재시작
+mv /tmp/etcd.yaml /etc/kubernetes/manifests/
 mv /tmp/kube-apiserver.yaml /etc/kubernetes/manifests/
 ```
 
+**HA 클러스터 복구 시 주의**:
+- 모든 etcd 노드에서 동시에 복구 수행
+- initial-cluster에 모든 멤버 포함
+- 복구 후 멤버십 확인: `etcdctl member list`
+
 **백업 권장 사항**:
-- 정기적 자동 백업 (cronjob)
-- 오프사이트 저장 (S3, GCS)
-- 복구 테스트 정기 수행
+- 정기적 자동 백업 (cronjob) - 최소 1시간 간격
+- 오프사이트 저장 (S3, GCS) - 암호화 필수
+- 복구 테스트 정기 수행 - 분기별 권장
+- 클러스터 업그레이드 전 반드시 백업
+
+**흔한 실수**:
+- 복구 시 --data-dir를 기존 경로로 지정 (덮어쓰기 실패)
+- 멀티노드에서 한 노드만 복구 (클러스터 불일치)
 
 **참고자료**
 - [Operating etcd](https://kubernetes.io/docs/tasks/administer-cluster/configure-upgrade-etcd/)[^113]
@@ -4215,10 +4483,22 @@ spec:
 - 조건 불만족 시 eviction 대기
 - 강제 삭제(`--force`)는 PDB 무시
 
+**트레이드오프 - minAvailable vs maxUnavailable**:
+| 설정 | 장점 | 단점 |
+|------|------|------|
+| minAvailable: N | 최소 N개 보장 명확 | 스케일 다운 시 조정 필요 |
+| maxUnavailable: N | 스케일 변경에 유연 | 작은 replicas에서 위험 |
+
+**흔한 함정**:
+- replicas=2, minAvailable=2 → drain 불가
+- replicas=1 → PDB 의미 없음
+- PDB 미설정 → drain이 모든 Pod 한번에 종료 가능
+- 비자발적 중단 (노드 장애) → PDB 적용 안됨
+
 **Best Practice**:
 - 프로덕션 워크로드에 PDB 필수
 - minAvailable 또는 maxUnavailable 중 하나만 설정
-- replicas 수 고려하여 설정
+- replicas 수 고려하여 설정 (minAvailable < replicas)
 
 **참고자료**
 - [PodDisruptionBudget](https://kubernetes.io/docs/concepts/workloads/pods/disruptions/)[^115]

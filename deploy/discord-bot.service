@@ -4,12 +4,23 @@ After=network.target
 
 [Service]
 Type=simple
-User=ubuntu
-WorkingDirectory=/home/ubuntu/output
+User=opc
+WorkingDirectory=/home/opc/output
 ExecStart=/usr/bin/python3 main.py
 Restart=always
 RestartSec=10
-EnvironmentFile=/home/ubuntu/output/.env
+
+# 환경변수 (직접 수정 필요)
+Environment="DISCORD_TOKEN=여기에토큰"
+Environment="GUILD_ID=1470293324895355054"
+Environment="SUBMIT_CHANNEL_ID=1474469525276721253"
+Environment="ANNOUNCEMENT_CHANNEL_ID=1474469549238780110"
+Environment="FEEDBACK_CHANNEL_ID=1474469578204778526"
+Environment="ADMIN_ROLE_ID=1471462337050579069"
+Environment="ROLE_ALGORITHM_ID=1470996686246777050"
+Environment="ROLE_PROJECT_ID=1470996757356876040"
+Environment="ROLE_RESUME_ID=1470996850659299328"
+Environment="ROLE_ALL_ID=1470996905495626011"
 
 [Install]
 WantedBy=multi-user.target

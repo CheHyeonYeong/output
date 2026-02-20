@@ -21,7 +21,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd ~/output
+            cd /home/opc/output
             git pull origin main
             pip3 install -r requirements.txt --quiet
             sudo systemctl restart discord-bot

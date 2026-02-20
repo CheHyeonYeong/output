@@ -1,0 +1,15 @@
+[Unit]
+Description=Discord Bot - 뽀삐
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/output
+ExecStart=/usr/bin/python3 main.py
+Restart=always
+RestartSec=10
+EnvironmentFile=/home/ubuntu/output/.env
+
+[Install]
+WantedBy=multi-user.target

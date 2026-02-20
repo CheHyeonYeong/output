@@ -37,10 +37,15 @@ async def on_ready():
     await init_db()
     print("데이터베이스 초기화 완료")
 
+    # 등록된 명령어 확인
+    print(f"등록된 트리 명령어 수: {len(bot.tree.get_commands())}")
+
     try:
         guild_id = os.getenv("GUILD_ID")
         if guild_id:
             guild = discord.Object(id=int(guild_id))
+            # 길드에 명령어 복사 후 동기화
+            bot.tree.copy_global_to(guild=guild)
             synced = await bot.tree.sync(guild=guild)
             print(f"길드에 {len(synced)}개의 명령어 동기화 완료")
         else:
@@ -67,15 +72,15 @@ async def on_command_error(ctx, error):
 @bot.tree.command(name="help", description="봇 사용법을 확인합니다")
 async def help_command(interaction: discord.Interaction):
     embed = discord.Embed(
-        title="Output Study 봇 도움말",
-        description="취준 스터디 운영을 위한 봇입니다.",
+        title="🐰 뽀삐 도움말",
+        description="Output Study 운영을 도와주는 봇이에요!",
         color=discord.Color.blue()
     )
 
     embed.add_field(
-        name="멤버 관리",
+        name="👋 멤버 관리",
         value="""
-`/join` - 스터디 가입
+`/join` - 스터디 가입 요청
 `/leave` - 스터디 탈퇴
 `/me` - 내 정보 확인
 `/members` - 멤버 목록
@@ -84,7 +89,17 @@ async def help_command(interaction: discord.Interaction):
     )
 
     embed.add_field(
-        name="산출물 제출",
+        name="📇 프로필",
+        value="""
+`/profile` - 내 프로필 보기
+`/profile @멤버` - 멤버 프로필 보기
+`/profile-set` - 프로필 설정 (GitHub, 블로그 등)
+        """,
+        inline=False
+    )
+
+    embed.add_field(
+        name="📝 산출물 제출",
         value="""
 `/submit` - 주간 산출물 제출
 `/status` - 제출 현황 확인
@@ -93,34 +108,31 @@ async def help_command(interaction: discord.Interaction):
     )
 
     embed.add_field(
-        name="출석",
+        name="✅ 출석",
         value="""
-`/attend` - 세션 출석체크
+`/attend` - 모각작/회고 출석체크
 `/attendance` - 내 출석 통계
         """,
         inline=False
     )
 
     embed.add_field(
-        name="피드백 & 통계",
+        name="💬 피드백 & 통계",
         value="""
 `/feedback` - 익명 피드백 전달
 `/report` - 주간 리포트
 `/ranking` - 활동 랭킹
-`/stats` - 전체 통계
         """,
         inline=False
     )
 
     embed.add_field(
-        name="스트라이크",
-        value="""
-`/strikes` - 스트라이크 확인
-        """,
+        name="⚠️ 스트라이크",
+        value="`/strikes` - 내 스트라이크 확인",
         inline=False
     )
 
-    embed.set_footer(text="삼진 아웃 제도: 규칙 미준수 3회시 스터디 제외")
+    embed.set_footer(text="📋 /rules 로 스터디 규칙 확인!")
 
     await interaction.response.send_message(embed=embed)
 
@@ -128,47 +140,47 @@ async def help_command(interaction: discord.Interaction):
 @bot.tree.command(name="rules", description="스터디 규칙을 확인합니다")
 async def rules_command(interaction: discord.Interaction):
     embed = discord.Embed(
-        title="Output Study 규칙",
+        title="🚀 Output Study 규칙",
         color=discord.Color.gold()
     )
 
     embed.add_field(
-        name="진행 방식",
+        name="📋 기본 규칙 (Weekly Mission)",
         value="""
-• **주중 1회**: 모각작 (각자 할 일 정해서 진행)
-• **주말 1회**: 오전 8시 리뷰/점검
-• 회당 최대 2시간
+💻 **온라인 모각작**: 주 2회 이상 참여 필수
+📅 **토요 회고 모임**: 매주 토요일 오전 8시 (3~5명 팀)
+📝 **산출물 제출**: 회고 모임 전까지 완료
         """,
         inline=False
     )
 
     embed.add_field(
-        name="주 1회 필수 산출물 (택 1 이상)",
+        name="📝 산출물 유형 (택 1)",
         value="""
-• 코딩테스트 7문제 풀이
-• 과제 PR 7개
-• 이력서/포트폴리오 수정본
-• 스터디 내용 정리
-→ 모든 내용은 **설명 가능**해야 함
+• **알고리즘/코테**: 주 7문제 이상 풀이
+• **사이드 프로젝트**: PR 5개 이상
+• **개인 공부 블로깅**: 1개 이상 (1,500자 이상 권장)
         """,
         inline=False
     )
 
     embed.add_field(
-        name="산출물 권장사항",
+        name="✍️ 회고록 작성 가이드 (KPT)",
         value="""
-• 인사이트가 드러나면 좋음
-• 의사결정 트레이드오프가 드러나면 좋음
-• 형식은 자유
+• **Keep**: 만족스러웠던 점, 계속 유지할 부분
+• **Problem**: 아쉬웠던 점, 발생한 문제
+• **Try**: 문제 해결을 위해 다음 주에 시도해 볼 점
         """,
         inline=False
     )
 
     embed.add_field(
-        name="삼진 아웃 제도",
-        value="규칙 중 하나라도 미준수 시 **즉시 스트라이크**\n3 스트라이크 = 스터디 제외",
+        name="☕ 커피챗",
+        value="주 1회, 1~2명씩 운영진과 소규모 대화\n운영진에게 DM으로 신청!",
         inline=False
     )
+
+    embed.set_footer(text="함께 끝까지 완주해 봅시다! 파이팅! 🔥")
 
     await interaction.response.send_message(embed=embed)
 

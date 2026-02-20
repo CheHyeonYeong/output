@@ -74,6 +74,19 @@ async def init_db():
             )
         """)
 
+        # 프로필 테이블
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS profiles (
+                user_id INTEGER PRIMARY KEY,
+                github TEXT,
+                blog TEXT,
+                intro TEXT,
+                tech_stack TEXT,
+                goal TEXT,
+                updated_at TEXT NOT NULL
+            )
+        """)
+
         await db.commit()
 
 
@@ -322,6 +335,48 @@ async def get_member_stats(user_id: int) -> dict:
             "strikes": strikes,
             "submission_types": type_dist
         }
+
+
+# ============ 프로필 ============
+
+async def set_profile(user_id: int, github: str = None, blog: str = None,
+                      intro: str = None, tech_stack: str = None, goal: str = None):
+    """프로필 설정/업데이트"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        # 기존 프로필 가져오기
+        existing = await get_profile(user_id)
+
+        if existing:
+            # 업데이트 (None이 아닌 값만)
+            await db.execute("""
+                UPDATE profiles SET
+                    github = COALESCE(?, github),
+                    blog = COALESCE(?, blog),
+                    intro = COALESCE(?, intro),
+                    tech_stack = COALESCE(?, tech_stack),
+                    goal = COALESCE(?, goal),
+                    updated_at = ?
+                WHERE user_id = ?
+            """, (github, blog, intro, tech_stack, goal, datetime.now().isoformat(), user_id))
+        else:
+            # 새로 생성
+            await db.execute("""
+                INSERT INTO profiles (user_id, github, blog, intro, tech_stack, goal, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (user_id, github, blog, intro, tech_stack, goal, datetime.now().isoformat()))
+
+        await db.commit()
+
+
+async def get_profile(user_id: int) -> Optional[dict]:
+    """프로필 조회"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM profiles WHERE user_id = ?", (user_id,)
+        ) as cursor:
+            row = await cursor.fetchone()
+            return dict(row) if row else None
 
 
 async def get_weekly_report() -> dict:

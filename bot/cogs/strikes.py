@@ -2,8 +2,9 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from bot.utils.database import (
-    add_strike, get_strikes, get_member, deactivate_member
+    add_strike, get_strikes, get_member_stats, deactivate_member
 )
+import os
 
 
 class Strikes(commands.Cog):
@@ -11,6 +12,23 @@ class Strikes(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        # 멤버 역할 ID 목록 (운영진 포함)
+        self.member_role_ids = {
+            int(os.getenv("ROLE_ALGORITHM_ID", 0)),
+            int(os.getenv("ROLE_PROJECT_ID", 0)),
+            int(os.getenv("ROLE_RESUME_ID", 0)),
+            int(os.getenv("ROLE_ALL_ID", 0)),
+            int(os.getenv("ADMIN_ROLE_ID", 0)),
+        }
+
+    def is_study_member(self, member: discord.Member) -> bool:
+        """역할 기반으로 스터디 멤버인지 확인"""
+        return any(role.id in self.member_role_ids for role in member.roles)
+
+    def is_admin(self, member: discord.Member) -> bool:
+        """운영진인지 확인"""
+        admin_role_id = int(os.getenv("ADMIN_ROLE_ID", 0))
+        return any(role.id == admin_role_id for role in member.roles)
 
     @app_commands.command(name="strike", description="[관리자] 멤버에게 스트라이크를 부여합니다")
     @app_commands.describe(
@@ -24,10 +42,18 @@ class Strikes(commands.Cog):
         member: discord.Member,
         reason: str
     ):
-        db_member = await get_member(member.id)
-        if not db_member or not db_member["is_active"]:
+        # 역할 기반 멤버 확인
+        if not self.is_study_member(member):
             await interaction.response.send_message(
-                "해당 멤버는 스터디에 가입되어 있지 않습니다.",
+                "해당 멤버는 스터디 멤버가 아닙니다.",
+                ephemeral=True
+            )
+            return
+
+        # 운영진은 스트라이크 제외
+        if self.is_admin(member):
+            await interaction.response.send_message(
+                "🛡️ 운영진에게는 스트라이크를 부여할 수 없습니다!",
                 ephemeral=True
             )
             return
@@ -69,26 +95,27 @@ class Strikes(commands.Cog):
         member: discord.Member = None
     ):
         target = member or interaction.user
-        db_member = await get_member(target.id)
 
-        if not db_member:
+        # 역할 기반 멤버 확인
+        if not self.is_study_member(target):
             await interaction.response.send_message(
-                "해당 멤버는 스터디에 가입되어 있지 않습니다.",
+                "해당 멤버는 스터디 멤버가 아닙니다.",
                 ephemeral=True
             )
             return
 
         strikes = await get_strikes(target.id)
+        stats = await get_member_stats(target.id)
+        current_count = stats.get("strikes", 0)
 
         embed = discord.Embed(
-            title=f"{target.display_name}의 스트라이크 기록",
+            title=f"⚠️ {target.display_name}의 스트라이크 기록",
             color=discord.Color.orange() if strikes else discord.Color.green()
         )
 
-        current_count = db_member["strike_count"]
         embed.add_field(
             name="현재 상태",
-            value=f"{'⚠️' * current_count}{'⚪' * (3 - current_count)} ({current_count}/3)",
+            value=f"{'🔴' * current_count}{'⚪' * (3 - current_count)} ({current_count}/3)",
             inline=False
         )
 
@@ -101,7 +128,7 @@ class Strikes(commands.Cog):
                     inline=False
                 )
         else:
-            embed.add_field(name="기록", value="스트라이크 기록이 없습니다!", inline=False)
+            embed.add_field(name="기록", value="🎉 스트라이크 기록이 없습니다!", inline=False)
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 

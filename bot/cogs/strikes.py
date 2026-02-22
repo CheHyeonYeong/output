@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from bot.utils.database import (
-    add_strike, get_strikes, get_member_stats, deactivate_member
+    add_strike, get_strikes, get_member_stats, get_members_with_3_strikes
 )
 import os
 
@@ -12,13 +12,15 @@ class Strikes(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.admin_role_id = int(os.getenv("ADMIN_ROLE_ID", 0))
+        self.announcement_channel_id = int(os.getenv("ANNOUNCEMENT_CHANNEL_ID", 0))
         # 멤버 역할 ID 목록 (운영진 포함)
         self.member_role_ids = {
             int(os.getenv("ROLE_ALGORITHM_ID", 0)),
             int(os.getenv("ROLE_PROJECT_ID", 0)),
             int(os.getenv("ROLE_RESUME_ID", 0)),
             int(os.getenv("ROLE_ALL_ID", 0)),
-            int(os.getenv("ADMIN_ROLE_ID", 0)),
+            self.admin_role_id,
         }
 
     def is_study_member(self, member: discord.Member) -> bool:
@@ -27,8 +29,30 @@ class Strikes(commands.Cog):
 
     def is_admin(self, member: discord.Member) -> bool:
         """운영진인지 확인"""
-        admin_role_id = int(os.getenv("ADMIN_ROLE_ID", 0))
-        return any(role.id == admin_role_id for role in member.roles)
+        return any(role.id == self.admin_role_id for role in member.roles)
+
+    async def notify_admins_3strikes(self, member: discord.Member, interaction: discord.Interaction):
+        """스트라이크 3회 도달 시 운영진에게 알림"""
+        # 공지 채널에 알림
+        if self.announcement_channel_id and interaction.guild:
+            channel = interaction.guild.get_channel(self.announcement_channel_id)
+            if channel:
+                admin_role = interaction.guild.get_role(self.admin_role_id)
+                admin_mention = admin_role.mention if admin_role else "@운영진"
+
+                embed = discord.Embed(
+                    title="🚨 제명 대상자 발생",
+                    description=f"**{member.display_name}**님이 스트라이크 3회에 도달했습니다.",
+                    color=discord.Color.red()
+                )
+                embed.add_field(
+                    name="조치 필요",
+                    value="운영진이 확인 후 제명 처리해주세요.\n`/strike-candidates` 명령어로 전체 대상자를 확인할 수 있습니다.",
+                    inline=False
+                )
+                embed.set_footer(text=f"대상자: {member.name} (ID: {member.id})")
+
+                await channel.send(f"{admin_mention}", embed=embed)
 
     @app_commands.command(name="strike", description="[관리자] 멤버에게 스트라이크를 부여합니다")
     @app_commands.describe(
@@ -65,27 +89,30 @@ class Strikes(commands.Cog):
         )
 
         embed = discord.Embed(
-            title="스트라이크 부여",
+            title="⚠️ 스트라이크 부여",
             color=discord.Color.orange()
         )
         embed.add_field(name="대상", value=member.display_name, inline=True)
         embed.add_field(
             name="스트라이크",
-            value=f"{'⚠️' * strike_count}{'⚪' * (3 - strike_count)} ({strike_count}/3)",
+            value=f"{'🔴' * strike_count}{'⚪' * (3 - strike_count)} ({strike_count}/3)",
             inline=True
         )
         embed.add_field(name="사유", value=reason, inline=False)
 
         if strike_count >= 3:
-            await deactivate_member(member.id)
             embed.add_field(
-                name="삼진 아웃",
-                value=f"**{member.display_name}**님이 스터디에서 제외되었습니다.",
+                name="🚨 삼진 아웃",
+                value=f"**{member.display_name}**님이 제명 대상입니다.\n운영진 확인 후 처리가 필요합니다.",
                 inline=False
             )
             embed.color = discord.Color.red()
 
         await interaction.response.send_message(embed=embed)
+
+        # 3회 도달 시 운영진에게 별도 알림
+        if strike_count >= 3:
+            await self.notify_admins_3strikes(member, interaction)
 
     @app_commands.command(name="strikes", description="스트라이크 기록을 확인합니다")
     @app_commands.describe(member="확인할 멤버 (미입력시 본인)")
@@ -129,6 +156,44 @@ class Strikes(commands.Cog):
                 )
         else:
             embed.add_field(name="기록", value="🎉 스트라이크 기록이 없습니다!", inline=False)
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="strike-candidates", description="[관리자] 제명 대상자 목록을 확인합니다")
+    @app_commands.default_permissions(administrator=True)
+    async def strike_candidates(self, interaction: discord.Interaction):
+        """스트라이크 3회 이상인 멤버 목록"""
+        candidates = await get_members_with_3_strikes()
+
+        embed = discord.Embed(
+            title="🚨 제명 대상자 목록",
+            description="스트라이크 3회 이상인 멤버입니다.",
+            color=discord.Color.red() if candidates else discord.Color.green()
+        )
+
+        if candidates:
+            for c in candidates:
+                user_id = c["user_id"]
+                username = c.get("username", "알 수 없음")
+                strike_count = c.get("strike_count", 3)
+
+                # Discord 멤버 정보 가져오기
+                member = interaction.guild.get_member(user_id) if interaction.guild else None
+                mention = member.mention if member else f"**{username}**"
+
+                embed.add_field(
+                    name=f"{username}",
+                    value=f"{mention}\n스트라이크: {'🔴' * strike_count} ({strike_count}회)\nID: `{user_id}`",
+                    inline=True
+                )
+
+            embed.set_footer(text="제명 처리: 해당 멤버의 역할을 제거해주세요.")
+        else:
+            embed.add_field(
+                name="✅ 없음",
+                value="현재 제명 대상자가 없습니다.",
+                inline=False
+            )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 

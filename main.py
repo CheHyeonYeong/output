@@ -1,4 +1,4 @@
-# 뽀삐 Discord Bot 🐰
+# 뽀삐 Discord Bot 🐶
 import discord
 from discord.ext import commands
 import os
@@ -80,7 +80,7 @@ async def on_command_error(ctx, error):
 @bot.tree.command(name="help", description="봇 사용법을 확인합니다")
 async def help_command(interaction: discord.Interaction):
     embed = discord.Embed(
-        title="🐰 뽀삐 도움말",
+        title="🐶 뽀삐 도움말",
         description="Output Study 운영을 도와주는 봇이에요!",
         color=discord.Color.blue()
     )
@@ -189,7 +189,7 @@ async def help_command(interaction: discord.Interaction):
     )
 
     embed.add_field(
-        name="🐰 뽀삐",
+        name="🐶 뽀삐",
         value="""
 `/뽀삐` - 뽀삐 상태 확인
 `/짖어` - 뽀삐가 짖어요

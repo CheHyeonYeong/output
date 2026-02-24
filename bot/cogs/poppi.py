@@ -27,13 +27,13 @@ def get_mood_emoji(state: dict) -> str:
     """뽀삐 기분에 따른 이모지"""
     avg = (100 - state["hunger"] + state["happiness"] + state["energy"]) / 3
     if avg >= 80:
-        return "🐰✨"
+        return "🐶✨"
     elif avg >= 60:
-        return "🐰"
+        return "🐶"
     elif avg >= 40:
-        return "🐇"
+        return "🐕"
     else:
-        return "🐇💦"
+        return "🐕💦"
 
 
 class Poppi(commands.Cog):
@@ -106,7 +106,7 @@ class Poppi(commands.Cog):
         state = get_poppi_state(interaction.guild_id)
 
         barks = [
-            "멍멍! 🐰",
+            "멍멍! 🐶",
             "왈왈! 왈왈왈!",
             "멍! 멍멍멍!",
             "왈! (꼬리 흔들흔들)",
@@ -127,7 +127,7 @@ class Poppi(commands.Cog):
             response = random.choice(barks)
 
         embed = discord.Embed(
-            description=f"🐰 **뽀삐**: {response}",
+            description=f"🐶 **뽀삐**: {response}",
             color=discord.Color.gold()
         )
 
@@ -145,7 +145,7 @@ class Poppi(commands.Cog):
             if diff < timedelta(minutes=1):
                 remaining = 60 - diff.seconds
                 await interaction.response.send_message(
-                    f"🐰 뽀삐: 아직 배불러... ({remaining}초 후에 다시 줘!)",
+                    f"🐶 뽀삐: 아직 배불러... ({remaining}초 후에 다시 줘!)",
                     ephemeral=True
                 )
                 return
@@ -194,7 +194,7 @@ class Poppi(commands.Cog):
             if diff < timedelta(seconds=30):
                 remaining = 30 - diff.seconds
                 await interaction.response.send_message(
-                    f"🐰 뽀삐: 잠깐만! 털 정리 중... ({remaining}초 후에!)",
+                    f"🐶 뽀삐: 잠깐만! 털 정리 중... ({remaining}초 후에!)",
                     ephemeral=True
                 )
                 return
@@ -213,7 +213,7 @@ class Poppi(commands.Cog):
         ]
 
         embed = discord.Embed(
-            description=f"✋🐰 *쓰담쓰담*\n\n**뽀삐**: {random.choice(reactions)}",
+            description=f"✋🐶 *쓰담쓰담*\n\n**뽀삐**: {random.choice(reactions)}",
             color=discord.Color.pink()
         )
         embed.add_field(name="행복도", value=f"+15 💖 (현재 {state['happiness']}%)", inline=False)
@@ -261,7 +261,7 @@ class Poppi(commands.Cog):
                 mins = remaining // 60
                 secs = remaining % 60
                 await interaction.response.send_message(
-                    f"🐰 뽀삐: 아직 지쳤어... ({mins}분 {secs}초 후에 가자!)",
+                    f"🐶 뽀삐: 아직 지쳤어... ({mins}분 {secs}초 후에 가자!)",
                     ephemeral=True
                 )
                 return
@@ -269,7 +269,7 @@ class Poppi(commands.Cog):
         # 에너지 체크
         if state["energy"] < 20:
             await interaction.response.send_message(
-                "🐰 뽀삐: 너무 피곤해... 좀 쉬고 가자... 💦",
+                "🐶 뽀삐: 너무 피곤해... 좀 쉬고 가자... 💦",
                 ephemeral=True
             )
             return
@@ -309,7 +309,7 @@ class Poppi(commands.Cog):
 
         if state["energy"] >= 80:
             await interaction.response.send_message(
-                "🐰 뽀삐: 안 졸려! 놀자! (뛰어다님)",
+                "🐶 뽀삐: 안 졸려! 놀자! (뛰어다님)",
                 ephemeral=True
             )
             return

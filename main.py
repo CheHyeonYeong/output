@@ -32,6 +32,7 @@ COGS = [
     "bot.cogs.coding",
     "bot.cogs.resources",
     "bot.cogs.jobs",
+    "bot.cogs.poppi",
 ]
 
 
@@ -183,6 +184,20 @@ async def help_command(interaction: discord.Interaction):
         value="""
 `/jobs` - 채용공고 검색
 `/job-status` - 크롤러 상태 확인
+        """,
+        inline=False
+    )
+
+    embed.add_field(
+        name="🐰 뽀삐",
+        value="""
+`/뽀삐` - 뽀삐 상태 확인
+`/짖어` - 뽀삐가 짖어요
+`/밥줘` - 밥 주기
+`/쓰담` - 쓰다듬기
+`/간식` - 간식 주기
+`/산책` - 산책하기
+`/재워` - 재우기
         """,
         inline=False
     )

@@ -1,7 +1,10 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from bot.utils.database import check_attendance, get_attendance_stats, get_session_attendees
+from bot.utils.database import (
+    check_attendance, get_attendance_stats, get_session_attendees,
+    add_member, get_member
+)
 import os
 import asyncio
 from datetime import datetime
@@ -43,6 +46,14 @@ class Attendance(commands.Cog):
                 ephemeral=True
             )
             return
+
+        # DB에 멤버가 없으면 자동 등록
+        member = await get_member(interaction.user.id)
+        if not member:
+            await add_member(
+                user_id=interaction.user.id,
+                username=interaction.user.display_name
+            )
 
         success = await check_attendance(
             user_id=interaction.user.id,

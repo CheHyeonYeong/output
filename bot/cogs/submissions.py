@@ -3,7 +3,8 @@ from discord import app_commands
 from discord.ext import commands
 from bot.utils.database import (
     submit_output, get_weekly_submissions,
-    add_strike, deactivate_member
+    add_strike, deactivate_member,
+    add_member, get_member
 )
 import os
 
@@ -50,6 +51,14 @@ class Submissions(commands.Cog):
                 ephemeral=True
             )
             return
+
+        # DB에 멤버가 없으면 자동 등록
+        member = await get_member(interaction.user.id)
+        if not member:
+            await add_member(
+                user_id=interaction.user.id,
+                username=interaction.user.display_name
+            )
 
         message_link = f"https://discord.com/channels/{interaction.guild_id}/{interaction.channel_id}"
 

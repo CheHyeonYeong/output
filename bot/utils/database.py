@@ -889,3 +889,9 @@ async def get_resource_stats() -> dict:
             "by_category": by_category,
             "contributors": contributors
         }
+async def withdraw_all_members():
+    \"\"\"모든 멤버 비활성화 및 팀 배정 초기화\"\"\"
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(\"DELETE FROM team_members\")
+        await db.execute(\"UPDATE members SET is_active = 0\")
+        await db.commit()

@@ -23,11 +23,11 @@ class Scheduler(commands.Cog):
         self.weekly_reminder.cancel()
         self.submission_reminder.cancel()
 
-    @tasks.loop(time=time(hour=22, minute=30))  # UTC 22:30 = KST 07:30
+    @tasks.loop(time=time(hour=22, minute=30))  # UTC 금요일 22:30 = KST 토요일 07:30
     async def weekly_reminder(self):
-        """주말 리뷰 세션 30분 전 알림 (토요일)"""
+        """주말 리뷰 세션 30분 전 알림 (KST 토요일)"""
         now = datetime.now()
-        if now.weekday() != 5:
+        if now.weekday() != 4:  # UTC 금요일 = KST 토요일
             return
 
         channel = self.bot.get_channel(self.announcement_channel_id)

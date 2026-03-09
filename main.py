@@ -5,6 +5,7 @@ import os
 import asyncio
 from dotenv import load_dotenv
 from bot.utils.database import init_db
+from bot.utils.logger import logger, log_exception
 
 load_dotenv()
 
@@ -38,15 +39,15 @@ COGS = [
 
 @bot.event
 async def on_ready():
-    print(f"=== {bot.user.name} 봇 시작 ===")
-    print(f"ID: {bot.user.id}")
-    print(f"서버 수: {len(bot.guilds)}")
+    logger.info(f"=== {bot.user.name} 봇 시작 ===")
+    logger.info(f"ID: {bot.user.id}")
+    logger.info(f"서버 수: {len(bot.guilds)}")
 
     await init_db()
-    print("데이터베이스 초기화 완료")
+    logger.info("데이터베이스 초기화 완료")
 
     # 등록된 명령어 확인
-    print(f"등록된 트리 명령어 수: {len(bot.tree.get_commands())}")
+    logger.info(f"등록된 트리 명령어 수: {len(bot.tree.get_commands())}")
 
     try:
         guild_id = os.getenv("GUILD_ID")
@@ -55,12 +56,12 @@ async def on_ready():
             # 길드에 명령어 복사 후 동기화
             bot.tree.copy_global_to(guild=guild)
             synced = await bot.tree.sync(guild=guild)
-            print(f"길드에 {len(synced)}개의 명령어 동기화 완료")
+            logger.info(f"길드에 {len(synced)}개의 명령어 동기화 완료")
         else:
             synced = await bot.tree.sync()
-            print(f"전역에 {len(synced)}개의 명령어 동기화 완료")
+            logger.info(f"전역에 {len(synced)}개의 명령어 동기화 완료")
     except Exception as e:
-        print(f"명령어 동기화 실패: {e}")
+        log_exception(logger, e, "command_sync")
 
     await bot.change_presence(
         activity=discord.Activity(
@@ -71,10 +72,25 @@ async def on_ready():
 
 
 @bot.event
+async def on_error(event, *args, **kwargs):
+    """처리되지 않은 이벤트 에러 로깅"""
+    import sys
+    exc_info = sys.exc_info()
+    if exc_info[0]:
+        log_exception(logger, exc_info[1], f"event:{event}")
+
+
+@bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
         return
-    print(f"Error: {error}")
+    log_exception(logger, error, f"command:{ctx.command}")
+
+
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error):
+    """슬래시 커맨드 에러 로깅"""
+    log_exception(logger, error, f"slash:{interaction.command.name if interaction.command else 'unknown'}")
 
 
 @bot.tree.command(name="help", description="봇 사용법을 확인합니다")
@@ -259,9 +275,9 @@ async def load_cogs():
     for cog in COGS:
         try:
             await bot.load_extension(cog)
-            print(f"로드 완료: {cog}")
+            logger.info(f"로드 완료: {cog}")
         except Exception as e:
-            print(f"로드 실패 ({cog}): {e}")
+            log_exception(logger, e, f"cog_load:{cog}")
 
 
 async def main():
@@ -269,8 +285,8 @@ async def main():
         await load_cogs()
         token = os.getenv("DISCORD_TOKEN")
         if not token:
-            print("Error: DISCORD_TOKEN이 설정되지 않았습니다.")
-            print(".env 파일에 DISCORD_TOKEN을 설정해주세요.")
+            logger.error("DISCORD_TOKEN이 설정되지 않았습니다.")
+            logger.error(".env 파일에 DISCORD_TOKEN을 설정해주세요.")
             return
         await bot.start(token)
 

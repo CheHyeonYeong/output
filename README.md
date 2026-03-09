@@ -2,6 +2,11 @@
 
 취준 스터디를 위한 도구 모음
 
+## AI 에이전트 안내
+
+- Claude: `CLAUDE.md`
+- Codex: `AGENTS.md`
+
 ## CS 면접 주관식 퀴즈
 
 **[퀴즈 사이트 바로가기](https://chehyeonyeong.github.io/output/)**

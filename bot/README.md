@@ -51,17 +51,6 @@ Output Study 운영을 위한 Discord 봇입니다.
 - 자동 제명 X → 운영진에게 알림 후 수동 처리
 - 운영진은 스트라이크 면제
 
-### 벌금 관리 (`fines.py`)
-| 명령어 | 권한 | 설명 |
-|--------|------|------|
-| `/fine` | 관리자 | 벌금 부과 |
-| `/fine-status` | 멤버 | 내 벌금 현황 |
-| `/fine-list` | 관리자 | 전체 벌금 현황 |
-| `/fine-paid` | 관리자 | 납부 처리 |
-
-**규칙**:
-- 무단 불참 시 50,000원
-
 ### 팀 관리 (`teams.py`)
 | 명령어 | 권한 | 설명 |
 |--------|------|------|
@@ -98,38 +87,6 @@ Output Study 운영을 위한 Discord 봇입니다.
 - `framework` - Spring, Ktor 등
 - `infra` - Docker, Kubernetes, Kafka 등
 - `specific_db` - Redis, MongoDB, Elasticsearch 등
-- `etc` - 기타
-
-### 코테 문제 추천 (`coding.py`)
-| 명령어 | 권한 | 설명 |
-|--------|------|------|
-| `/boj` | 모두 | 삼성 기출 랜덤 추천 |
-| `/boj count:N` | 모두 | N문제 추천 (1~5) |
-| `/boj daily:True` | 모두 | 오늘의 문제 |
-| `/boj-list` | 모두 | 전체 문제 목록 |
-| `/boj-stats` | 모두 | 문제 통계 |
-
-**데이터 소스**:
-- [삼성 SW 역량테스트 기출](https://www.acmicpc.net/workbook/view/4349)
-- [삼성 A형 기출](https://www.acmicpc.net/workbook/view/4344)
-
-### 자료실 (`resources.py`)
-| 명령어 | 권한 | 설명 |
-|--------|------|------|
-| `/자료등록` | 멤버 | 유용한 자료 공유 |
-| `/자료검색` | 모두 | 키워드/카테고리 검색 |
-| `/자료보기` | 모두 | 자료 상세 보기 |
-| `/자료목록` | 모두 | 카테고리별 목록 |
-| `/내자료` | 멤버 | 내가 등록한 자료 |
-| `/자료삭제` | 멤버 | 본인 자료 삭제 |
-| `/자료통계` | 모두 | 자료실 통계 |
-
-**카테고리**:
-- `article` - 아티클/블로그
-- `video` - 영상/강의
-- `book` - 책/문서
-- `tool` - 도구/사이트
-- `github` - GitHub 레포
 - `etc` - 기타
 
 ### 자동 스케줄러 (`scheduler.py`)
@@ -185,18 +142,16 @@ bot/
 │   ├── submissions.py      # 산출물 제출
 │   ├── attendance.py       # 출석 관리
 │   ├── strikes.py          # 스트라이크
-│   ├── fines.py            # 벌금 관리
 │   ├── teams.py            # 팀 관리
 │   ├── feedback.py         # 익명 피드백
 │   ├── reports.py          # 통계/리포트
 │   ├── scheduler.py        # 자동 알림
 │   ├── quiz.py             # CS 퀴즈
-│   ├── coding.py           # 코테 추천
-│   └── resources.py        # 자료실
+│   └── poppi.py            # 뽀삐
 ├── utils/                   # 유틸리티
 │   ├── database.py         # DB 관리 (SQLite)
 │   ├── quiz_parser.py      # quizData.js 파싱
-│   └── boj_crawler.py      # 백준 크롤러
+│   └── logger.py           # 로깅
 ├── README.md               # 이 파일
 └── plan.md                 # 개발 계획
 ```
@@ -244,17 +199,6 @@ bot/
 | issued_at | TEXT | 부과 시간 |
 | issued_by | INTEGER | 부과자 ID |
 
-### fines
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| id | INTEGER | PK |
-| user_id | INTEGER | 대상자 ID |
-| amount | INTEGER | 금액 (원) |
-| reason | TEXT | 사유 |
-| issued_at | TEXT | 부과 시간 |
-| is_paid | INTEGER | 납부 여부 |
-| paid_at | TEXT | 납부 시간 |
-
 ### teams / team_members
 | 테이블 | 컬럼 | 설명 |
 |--------|------|------|
@@ -278,18 +222,6 @@ bot/
 | target_user_id | INTEGER | 대상자 (NULL=전체) |
 | content | TEXT | 내용 |
 | created_at | TEXT | 작성 시간 |
-
-### resources
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| id | INTEGER | PK |
-| user_id | INTEGER | 등록자 ID |
-| title | TEXT | 제목 |
-| url | TEXT | URL |
-| description | TEXT | 설명 |
-| category | TEXT | 카테고리 |
-| tags | TEXT | 태그 (쉼표 구분) |
-| created_at | TEXT | 등록 시간 |
 
 ---
 

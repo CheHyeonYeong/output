@@ -24,14 +24,11 @@ COGS = [
     "bot.cogs.submissions",
     "bot.cogs.attendance",
     "bot.cogs.strikes",
-    "bot.cogs.fines",
     "bot.cogs.feedback",
     "bot.cogs.reports",
     "bot.cogs.scheduler",
     "bot.cogs.quiz",
     "bot.cogs.teams",
-    "bot.cogs.coding",
-    "bot.cogs.resources",
     "bot.cogs.poppi",
 ]
 
@@ -156,40 +153,12 @@ async def help_command(interaction: discord.Interaction):
     )
 
     embed.add_field(
-        name="💰 벌금",
-        value="`/fine-status` - 내 벌금 현황 확인",
-        inline=False
-    )
-
-    embed.add_field(
         name="📝 CS 퀴즈",
         value="""
 `/quiz` - 랜덤 퀴즈 풀기
 `/quiz category:<섹션>` - 특정 섹션 퀴즈
 `/quiz daily:True` - 오늘의 문제
 `/quiz-stats` - 퀴즈 통계
-        """,
-        inline=False
-    )
-
-    embed.add_field(
-        name="💻 코테 문제 추천",
-        value="""
-`/boj` - 삼성 기출 랜덤 추천
-`/boj count:3` - 3문제 추천
-`/boj daily:True` - 오늘의 문제
-`/boj-list` - 전체 문제 목록
-        """,
-        inline=False
-    )
-
-    embed.add_field(
-        name="📚 자료실",
-        value="""
-`/자료등록` - 유용한 자료 공유
-`/자료검색` - 자료 검색
-`/자료목록` - 카테고리별 목록
-`/내자료` - 내가 등록한 자료
         """,
         inline=False
     )

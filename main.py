@@ -141,7 +141,6 @@ async def help_command(interaction: discord.Interaction):
         value="""
 `/feedback` - 익명 피드백 전달
 `/report` - 주간 리포트
-`/ranking` - 활동 랭킹
         """,
         inline=False
     )

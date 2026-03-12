@@ -32,7 +32,6 @@ COGS = [
     "bot.cogs.teams",
     "bot.cogs.coding",
     "bot.cogs.resources",
-    "bot.cogs.jobs",
     "bot.cogs.poppi",
 ]
 
@@ -191,15 +190,6 @@ async def help_command(interaction: discord.Interaction):
 `/자료검색` - 자료 검색
 `/자료목록` - 카테고리별 목록
 `/내자료` - 내가 등록한 자료
-        """,
-        inline=False
-    )
-
-    embed.add_field(
-        name="💼 채용공고",
-        value="""
-`/jobs` - 채용공고 검색
-`/job-status` - 크롤러 상태 확인
         """,
         inline=False
     )

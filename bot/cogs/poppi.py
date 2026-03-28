@@ -4,6 +4,7 @@ from discord.ext import commands
 import random
 from datetime import datetime, timedelta
 from typing import Optional
+import asyncio
 
 # 뽀삐 상태 저장 (서버별)
 poppi_states = {}
@@ -337,6 +338,76 @@ class Poppi(commands.Cog):
         )
 
         await interaction.response.send_message(embed=embed)
+
+    # ============ 관리자 유틸리티 ============
+
+    @app_commands.command(name="청소", description="[관리자] 메시지를 삭제합니다")
+    @app_commands.describe(
+        count="삭제할 메시지 수 (1~100)",
+        user="특정 유저의 메시지만 삭제 (선택사항)"
+    )
+    @app_commands.default_permissions(manage_messages=True)
+    async def purge(
+        self,
+        interaction: discord.Interaction,
+        count: int,
+        user: discord.Member = None
+    ):
+        """메시지 일괄 삭제"""
+        if count < 1 or count > 100:
+            await interaction.response.send_message(
+                "1~100 사이의 숫자를 입력해주세요.",
+                ephemeral=True
+            )
+            return
+
+        await interaction.response.defer(ephemeral=True)
+
+        channel = interaction.channel
+
+        # 메시지 삭제
+        if user:
+            # 특정 유저의 메시지만 삭제
+            deleted = []
+            async for message in channel.history(limit=100):
+                if message.author.id == user.id and len(deleted) < count:
+                    deleted.append(message)
+
+            if deleted:
+                await channel.delete_messages(deleted)
+            deleted_count = len(deleted)
+        else:
+            # 모든 메시지 삭제
+            deleted = await channel.purge(limit=count)
+            deleted_count = len(deleted)
+
+        # 결과 메시지
+        embed = discord.Embed(
+            title="🧹 청소 완료!",
+            description=f"**{deleted_count}개**의 메시지를 삭제했습니다.",
+            color=discord.Color.green()
+        )
+        if user:
+            embed.add_field(name="대상", value=user.mention, inline=True)
+
+        embed.set_footer(text="뽀삐: 깨끗해졌다! ✨")
+
+        await interaction.followup.send(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="purge", description="[Admin] Delete messages")
+    @app_commands.describe(
+        count="Number of messages to delete (1~100)",
+        user="Delete only this user's messages (optional)"
+    )
+    @app_commands.default_permissions(manage_messages=True)
+    async def purge_en(
+        self,
+        interaction: discord.Interaction,
+        count: int,
+        user: discord.Member = None
+    ):
+        """English alias for purge command"""
+        await self.purge.callback(self, interaction, count, user)
 
 
 async def setup(bot: commands.Bot):

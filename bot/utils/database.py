@@ -939,3 +939,47 @@ async def withdraw_all_members():
         await db.execute("DELETE FROM team_members")
         await db.execute("UPDATE members SET is_active = 0")
         await db.commit()
+
+
+# ============ 설정 관리 ============
+
+async def init_settings_table():
+    """설정 테이블 초기화"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        """)
+        await db.commit()
+
+
+async def set_setting(key: str, value: str):
+    """설정 저장"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """INSERT OR REPLACE INTO settings (key, value, updated_at)
+               VALUES (?, ?, ?)""",
+            (key, value, datetime.now().isoformat())
+        )
+        await db.commit()
+
+
+async def get_setting(key: str, default: str = None) -> Optional[str]:
+    """설정 조회"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT value FROM settings WHERE key = ?", (key,)
+        ) as cursor:
+            row = await cursor.fetchone()
+            return row[0] if row else default
+
+
+async def get_all_settings() -> dict:
+    """모든 설정 조회"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT key, value FROM settings") as cursor:
+            rows = await cursor.fetchall()
+            return {row[0]: row[1] for row in rows}

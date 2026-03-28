@@ -108,7 +108,7 @@ function parseMarkdownFile(filePath) {
                 rawAnswer = rawAnswer.replace(/\*\*참고자료\*\*[\s\S]*$/, '').trim();
             }
 
-            answerText = cleanMarkdown(rawAnswer);
+            answerText = rawAnswer;
         }
 
         if (questionText && answerText) {

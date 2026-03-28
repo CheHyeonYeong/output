@@ -331,6 +331,48 @@ async def get_session_attendees(session_type: str, session_date: str = None) -> 
             return [row[0] for row in rows]
 
 
+async def get_weekly_attendance_stats(weeks: int = 4) -> list:
+    """최근 N주간 멤버별 출석 통계 조회"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            """SELECT
+                   a.user_id,
+                   m.username,
+                   strftime('%Y-%W', a.session_date) as week,
+                   COUNT(*) as attendance_count
+               FROM attendance a
+               LEFT JOIN members m ON a.user_id = m.user_id
+               WHERE a.session_date >= date('now', ? || ' days')
+               GROUP BY a.user_id, week
+               ORDER BY week DESC, attendance_count DESC""",
+            (f"-{weeks * 7}",)
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(row) for row in rows]
+
+
+async def get_weekly_attendance_summary(weeks: int = 4) -> list:
+    """최근 N주간 멤버별 총 출석 횟수 요약"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            """SELECT
+                   a.user_id,
+                   m.username,
+                   COUNT(*) as total_attendance,
+                   COUNT(DISTINCT a.session_date) as days_attended
+               FROM attendance a
+               LEFT JOIN members m ON a.user_id = m.user_id
+               WHERE a.session_date >= date('now', ? || ' days')
+               GROUP BY a.user_id
+               ORDER BY total_attendance DESC""",
+            (f"-{weeks * 7}",)
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(row) for row in rows]
+
+
 # ============ 익명 피드백 ============
 
 async def add_feedback(content: str, target_user_id: int = None) -> int:

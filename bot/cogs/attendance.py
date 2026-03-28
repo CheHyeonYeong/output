@@ -3,7 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 from bot.utils.database import (
     check_attendance, get_attendance_stats, get_session_attendees,
-    add_member, get_member
+    add_member, get_member, get_weekly_attendance_summary
 )
 import os
 import asyncio
@@ -106,6 +106,65 @@ class Attendance(commands.Cog):
             embed.description = "아직 출석 기록이 없습니다."
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="weekly-attendance", description="최근 주간 출석 통계를 확인합니다")
+    @app_commands.describe(weeks="조회할 주 수 (기본: 4주)")
+    async def weekly_attendance(
+        self,
+        interaction: discord.Interaction,
+        weeks: int = 4
+    ):
+        await interaction.response.defer()
+
+        if weeks < 1:
+            weeks = 1
+        elif weeks > 12:
+            weeks = 12
+
+        stats = await get_weekly_attendance_summary(weeks)
+
+        embed = discord.Embed(
+            title=f"최근 {weeks}주간 출석 통계",
+            description=f"기간: 최근 {weeks * 7}일",
+            color=discord.Color.blue()
+        )
+
+        if stats:
+            # 출석 순위 표시
+            ranking_text = ""
+            for i, stat in enumerate(stats[:20], 1):
+                username = stat.get("username") or f"User#{stat['user_id']}"
+                total = stat["total_attendance"]
+                days = stat["days_attended"]
+
+                if i <= 3:
+                    medal = ["🥇", "🥈", "🥉"][i - 1]
+                    ranking_text += f"{medal} **{username}**: {total}회 ({days}일)\n"
+                else:
+                    ranking_text += f"`{i:2d}.` {username}: {total}회 ({days}일)\n"
+
+            embed.add_field(
+                name="출석 순위 (상위 20명)",
+                value=ranking_text or "데이터 없음",
+                inline=False
+            )
+
+            # 통계 요약
+            total_attendance = sum(s["total_attendance"] for s in stats)
+            total_members = len(stats)
+            avg_attendance = total_attendance / total_members if total_members > 0 else 0
+
+            embed.add_field(name="총 출석 횟수", value=f"{total_attendance}회", inline=True)
+            embed.add_field(name="참여 멤버 수", value=f"{total_members}명", inline=True)
+            embed.add_field(name="평균 출석", value=f"{avg_attendance:.1f}회", inline=True)
+
+            # 미출석 경고 (0회 출석자 표시는 별도 로직 필요)
+            if len(stats) > 20:
+                embed.set_footer(text=f"... 외 {len(stats) - 20}명")
+        else:
+            embed.description = f"최근 {weeks}주간 출석 기록이 없습니다."
+
+        await interaction.followup.send(embed=embed)
 
     # ============ 관리자 DM 기능 ============
 

@@ -86,6 +86,52 @@ class Submissions(commands.Cog):
                 ephemeral=True
             )
 
+    @app_commands.command(name="submissions", description="이번 주 제출된 산출물 목록을 확인합니다")
+    async def submissions_list(self, interaction: discord.Interaction):
+        """제출된 산출물 링크 목록 표시"""
+        submissions = await get_weekly_submissions()
+
+        if not submissions:
+            await interaction.response.send_message(
+                "이번 주에 제출된 산출물이 없습니다.",
+                ephemeral=True
+            )
+            return
+
+        embed = discord.Embed(
+            title="📋 이번 주 산출물 목록",
+            description=f"총 {len(submissions)}개 제출됨",
+            color=discord.Color.green()
+        )
+
+        type_names = {
+            "algorithm": "알고리즘",
+            "project": "프로젝트",
+            "blog": "블로그",
+            "resume": "이력서/포폴"
+        }
+
+        for s in submissions[:25]:  # Discord embed 필드 제한
+            username = s.get("username") or f"User#{s['user_id']}"
+            sub_type = type_names.get(s["submission_type"], s["submission_type"])
+            description = s.get("description", "")[:100]
+            link = s.get("message_link", "")
+
+            field_value = f"**{sub_type}**\n{description}"
+            if link:
+                field_value += f"\n[링크 바로가기]({link})"
+
+            embed.add_field(
+                name=f"📝 {username}",
+                value=field_value,
+                inline=False
+            )
+
+        if len(submissions) > 25:
+            embed.set_footer(text=f"... 외 {len(submissions) - 25}개")
+
+        await interaction.response.send_message(embed=embed)
+
     @app_commands.command(name="status", description="이번 주 제출 현황을 확인합니다")
     async def submission_status(self, interaction: discord.Interaction):
         submissions = await get_weekly_submissions()

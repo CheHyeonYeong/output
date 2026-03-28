@@ -312,5 +312,59 @@ class Members(commands.Cog):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+    # ============ 자동 멤버 정리 ============
+
+    @commands.Cog.listener()
+    async def on_member_remove(self, member: discord.Member):
+        """멤버가 서버를 떠나면 자동으로 비활성화"""
+        if member.bot:
+            return
+
+        # DB에서 비활성화
+        db_member = await get_member(member.id)
+        if db_member and db_member["is_active"]:
+            await deactivate_member(member.id)
+            print(f"[Members] {member.display_name} (ID: {member.id}) 서버 퇴장 - 자동 비활성화")
+
+    @app_commands.command(name="sync-members", description="[관리자] 서버를 떠난 멤버들을 DB에서 정리합니다")
+    @app_commands.default_permissions(administrator=True)
+    async def sync_members(self, interaction: discord.Interaction):
+        """서버에 없는 멤버들을 DB에서 비활성화"""
+        await interaction.response.defer(ephemeral=True)
+
+        if not interaction.guild:
+            await interaction.followup.send("서버에서만 사용할 수 있습니다.", ephemeral=True)
+            return
+
+        # 서버의 현재 멤버 ID 목록
+        guild_member_ids = {m.id for m in interaction.guild.members if not m.bot}
+
+        # DB의 활성 멤버 목록
+        db_members = await get_all_active_members()
+
+        # 서버에 없는 멤버 찾기
+        removed_members = []
+        for db_member in db_members:
+            if db_member["user_id"] not in guild_member_ids:
+                await deactivate_member(db_member["user_id"])
+                removed_members.append(db_member["username"] or f"User#{db_member['user_id']}")
+
+        embed = discord.Embed(
+            title="멤버 동기화 완료",
+            color=discord.Color.green() if removed_members else discord.Color.blue()
+        )
+
+        if removed_members:
+            embed.description = f"**{len(removed_members)}명**의 나간 멤버를 비활성화했습니다."
+            removed_list = "\n".join(f"- {name}" for name in removed_members[:20])
+            if len(removed_members) > 20:
+                removed_list += f"\n... 외 {len(removed_members) - 20}명"
+            embed.add_field(name="비활성화된 멤버", value=removed_list, inline=False)
+        else:
+            embed.description = "정리할 멤버가 없습니다. 모든 DB 멤버가 서버에 있습니다."
+
+        await interaction.followup.send(embed=embed, ephemeral=True)
+
+
 async def setup(bot: commands.Bot):
     await bot.add_cog(Members(bot))
